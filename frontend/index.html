@@ -6,11 +6,11 @@
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
 </head>
 <body style="background: white;">
-    <h1>Hello World!</h1>
-    <p>
-        We are using Node.js <span id="node-version"></span>,
-        Chromium <span id="chrome-version"></span>,
-        and Electron <span id="electron-version"></span>.
-    </p>
+    <div id="temp-left-cont">
+        <label for="table-select">Select a table:</label>
+        <select name="table-select" id="temp-table-list-select" onchange="onSelectChange()"></select>
+    </div>
+    <div id="temp-right-cont"></div>
+    <script type="text/javascript" src="app.js"></script>
 </body>
 </html>

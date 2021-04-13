@@ -14,12 +14,18 @@ const queryPgCatConstraints =
         LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.connamespace 
         WHERE n.nspname = 'public';`;
 
-const queryPgCatRels = 
+const queryPgAttributes = 
     `SELECT a.attname, a.attlen, a.attnum, a.attndims, t.typname, t.typcategory, a.attrelid, c.relname from pg_catalog.pg_attribute a
         INNER JOIN pg_catalog.pg_type t ON a.atttypid = t.oid
         INNER JOIN pg_catalog.pg_class c ON c.oid = a.attrelid
         LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-        WHERE n.nspname = 'public' AND a.attnum >= 0;`;
+        WHERE n.nspname = 'public' AND a.attnum >= 0 AND c.relkind = 'r';`;
+
+const queryPgTableNames = 
+    `SELECT c.oid as oid, c.relname FROM pg_catalog.pg_class c
+        LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public' AND c.reltype > 0 AND c.relkind = 'r'
+        ORDER BY relname;`;
 
 const connConfigFile = fs.readFileSync("./pg-connection.yaml", {encoding: "utf8"});
 connConfig = YAML.parse(connConfigFile);
@@ -47,23 +53,39 @@ function errorHandling(err) {
 //     return tablesRawSchema;
 // }
 
-async function getTableInfo() {
+async function getTableNames() {
     const pool = new Pool(connConfig);
     pool.on("error", (err, client) => errorHandling(err));
 
-    let catConstraints = await pool.query(queryPgCatConstraints);
-    catConstraints = catConstraints["rows"]
-    let catRels = await pool.query(queryPgCatRels);
-    catRels = catRels["rows"];
-
+    let tableNames = await pool.query(queryPgTableNames);
     pool.end();
-    return [catConstraints, catRels];
+    
+    tableNames = tableNames["rows"];
+    return tableNames;
 }
 
-getTableInfo().then(res => {
-    let catConstraints = res[0];
-    let catRels = res[1];
-})
+async function getTableInfo(constraints = true, rels = true) {
+    const pool = new Pool(connConfig);
+    let out = [];
+    pool.on("error", (err, client) => errorHandling(err));
+
+    if (constraints) {
+        let catConstraints = await pool.query(queryPgCatConstraints);
+        catConstraints = catConstraints["rows"];
+        out.push(catConstraints);
+    }
+
+    if (rels) {
+        let catRels = await pool.query(queryPgAttributes);
+        catRels = catRels["rows"];
+        out.push(catRels);
+    }
+
+    pool.end();
+    return out;
+}
+
+module.exports = { getTableInfo, getTableNames }
 
 // pool.connect()
 //     .then(async client => {
