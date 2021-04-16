@@ -14,6 +14,47 @@ const queryPgCatConstraints =
         LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.connamespace 
         WHERE n.nspname = 'public';`;
 
+const queryPgTableConstraints = (targetTableOID = 0, foreignKey = false) => {
+    let constQueryConditions = "";
+    if (targetTableOID > 0) {
+        constQueryConditions += " AND c.conrelid = " + targetTableOID;
+        if (foreignKey) {
+            constQueryConditions += " AND c.contype = 'f'";
+        }
+    }
+    return `SELECT c.oid, c.conname, c.contype, c.conrelid, c.conkey, c.confrelid, c.confkey, pg_catalog.pg_get_constraintdef(c.oid)
+        AS con_def FROM pg_catalog.pg_constraint c
+        LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.connamespace 
+        WHERE n.nspname = 'public'${constQueryConditions};`;
+}
+
+const queryPgTableForeignKeys = (targetTableOID = 0) => {
+    let constQueryConditions = "";
+    if (targetTableOID > 0) {
+        constQueryConditions += " AND c1.conrelid = " + targetTableOID;
+        constQueryConditions += " AND c1.contype = 'f'";
+    }
+    return `SELECT c1.oid, c1.conname, c1.contype, c1.conrelid, c1.conkey, c1.confrelid, c1.confkey, 
+        c2.relname as confname, pg_catalog.pg_get_constraintdef(c1.oid)
+        AS con_def FROM pg_catalog.pg_constraint c1
+        LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c1.connamespace
+        INNER JOIN pg_catalog.pg_class c2 ON c1.confrelid = c2.oid
+        WHERE n.nspname = 'public'${constQueryConditions};`;
+}
+
+const queryPgAttributesByTable = (targetTableOID) => {
+    if (targetTableOID > 0) {
+        return `SELECT a.attname, a.attlen, a.attnum, a.attndims, t.typname, t.typcategory, a.attrelid, c.relname from pg_catalog.pg_attribute a
+            INNER JOIN pg_catalog.pg_type t ON a.atttypid = t.oid
+            INNER JOIN pg_catalog.pg_class c ON c.oid = a.attrelid
+            LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = 'public' AND a.attnum >= 0 AND a.attrelid = ${targetTableOID}
+            ORDER BY a.attnum;`;
+    } else {
+        throw new Error("targetTableOID not positive");
+    }
+}
+
 const queryPgAttributes = 
     `SELECT a.attname, a.attlen, a.attnum, a.attndims, t.typname, t.typcategory, a.attrelid, c.relname from pg_catalog.pg_attribute a
         INNER JOIN pg_catalog.pg_type t ON a.atttypid = t.oid
@@ -35,33 +76,33 @@ function errorHandling(err) {
     throw err;
 }
 
-// Packaged function to talk to the database to retrieve table schemas, grouped by table names
-// async function getTableInfo() {
-//     const pool = new Pool(connConfig);
-//     pool.on("error", (err, client) => errorHandling(err));
-
-//     let tableList = await pool.query(queryTableNames);
-//     console.log(tableList);
-//     tablesRawSchema = {};
-//     for (let tt of tableList.rows) {
-//         let tableName = tt["table_name"];
-//         tablesRawSchema[tableName] = await pool.query(queryColumnInfoSchema(tableName));
-//         tablesRawSchema[tableName] = tablesRawSchema[tableName]["rows"];
-//     }
-
-//     pool.end();
-//     return tablesRawSchema;
-// }
-
-async function getTableNames() {
+async function singlePoolRequest(query) {
     const pool = new Pool(connConfig);
     pool.on("error", (err, client) => errorHandling(err));
 
-    let tableNames = await pool.query(queryPgTableNames);
+    poolQuery = await pool.query(query);
     pool.end();
-    
-    tableNames = tableNames["rows"];
-    return tableNames;
+
+    return poolQuery["rows"];
+}
+
+async function getTableForeignKeys(oid) {
+    const pool = new Pool(connConfig);
+    pool.on("error", (err, client) => errorHandling(err));
+    let thisQuery = queryPgTableForeignKeys(oid);
+
+    poolQuery = await pool.query(thisQuery);
+    pool.end();
+
+    return poolQuery["rows"];
+}
+
+async function getTableNames() {
+    return singlePoolRequest(queryPgTableNames);
+}
+
+async function getTableAttributes(oid) {
+    return singlePoolRequest(queryPgAttributesByTable(oid));
 }
 
 async function getTableInfo(constraints = true, rels = true) {
@@ -85,73 +126,4 @@ async function getTableInfo(constraints = true, rels = true) {
     return out;
 }
 
-module.exports = { getTableInfo, getTableNames }
-
-// pool.connect()
-//     .then(async client => {
-//         try {
-//             const res = await client
-//                 .query(queryTableNames);
-//             tableList = res["rows"].map(elem => elem["table_name"]);
-//             client.release();
-//             return tableList;
-//         } catch (err_1) {
-//             client.release();
-//             errorHandling(err_1);
-//         }
-//     })
-
-// (async () => {
-//     const client = await pool.connect();
-//     try {
-//         // Retrieve names 
-//         const res = await client.query(queryTableNames);
-//         const dbTablesList = res["rows"].map(elem => elem["table_name"]);
-//         console.log(dbTablesList);
-//         dbTablesList.forEach(tableName => {
-//             console.log(tableName)
-//         });
-//         client.release();
-//     } catch (err) {
-//         client.release();
-//         errorHandling(err);
-//     }
-// })();
-
-// pool
-//     .connect()
-//     .then(client => {
-//     return client
-//         .query(queryTableNames)
-//         .then(res => {
-//             client.release();
-//             tableList = res["rows"].map(elem => elem["table_name"]);
-//         })
-//         .catch(err => {
-//             client.release();
-//             errorHandling(err);
-//         })
-// })
-
-// pool.query(queryTableNames, (err, res) => {
-//     if (err != null) {
-//         // Error when connecting to the DB server
-//         errorHandling(err);
-//     }
-//     try {
-//         // Retrieve names 
-//         const dbTablesList = res["rows"].map(elem => elem["table_name"]);
-//         console.log(dbTablesList);
-//         dbTablesList.forEach(tableName => {
-//             console.log(tableName)
-//             pool.query(queryColumnInfoSchema(tableName), (err, res) => {
-//                 if (err != null) {
-//                     errorHandling(err);
-//                 }
-//             })
-//         });
-//         pool.end();
-//     } catch (err) {
-//         errorHandling(err);
-//     }
-// });
+module.exports = { getTableInfo, getTableNames, getTableForeignKeys, getTableAttributes }

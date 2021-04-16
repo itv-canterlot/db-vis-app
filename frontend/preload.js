@@ -16,31 +16,7 @@ window.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    let populateTableListRequestOptions = {
-        host: "localhost",
-        port: "3000",
-        path: "/temp-db-table-list",
-        method: "GET",
-    }
-
-    let getTableSchemaRequestOptions = {
-        host: "localhost",
-        port: "3000",
-        path: "/temp-db-schema",
-        method: "GET",
-    }
-    
-    http.get(populateTableListRequestOptions, (res) => {
-        res.setEncoding("utf8");
-        res.on("data", (chunk) => {
-            populateSelectOptions("temp-table-list-select", JSON.parse(chunk));
-        });
-    })
-
-    // http.get(getTableSchemaRequestOptions, (res) => {
-    //     res.setEncoding("utf8");
-    //     res.on("data", (chunk) => {
-    //         console.log(JSON.parse(chunk));
-    //     });
-    // })
+    fetch('http://localhost:3000/temp-db-table-list')
+        .then(res => res.json())
+        .then(data => populateSelectOptions("temp-table-list-select", data));
 });

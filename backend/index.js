@@ -1,7 +1,9 @@
-const express = require('express')
+const express = require('express');
+
 const app = express()
 const port = 3000
 const pgconnect = require('./pgconnect.js');
+app.use(express.json());
 
 app.get('/', (req, res) => {
   res.send('Not implemented')
@@ -17,6 +19,36 @@ app.get('/temp-db-schema', (req, res) => {
   pgconnect.getTableInfo().then(tabRes => {
     res.send(tabRes);
   });
+})
+
+app.post('/temp-db-table-foreign-keys', (req, res) => {
+  var baseResponse = {};
+  pgconnect.getTableForeignKeys(req.body["oid"]).then(tabRes => {
+    baseResponse["tableForeignKeys"] = tabRes;
+    return pgconnect.getTableAttributes(req.body["oid"]);
+  }).then(attrRes => {
+    // Attributes for the current table
+    baseResponse["tableAttributes"] = attrRes;
+    
+    // Generating attributes for the corresponding referenced tables
+    var attrPromises = [];
+
+    baseResponse["tableForeignKeys"].forEach((val => {
+      let foreignTableOID = val["confrelid"];      
+      attrPromises.push(pgconnect.getTableAttributes(foreignTableOID));
+    }));
+    
+    return Promise.all(attrPromises);
+  }).then(attrRes => {
+    // Filter the list of attributes based on foreign key, and affix to response
+    attrRes = attrRes.map((val, idx) => {
+      let foreignTableKey = baseResponse["tableForeignKeys"][idx]["confkey"];
+      foreignTableKey = foreignTableKey.map(v => v - 1); // pgsql is 1-indexed
+      return val.filter((_, attrIdx) => foreignTableKey.some(ftki => ftki == attrIdx));
+    })
+    baseResponse["frelAtts"] = attrRes;
+    res.send(baseResponse);
+  })
 })
 
 app.listen(port, () => {
