@@ -18,5 +18,5 @@ window.addEventListener("DOMContentLoaded", () => {
 
     fetch('http://localhost:3000/temp-db-table-list')
         .then(res => res.json())
-        .then(data => populateSelectOptions("temp-table-list-select", data));
+        .then(data => populateSelectOptions("table-list-select-dropdown", data));
 });

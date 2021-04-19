@@ -1,6 +1,7 @@
 const { Pool } = require("pg");
 const YAML = require("yaml");
 const fs = require("fs");
+const { exception } = require("console");
 
 // SQL boilerplates
 const queryGeneralInfoSchema = "SELECT * FROM information_schema.tables WHERE table_schema = 'public';"
@@ -77,13 +78,18 @@ function errorHandling(err) {
 }
 
 async function singlePoolRequest(query) {
-    const pool = new Pool(connConfig);
-    pool.on("error", (err, client) => errorHandling(err));
-
-    poolQuery = await pool.query(query);
-    pool.end();
-
-    return poolQuery["rows"];
+    try {
+        const pool = new Pool(connConfig);
+        pool.on("error", (err, client) => errorHandling(err));
+    
+        poolQuery = await pool.query(query);
+        pool.end();
+    
+        return poolQuery["rows"];
+    } catch (error) {
+        // TODO: what to return on fault?
+        errorHandling(error);
+    }
 }
 
 async function getTableForeignKeys(oid) {
