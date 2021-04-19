@@ -1,10 +1,53 @@
 const React = require('react');
 const ReactDOM = require('react-dom');
 
+class AttributeRow extends React.Component {
+    constructor(props) {
+        super(props);
+
+        this.onClickSelectButton = this.onClickSelectButton.bind(this);
+    }
+
+    onClickSelectButton() {
+        // Do nothing if this element has already been selected
+        if (this.props.isSelected) return; 
+        this.props.onBaseTableAttSelect(this.props.attnum);
+    }
+
+    render() {
+        return (
+            <tr key={this.props.attnum}>
+                <td>{this.props.attnum}</td>
+                <td>{this.props.attname}</td>
+                <td>{this.props.typname}</td>
+                <td>
+                    <button 
+                        type="button" 
+                        className={"btn " + (this.props.isSelected 
+                            ? "btn-success" 
+                            : "btn-primary")}
+                        key={this.props.attnum}
+                        onClick={this.onClickSelectButton}>
+                        {this.props.isSelected
+                            ? "Selected"
+                            : "Select"
+                        }
+                    </button>
+                </td>
+            </tr>
+        )
+    }
+}
+
 class AttributeList extends React.Component {
     constructor(props) {
         super(props);
-        // TODO: add states
+
+        this.onBaseTableAttSelect = this.onBaseTableAttSelect.bind(this);
+    }
+
+    onBaseTableAttSelect(attnum) {
+        this.props.onChangeSelectedBaseTableAtt(attnum)
     }
     
     render() {
@@ -17,15 +60,19 @@ class AttributeList extends React.Component {
                             <th scope="col">#</th>
                             <th scope="col">Attribute name</th>
                             <th scope="col">Type</th>
+                            <th scope="col" />
                         </tr>
                     </thead>
                     <tbody>
-                        {(this.props.tableAttributes || []).map(item => (
-                            <tr key={item.attnum}>
-                                <th>{item.attnum}</th>
-                                <th>{item.attname}</th>
-                                <th>{item.typname}</th>
-                            </tr>
+                        {this.props.tableAttributes.map(item => (
+                            <AttributeRow
+                                key={item.attnum}
+                                attnum={item.attnum}
+                                attname={item.attname}
+                                typname={item.typname}
+                                isSelected={this.props.selectedBaseTableAtt == item.attnum}
+                                onBaseTableAttSelect={this.onBaseTableAttSelect}
+                             />
                         ))}
                     </tbody>
                 </table>
@@ -77,26 +124,43 @@ class EntityBrowser extends React.Component {
 
         // States
         this.state = {
-            tableAttributes: []
+            tableAttributes: [],
+            selectedBaseTableAtt: undefined
         };
         
         // Binding handlers for child components
         this.attributeSelectHandler = this.attributeSelectHandler.bind(this);
+        this.onChangeSelectedBaseTableAtt = this.onChangeSelectedBaseTableAtt.bind(this);
+    }
+
+    onChangeSelectedBaseTableAtt(newAtt) {
+        this.setState({
+            selectedBaseTableAtt: newAtt
+        });
     }
 
     // Handles attribute list returned from EntitySelector, passed onto AttributeList
     attributeSelectHandler(attributeContent) {
         this.setState({
-            tableAttributes: attributeContent["tableAttributes"]
+            tableAttributes: attributeContent["tableAttributes"],
+            selectedBaseTableAtt: undefined
         })
         console.log(attributeContent); // TODO
+    }
+
+    baseTableAttSelectHander(attSelectId) {
+        this.setState({
+            selectedBaseTableAtt: attSelectId
+        });
     }
 
     render() {
         return (
             <div className="col">
                 <EntitySelector attributeHandler={this.attributeSelectHandler} />
-                <AttributeList tableAttributes={this.state.tableAttributes} />
+                <AttributeList tableAttributes={this.state.tableAttributes}
+                    selectedBaseTableAtt={this.state.selectedBaseTableAtt}
+                    onChangeSelectedBaseTableAtt={this.onChangeSelectedBaseTableAtt} />
             </div>
         )
     }
