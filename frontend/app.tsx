@@ -54,7 +54,7 @@ class AttributeList extends React.Component {
         return (
             <div>
                 <p className="h2" />
-                <table className="table">
+                <table className="table att-table">
                     <thead>
                         <tr>
                             <th scope="col">#</th>

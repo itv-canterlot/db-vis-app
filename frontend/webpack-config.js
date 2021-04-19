@@ -6,7 +6,7 @@ module.exports = {
         filename: "./app-bundle.js"
     },
     resolve: {
-        extensions: ['.Webpack.js', '.web.js', '.ts', '.js', '.jsx', '.tsx']
+        extensions: ['.Webpack.js', '.web.js', '.ts', '.js', '.jsx', '.tsx', '.css']
     },
     module: {
         rules: [
@@ -16,6 +16,9 @@ module.exports = {
                 use: {
                     loader: 'ts-loader'
                 }
+            }, {
+                test: /\.css$/i,
+                use: ['style-loader', 'css-loader'],
             }
         ]
     }
