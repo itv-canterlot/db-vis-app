@@ -11,8 +11,11 @@
     "exclude": [
       "node_modules"
     ],
-    "files": [
-      "./app.tsx"
+    // "files": [
+    //   "./src/app.tsx",
+    // ]
+    "include": [
+      "./src/**/*.tsx"
     ]
   }
   
