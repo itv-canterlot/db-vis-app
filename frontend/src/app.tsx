@@ -206,8 +206,8 @@ class Application extends React.Component {
 
     // Called when R1 is changed
     onTableSelectChange = (e) => {
-        let tableIndex = e.target.getAttribute("data-index");
-        let tableKey = e.target.getAttribute("data-key");
+        let tableIndex = parseInt(e.target.getAttribute("data-index"));
+        let tableKey = parseInt(e.target.getAttribute("data-key"));
 
         if (tableIndex < 0) return;
 
@@ -235,33 +235,42 @@ class Application extends React.Component {
     }
 
     onAttributeSelectChange = (e) => {
-        let attributeIndex = e.target.getAttribute("data-index");
+        let attributeIndex = parseInt(e.target.getAttribute("data-index"));
 
         if (attributeIndex < 0) return;
 
         this.setState({
             selectedAttributeIndex: attributeIndex
+        }, () => {
+            this.checkVisualisationPossibility();
         });
-    }
 
-    onFKAttributeSelectChange = (e) => {
-        let attributeIndex = e.target.getAttribute("data-index");
-
-        if (attributeIndex < 0) return;
-
-        this.setState({
-            selectedFKAttributeIndex: attributeIndex
-        });
     }
 
     onForeignKeySelectChange = (e) => {
-        let fkIndex = e.target.getAttribute("data-index");
+        let fkIndex = parseInt(e.target.getAttribute("data-index"));
 
         if (fkIndex < 0) return;
 
         this.setState({
             selectedForeignKeyIndex: fkIndex
+        }, () => {
+            this.checkVisualisationPossibility();
         });
+        
+    }
+
+    onFKAttributeSelectChange = (e) => {
+        let attributeIndex = parseInt(e.target.getAttribute("data-index"));
+
+        if (attributeIndex < 0) return;
+
+        this.setState({
+            selectedFKAttributeIndex: attributeIndex
+        }, () => {
+            this.checkVisualisationPossibility();
+        });
+        
     }
 
     updateOnTableListFocus = () => {
@@ -295,6 +304,7 @@ class Application extends React.Component {
                 // TODO
                 return;
             } else {
+                console.log("This is possible");
                 // Single attribute: bar chart (details to be implemented)
             }
         } else {
