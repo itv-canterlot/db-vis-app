@@ -86,11 +86,15 @@ class EntitySelector extends React.Component {
             allEntitiesList: [],
             selectedTableIndex: -1,
             selectedAttributeIndex: -1,
-            tableAttributes: []
+            selectedForeignKeyIndex: -1,
+            selectedFKAttributeIndex: -1,
+            tableAttributes: [],
+            tableForeignKeys: [],
+            frelAtts: []
         };
     }
 
-    tableSelectChanged = (e) => {
+    onTableSelectChange = (e) => {
         let tableIndex = e.target.getAttribute("data-index");
         let tableKey = e.target.getAttribute("data-key");
 
@@ -99,14 +103,19 @@ class EntitySelector extends React.Component {
         this.setState({
             selectedTableIndex: tableIndex,
             selectedAttributeIndex: -1,
+            selectedForeignKeyIndex: -1,
+            selectedFKAttributeIndex: -1,
             load: true
         }, () => {
             getAttributeContentFromDatabase(tableKey)
                 .then(attributeContent => {
                     this.props.attributeHandler(attributeContent);
                     this.setState({
-                        tableAttributes: attributeContent["tableAttributes"]
+                        tableAttributes: attributeContent["tableAttributes"],
+                        tableForeignKeys: attributeContent["tableForeignKeys"],
+                        frelAtts: attributeContent["frelAtts"]
                     })
+                    console.log(this.state.tableForeignKeys);
                 });
             
             this.setState({
@@ -115,13 +124,34 @@ class EntitySelector extends React.Component {
         });
     }
 
-    attributeSelectChanged = (e) => {
+    onAttributeSelectChange = (e) => {
         let attributeIndex = e.target.getAttribute("data-index");
 
         if (attributeIndex < 0) return;
 
         this.setState({
             selectedAttributeIndex: attributeIndex
+        });
+    }
+
+    onFKAttributeSelectChange = (e) => {
+        let attributeIndex = e.target.getAttribute("data-index");
+
+        if (attributeIndex < 0) return;
+
+        this.setState({
+            selectedFKAttributeIndex: attributeIndex
+        });
+    }
+
+    onForeignKeySelectChange = (e) => {
+        let fkIndex = e.target.getAttribute("data-index");
+        console.log(fkIndex);
+
+        if (fkIndex < 0) return;
+
+        this.setState({
+            selectedForeignKeyIndex: fkIndex
         });
     }
 
@@ -161,6 +191,34 @@ class EntitySelector extends React.Component {
             </a>
     }
 
+    FKArrayRenderer = (item, index, onClickCallback, selectedIndex) => { 
+        return <a className={"d-flex dropdown-item" + (index == selectedIndex ? " active" : "")} 
+            data-key={item.confrelid} data-index={index} data-content={item.confname} key={index} href="#" onMouseDown={onClickCallback}>
+                <div className="d-flex">
+                {item.confname}
+                </div>
+                <div className="d-flex ms-auto">
+                    <em>
+                        {item.conname}
+                    </em>
+                </div>
+            </a>
+    }
+
+    fkAttributeList = () => 
+        this.state.selectedForeignKeyIndex >= 0 
+        ? (
+            <div className="mt-2 ms-4">
+                <SearchDropdownList placeholder="Select Attribute 2..." 
+                    prependText="e2" dropdownList={this.state.frelAtts[this.state.selectedForeignKeyIndex]} 
+                    selectedIndex={this.state.selectedFKAttributeIndex}
+                    onListSelectionChange={this.onFKAttributeSelectChange}
+                    arrayRenderer={this.attributeArrayRenderer}
+                    />
+            </div>
+        ) 
+        : null;
+
     render() {
         return (
             <div className="col">
@@ -169,19 +227,32 @@ class EntitySelector extends React.Component {
                         prependText="R1" dropdownList={this.state.allEntitiesList} 
                         updateListHandler={this.updateOnTableListFocus}
                         selectedIndex={this.state.selectedTableIndex}
-                        onListSelectionChange={this.tableSelectChanged}
+                        onListSelectionChange={this.onTableSelectChange}
                         />  
                     {
                         // Check if the first entity had been selected or not
                         this.state.selectedTableIndex >= 0 ?
-                            (<div className="mt-2 ms-4">
-                                <SearchDropdownList placeholder="Select Attribute 1..." 
-                                    prependText="e1" dropdownList={this.state.tableAttributes} 
-                                    // updateListHandler={this.updateOnTableListFocus}
-                                    selectedIndex={this.state.selectedAttributeIndex}
-                                    onListSelectionChange={this.attributeSelectChanged}
-                                    arrayRenderer={this.attributeArrayRenderer}
-                                    />
+                            (<div>
+                                <div className="mt-2 ms-4">
+                                    <SearchDropdownList placeholder="Select Attribute 1..." 
+                                        prependText="e1" dropdownList={this.state.tableAttributes} 
+                                        selectedIndex={this.state.selectedAttributeIndex}
+                                        onListSelectionChange={this.onAttributeSelectChange}
+                                        arrayRenderer={this.attributeArrayRenderer}
+                                        />
+                                </div>
+                                <div className="mt-2">
+                                    <SearchDropdownList placeholder="Select Entity 2..." 
+                                        prependText="R2" 
+                                        dropdownList={this.state.tableForeignKeys}
+                                        selectedIndex={this.state.selectedForeignKeyIndex}
+                                        onListSelectionChange={this.onForeignKeySelectChange}
+                                        arrayRenderer={this.FKArrayRenderer}
+                                        />
+                                </div>
+                                <div>
+                                    {this.fkAttributeList()}
+                                </div>
                             </div>) : null
                     }
                 </div>
@@ -241,9 +312,9 @@ class EntityBrowser extends React.Component {
                     attributeHandler={this.attributeSelectHandler}
                     getEntityList={this.getAllTableNames}
                      />
-                <AttributeList tableAttributes={this.state.tableAttributes}
+                {/* <AttributeList tableAttributes={this.state.tableAttributes}
                     selectedBaseTableAtt={this.state.selectedBaseTableAtt}
-                    onChangeSelectedBaseTableAtt={this.onChangeSelectedBaseTableAtt} />
+                    onChangeSelectedBaseTableAtt={this.onChangeSelectedBaseTableAtt} /> */}
             </div>
         )
     }
