@@ -81,6 +81,107 @@ class AttributeList extends React.Component {
 class EntitySelector extends React.Component {
     constructor(props) {
         super(props);
+    }
+
+    attributeArrayRenderer = (item, index, onClickCallback, selectedIndex) => { 
+        return <a className={"d-flex dropdown-item" + (index == selectedIndex ? " active" : "")} 
+            data-key={index} data-index={index} data-content={item.attname} key={item.attnum} href="#" onMouseDown={onClickCallback}>
+                <div className="d-flex">
+                {item.attname}
+                </div>
+                <div className="d-flex ms-auto">
+                    <em>
+                        {item.typname}
+                    </em>
+                </div>
+            </a>
+    }
+
+    FKArrayRenderer = (item, index, onClickCallback, selectedIndex) => { 
+        return <a className={"d-flex dropdown-item" + (index == selectedIndex ? " active" : "")} 
+            data-key={item.confrelid} data-index={index} data-content={item.confname} key={index} href="#" onMouseDown={onClickCallback}>
+                <div className="d-flex">
+                {item.confname}
+                </div>
+                <div className="d-flex ms-auto">
+                    <em>
+                        {item.conname}
+                    </em>
+                </div>
+            </a>
+    }
+
+    fkAttributeList = () => 
+        this.props.state.selectedForeignKeyIndex >= 0 
+        ? (
+            <div className="mt-2 ms-4">
+                <SearchDropdownList placeholder="Select Attribute 2..." 
+                    prependText="e2" dropdownList={this.props.state.frelAtts[this.props.state.selectedForeignKeyIndex]} 
+                    selectedIndex={this.props.state.selectedFKAttributeIndex}
+                    onListSelectionChange={this.props.onFKAttributeSelectChange}
+                    arrayRenderer={this.attributeArrayRenderer}
+                    />
+            </div>
+        ) 
+        : null;
+
+    render() {
+        return (
+            <div className="col">
+                <div className="dropdown-custom-text-wrapper">
+                    <SearchDropdownList placeholder="Select Entity 1..." 
+                        prependText="R1" dropdownList={this.props.state.allEntitiesList} 
+                        updateListHandler={this.props.updateOnTableListFocus}
+                        selectedIndex={this.props.state.selectedTableIndex}
+                        onListSelectionChange={this.props.onTableSelectChange}
+                        />  
+                    {
+                        // Check if the first entity had been selected or not
+                        this.props.state.selectedTableIndex >= 0 ?
+                            (<div>
+                                <div className="mt-2 ms-4">
+                                    <SearchDropdownList placeholder="Select Attribute 1..." 
+                                        prependText="e1" dropdownList={this.props.state.tableAttributes} 
+                                        selectedIndex={this.props.state.selectedAttributeIndex}
+                                        onListSelectionChange={this.props.onAttributeSelectChange}
+                                        arrayRenderer={this.attributeArrayRenderer}
+                                        />
+                                </div>
+                                <div className="mt-2">
+                                    <SearchDropdownList placeholder="Select Entity 2..." 
+                                        prependText="R2" 
+                                        dropdownList={this.props.state.tableForeignKeys}
+                                        selectedIndex={this.props.state.selectedForeignKeyIndex}
+                                        onListSelectionChange={this.props.onForeignKeySelectChange}
+                                        arrayRenderer={this.FKArrayRenderer}
+                                        />
+                                </div>
+                                <div>
+                                    {this.fkAttributeList()}
+                                </div>
+                            </div>) : null
+                    }
+                </div>
+            </div>
+        )
+    }
+}
+
+class Visualiser extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+
+    render() {
+        return (
+            <div className="col"></div>
+        )
+    }
+}
+
+class Application extends React.Component {
+    constructor(props) {
+        super(props);
 
         this.state = {
             allEntitiesList: [],
@@ -94,6 +195,7 @@ class EntitySelector extends React.Component {
         };
     }
 
+    // Called when R1 is changed
     onTableSelectChange = (e) => {
         let tableIndex = e.target.getAttribute("data-index");
         let tableKey = e.target.getAttribute("data-key");
@@ -109,7 +211,7 @@ class EntitySelector extends React.Component {
         }, () => {
             getAttributeContentFromDatabase(tableKey)
                 .then(attributeContent => {
-                    this.props.attributeHandler(attributeContent);
+                    // this.props.attributeHandler(attributeContent);
                     this.setState({
                         tableAttributes: attributeContent["tableAttributes"],
                         tableForeignKeys: attributeContent["tableForeignKeys"],
@@ -161,7 +263,7 @@ class EntitySelector extends React.Component {
         this.setState({
             load: true
         }, () => {
-            let entitiesListPromise = this.props.getEntityList();
+            let entitiesListPromise = this.getAllTableNames();
 
             Promise.resolve(entitiesListPromise).then(res => {
                 this.setState({
@@ -175,119 +277,20 @@ class EntitySelector extends React.Component {
         });
     }
 
-    attributeArrayRenderer = (item, index, onClickCallback, selectedIndex) => { 
-        return <a className={"d-flex dropdown-item" + (index == selectedIndex ? " active" : "")} 
-            data-key={index} data-index={index} data-content={item.attname} key={item.attnum} href="#" onMouseDown={onClickCallback}>
-                <div className="d-flex">
-                {item.attname}
-                </div>
-                <div className="d-flex ms-auto">
-                    <em>
-                        {item.typname}
-                    </em>
-                </div>
-            </a>
-    }
-
-    FKArrayRenderer = (item, index, onClickCallback, selectedIndex) => { 
-        return <a className={"d-flex dropdown-item" + (index == selectedIndex ? " active" : "")} 
-            data-key={item.confrelid} data-index={index} data-content={item.confname} key={index} href="#" onMouseDown={onClickCallback}>
-                <div className="d-flex">
-                {item.confname}
-                </div>
-                <div className="d-flex ms-auto">
-                    <em>
-                        {item.conname}
-                    </em>
-                </div>
-            </a>
-    }
-
-    fkAttributeList = () => 
-        this.state.selectedForeignKeyIndex >= 0 
-        ? (
-            <div className="mt-2 ms-4">
-                <SearchDropdownList placeholder="Select Attribute 2..." 
-                    prependText="e2" dropdownList={this.state.frelAtts[this.state.selectedForeignKeyIndex]} 
-                    selectedIndex={this.state.selectedFKAttributeIndex}
-                    onListSelectionChange={this.onFKAttributeSelectChange}
-                    arrayRenderer={this.attributeArrayRenderer}
-                    />
-            </div>
-        ) 
-        : null;
-
-    render() {
-        return (
-            <div>
-                <div className="dropdown-custom-text-wrapper">
-                    <SearchDropdownList placeholder="Select Entity 1..." 
-                        prependText="R1" dropdownList={this.state.allEntitiesList} 
-                        updateListHandler={this.updateOnTableListFocus}
-                        selectedIndex={this.state.selectedTableIndex}
-                        onListSelectionChange={this.onTableSelectChange}
-                        />  
-                    {
-                        // Check if the first entity had been selected or not
-                        this.state.selectedTableIndex >= 0 ?
-                            (<div>
-                                <div className="mt-2 ms-4">
-                                    <SearchDropdownList placeholder="Select Attribute 1..." 
-                                        prependText="e1" dropdownList={this.state.tableAttributes} 
-                                        selectedIndex={this.state.selectedAttributeIndex}
-                                        onListSelectionChange={this.onAttributeSelectChange}
-                                        arrayRenderer={this.attributeArrayRenderer}
-                                        />
-                                </div>
-                                <div className="mt-2">
-                                    <SearchDropdownList placeholder="Select Entity 2..." 
-                                        prependText="R2" 
-                                        dropdownList={this.state.tableForeignKeys}
-                                        selectedIndex={this.state.selectedForeignKeyIndex}
-                                        onListSelectionChange={this.onForeignKeySelectChange}
-                                        arrayRenderer={this.FKArrayRenderer}
-                                        />
-                                </div>
-                                <div>
-                                    {this.fkAttributeList()}
-                                </div>
-                            </div>) : null
-                    }
-                </div>
-            </div>
-        )
-    }
-}
-
-class EntityBrowser extends React.Component {
-    constructor(props) {
-        super(props);
-
-        // States
-        this.state = {
-            tableAttributes: [],
-            selectedBaseTableAtt: undefined
-        };
-    }
-
-    onChangeSelectedBaseTableAtt = (newAtt) => {
-        this.setState({
-            selectedBaseTableAtt: newAtt
-        });
-    }
-
-    // Handles attribute list returned from EntitySelector, passed onto AttributeList
-    attributeSelectHandler = (attributeContent) => {
-        this.setState({
-            tableAttributes: attributeContent["tableAttributes"],
-            selectedBaseTableAtt: undefined
-        })
-    }
-
-    baseTableAttSelectHander(attSelectId) {
-        this.setState({
-            selectedBaseTableAtt: attSelectId
-        });
+    checkVisualisationPossibility = () => {
+        // Check, based on state indexes, if it is possible to request data from the database
+        // -- 1 -- A first entity and one of its attributes have been selected
+        if (this.state.selectedTableIndex >= 0 && this.state.selectedAttributeIndex >= 0) {
+            // -- 2 -- A second entity/attribute pair have been selected
+            if (this.state.selectedForeignKeyIndex >= 0 && this.state.selectedFKAttributeIndex >= 0) {
+                // TODO
+                return;
+            } else {
+                // Single attribute: bar chart (details to be implemented)
+            }
+        } else {
+            return;
+        }
     }
 
     getAllTableNames = () => {
@@ -304,48 +307,22 @@ class EntityBrowser extends React.Component {
 
     render() {
         return (
-            <div className="col">
-                <EntitySelector 
-                    attributeHandler={this.attributeSelectHandler}
-                    getEntityList={this.getAllTableNames}
-                     />
-            </div>
-        )
-    }
-}
-
-class Visualiser extends React.Component {
-    constructor(props) {
-        super(props);
-    }
-
-    render() {
-        return (
-            <div className="col"></div>
-        )
-    }
-}
-
-class Application extends React.Component {
-    constructor(props) {
-        super(props);
-    }
-
-    render() {
-        return (
             <div className="row g-0">
-                <EntityBrowser />
+                <EntitySelector state={...this.state} 
+                onTableSelectChange={this.onTableSelectChange}
+                onAttributeSelectChange={this.onAttributeSelectChange}
+                onFKAttributeSelectChange={this.onFKAttributeSelectChange}
+                onForeignKeySelectChange={this.onForeignKeySelectChange}
+                updateOnTableListFocus={this.updateOnTableListFocus}
+                />
                 <Visualiser />
             </div>
         );
     }
 }
 
-// TODO: Will move to its parent once visualisation is implemented
 let appContNode = document.getElementById("app-cont");
 ReactDOM.render(<Application />, appContNode);
-
-
 
 async function getAttributeContentFromDatabase(tableIndex) {
     const rawResponse = fetch("http://localhost:3000/temp-db-table-foreign-keys", {
