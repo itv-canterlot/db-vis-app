@@ -88,6 +88,11 @@ class SearchDropdownList extends React.Component {
     }
 
     render() {
+        // If the currently-selected index is -1, clear the input box
+        const inputNode = this.inputRef.current as HTMLInputElement;
+        if (inputNode && this.props.selectedIndex < 0) {
+            inputNode.value = "";
+        }
         return (
             <div>
                 <div className="input-group mb-0">

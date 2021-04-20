@@ -98,6 +98,7 @@ class EntitySelector extends React.Component {
 
         this.setState({
             selectedTableIndex: tableIndex,
+            selectedAttributeIndex: -1,
             load: true
         }, () => {
             getAttributeContentFromDatabase(tableKey)
