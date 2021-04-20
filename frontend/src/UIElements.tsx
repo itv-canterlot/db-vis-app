@@ -22,8 +22,21 @@ class SearchDropdownList extends React.Component {
         // Fill in input box with the name of the selected element
         const inputNode = this.inputRef.current as HTMLInputElement;
         const selectedItemNode = e.target as HTMLAnchorElement;
-        inputNode.value = selectedItemNode.textContent;
+        inputNode.value = selectedItemNode.getAttribute("data-content");
     }
+
+    // Default renderer for mapping array/object
+    defaultArrayMapper = (item, index) => { 
+        return <a className={"dropdown-item" + (index == this.props.selectedIndex ? " active" : "")} 
+            data-key={index} data-index={index} data-content={item} key={index} href="#" onMouseDown={this.onListItemClick}>{item}</a>
+    }
+
+    defaultObjectMapper = ([k, v], index) => {
+        return <a className={"dropdown-item" + (index == this.props.selectedIndex ? " active" : "")} 
+            data-key={k} data-index={index} data-content={v} key={k} href="#" onMouseDown={this.onListItemClick}>{v}</a>
+    }
+
+    arrayRendererHandler = (item, index) => this.props.arrayRenderer(item, index, this.onListItemClick, this.props.selectedIndex);
 
     renderListElements = () => {
         if (!this.props.dropdownList || this.props.dropdownList.length == 0) {
@@ -36,18 +49,12 @@ class SearchDropdownList extends React.Component {
             if (Array.isArray(this.props.dropdownList)) {
                 return (
                     <div className={"dropdown-menu dropdown-custom-text-content" + (this.state.showList ? " d-block" : "")}>
-                        {this.props.dropdownList.map((item, index) => {
-                            <a className={"dropdown-item" + (index == this.props.selectedIndex ? " active" : "")} 
-                                data-key={index} data-index={index} key={index} href="#" onMouseDown={this.onListItemClick}>{item}</a>
-                        })}
+                        {this.props.dropdownList.map(this.props.arrayRenderer ? this.arrayRendererHandler : this.defaultArrayMapper)}
                     </div>
                 )
             } else {
                 let itemList = Object.entries(this.props.dropdownList)
-                    .map(([k, v], index) => {
-                        return <a className={"dropdown-item" + (index == this.props.selectedIndex ? " active" : "")} 
-                            data-key={k} data-index={index} key={k} href="#" onMouseDown={this.onListItemClick}>{v}</a>
-                    })
+                    .map(this.props.objectRenderer ? this.arrayRendererHandler : this.defaultObjectMapper)
                 return (
                     <div className={"dropdown-menu dropdown-custom-text-content" + (this.state.showList ? " d-block" : "")}>
                         {
@@ -60,7 +67,7 @@ class SearchDropdownList extends React.Component {
     }
 
     onInputFocus = () => {
-        this.props.updateListHandler();
+        if (this.props.updateListHandler) this.props.updateListHandler();
         this.setState({
             showList: true
         });

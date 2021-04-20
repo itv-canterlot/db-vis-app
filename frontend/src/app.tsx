@@ -84,7 +84,9 @@ class EntitySelector extends React.Component {
 
         this.state = {
             allEntitiesList: [],
-            selectedIndex: -1
+            selectedTableIndex: -1,
+            selectedAttributeIndex: -1,
+            tableAttributes: []
         };
     }
 
@@ -92,21 +94,35 @@ class EntitySelector extends React.Component {
         let tableIndex = e.target.getAttribute("data-index");
         let tableKey = e.target.getAttribute("data-key");
 
-        if (tableIndex <= 0) return;
+        if (tableIndex < 0) return;
 
         this.setState({
-            selectedIndex: tableIndex,
+            selectedTableIndex: tableIndex,
             load: true
         }, () => {
             getAttributeContentFromDatabase(tableKey)
                 .then(attributeContent => {
                     this.props.attributeHandler(attributeContent);
+                    this.setState({
+                        tableAttributes: attributeContent["tableAttributes"]
+                    })
                 });
             
             this.setState({
                 load: false
             });
         });
+    }
+
+    attributeSelectChanged = (e) => {
+        let attributeIndex = e.target.getAttribute("data-index");
+
+        if (attributeIndex < 0) return;
+
+        this.setState({
+            selectedAttributeIndex: attributeIndex
+        });
+        console.log(attributeIndex);
     }
 
     updateOnTableListFocus = () => {
@@ -131,6 +147,20 @@ class EntitySelector extends React.Component {
         });
     }
 
+    attributeArrayRenderer = (item, index, onClickCallback, selectedIndex) => { 
+        return <a className={"d-flex dropdown-item" + (index == selectedIndex ? " active" : "")} 
+            data-key={index} data-index={index} data-content={item.attname} key={item.attnum} href="#" onMouseDown={onClickCallback}>
+                <div className="d-flex">
+                {item.attname}
+                </div>
+                <div className="d-flex ms-auto">
+                    <em>
+                        {item.typname}
+                    </em>
+                </div>
+            </a>
+    }
+
     render() {
         return (
             <div className="col">
@@ -138,9 +168,22 @@ class EntitySelector extends React.Component {
                     <SearchDropdownList placeholder="Select Entity 1..." 
                         prependText="R1" dropdownList={this.state.allEntitiesList} 
                         updateListHandler={this.updateOnTableListFocus}
-                        selectedIndex={this.state.selectedIndex}
+                        selectedIndex={this.state.selectedTableIndex}
                         onListSelectionChange={this.tableSelectChanged}
-                        />
+                        />  
+                    {
+                        // Check if the first entity had been selected or not
+                        this.state.selectedTableIndex >= 0 ?
+                            (<div className="mt-2 ms-4">
+                                <SearchDropdownList placeholder="Select Attribute 1..." 
+                                    prependText="e1" dropdownList={this.state.tableAttributes} 
+                                    // updateListHandler={this.updateOnTableListFocus}
+                                    selectedIndex={this.state.selectedAttributeIndex}
+                                    onListSelectionChange={this.attributeSelectChanged}
+                                    arrayRenderer={this.attributeArrayRenderer}
+                                    />
+                            </div>) : null
+                    }
                 </div>
             </div>
         )
