@@ -81,9 +81,84 @@ class AttributeList extends React.Component {
     }
 }
 
+class SearchDropdownList extends React.Component {
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            showList: false
+        };
+    }
+
+    renderListElements = () => {
+        if (!this.props.dropdownList || this.props.dropdownList.length == 0) {
+            return (
+                <div className={"dropdown-menu dropdown-custom-text-content" + (this.state.showList ? " d-block" : "")}>
+                    <a className="dropdown-item disabled" key="-1" href="#"><i>No content</i></a>
+                </div>
+            )
+        } else {
+            if (Array.isArray(this.props.dropdownList)) {
+                return (
+                    <div className={"dropdown-menu dropdown-custom-text-content" + (this.state.showList ? " d-block" : "")}>
+                        {this.props.dropdownList.map((item, index) => {
+                            <a className="dropdown-item" key={index} href="#">{item}</a>
+                        })}
+                    </div>
+                )
+            } else {
+                return (
+                    <div className={"dropdown-menu dropdown-custom-text-content" + (this.state.showList ? " d-block" : "")}>
+                        {
+                            Object.entries(this.props.dropdownList)
+                                .map(([k, v]) => {
+                                    return <a className="dropdown-item" key={k} href="#">{v}</a>
+                                })
+                        }
+                    </div>
+                );
+            }
+        }
+    }
+
+    onInputFocus = () => {
+        this.props.updateListHandler();
+        this.setState({
+            showList: true
+        });
+    }
+
+    onInputBlur = () => {
+        this.setState({
+            showList: false
+        });
+    }
+
+    render() {
+        return (
+            <div>
+                <div className="input-group mb-0">
+                    <div className="input-group-prepend">
+                        <span className="input-group-text">{this.props.prependText}</span>
+                    </div>
+                    <input type="text" className="form-control dropdown-toggle" data-toggle="dropdown" 
+                        placeholder={this.props.placeholder} aria-label="Relation"
+                        onFocus={this.onInputFocus}
+                        onBlur={this.onInputBlur} />
+                </div>
+                {this.renderListElements()}
+            </div>
+        );
+    }
+}
+
 class EntitySelector extends React.Component {
     constructor(props) {
         super(props);
+
+        this.state = {
+            allEntitiesList: []
+        };
     }
 
     tableSelectChanged = () => {
@@ -105,13 +180,42 @@ class EntitySelector extends React.Component {
         });
     }
 
+    updateOnTableListFocus = () => {
+        if (this.state.allEntitiesList.length !== 0) {
+            return;
+        }
+
+        this.setState({
+            load: true
+        }, () => {
+            fetch('http://localhost:3000/temp-db-table-list')
+                .then(rawResponse => rawResponse.json())
+                .then(tableList => {
+                    let tableListTranscribed = {};
+                    tableList.forEach((item, _) => {
+                        tableListTranscribed[item.oid] = item.relname;
+                    })
+                    this.setState({
+                        allEntitiesList: tableListTranscribed
+                    });
+                });
+            
+            this.setState({
+                load: false
+            });
+        });
+    }
+
     render() {
         return (
             <div className="col">
-                <label htmlFor="table-select">Select a table:</label>
-                <select name="table-select" id="table-list-select-dropdown" onChange={this.tableSelectChanged} defaultValue="-1">
+                {/* <label htmlFor="table-select">Select a table:</label> */}
+                {/* <select name="table-select" id="table-list-select-dropdown" onChange={this.tableSelectChanged} defaultValue="-1">
                     <option oid="-1" value="-1" disabled>*Select a table*</option>
-                </select>
+                </select> */}
+                <div className="dropdown-custom-text-wrapper">
+                    <SearchDropdownList placeholder="Select Entity 1..." prependText="R1" dropdownList={this.state.allEntitiesList} updateListHandler={this.updateOnTableListFocus}/>
+                </div>
                 <div id="table-schema-list-cont"></div>
             </div>
         )
