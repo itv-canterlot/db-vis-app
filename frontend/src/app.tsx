@@ -1,5 +1,6 @@
 const React = require('react');
 const ReactDOM = require('react-dom');
+import { closeSync } from 'node:fs';
 import SearchDropdownList from './UIElements';
 
 class AttributeRow extends React.Component {
@@ -195,6 +196,7 @@ class Application extends React.Component {
         this.state = {
             allEntitiesList: [],
             selectedTableIndex: -1,
+            selectedTableOID: -1,
             selectedAttributeIndex: -1,
             selectedForeignKeyIndex: -1,
             selectedFKAttributeIndex: -1,
@@ -213,6 +215,7 @@ class Application extends React.Component {
 
         this.setState({
             selectedTableIndex: tableIndex,
+            selectedTableOID: tableKey,
             selectedAttributeIndex: -1,
             selectedForeignKeyIndex: -1,
             selectedFKAttributeIndex: -1,
@@ -304,8 +307,30 @@ class Application extends React.Component {
                 // TODO
                 return;
             } else {
-                console.log("This is possible");
-                // Single attribute: bar chart (details to be implemented)
+                // Single attribute: bar chart (more to be implemented)
+                // Check attribute data type
+                let attributeEntry = this.state.tableAttributes[this.state.selectedAttributeIndex];
+                let attributeTypeCat = attributeEntry.typcategory;
+                let tableOID = this.state.selectedTableOID;
+                if (attributeTypeCat === "N") {
+                    // If it is a number, retrieve data from database
+                    fetch("http://localhost:3000/temp-data-table-name-fields", {
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        method: "POST",
+                        body: JSON.stringify({
+                            "tableName": this.state.allEntitiesList[tableOID],
+                            "fields": [
+                                attributeEntry.attname
+                            ]
+                        }),
+                    }).then(rawResponse => rawResponse.json())
+                    .then(data => {
+                        console.log(data);
+                    })
+                }
             }
         } else {
             return;
