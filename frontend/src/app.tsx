@@ -117,17 +117,13 @@ class EntitySelector extends React.Component {
         this.setState({
             load: true
         }, () => {
-            fetch('http://localhost:3000/temp-db-table-list')
-                .then(rawResponse => rawResponse.json())
-                .then(tableList => {
-                    let tableListTranscribed = {};
-                    tableList.forEach((item, _) => {
-                        tableListTranscribed[item.oid] = item.relname;
-                    })
-                    this.setState({
-                        allEntitiesList: tableListTranscribed
-                    });
+            let entitiesListPromise = this.props.getEntityList();
+
+            Promise.resolve(entitiesListPromise).then(res => {
+                this.setState({
+                    allEntitiesList: res
                 });
+            })
             
             this.setState({
                 load: false
@@ -146,7 +142,6 @@ class EntitySelector extends React.Component {
                         onListSelectionChange={this.tableSelectChanged}
                         />
                 </div>
-                <div id="table-schema-list-cont"></div>
             </div>
         )
     }
@@ -184,10 +179,25 @@ class EntityBrowser extends React.Component {
         });
     }
 
+    getAllTableNames = () => {
+        return fetch('http://localhost:3000/temp-db-table-list')
+            .then(rawResponse => rawResponse.json())
+            .then(tableList => {
+                let tableListTranscribed = {};
+                tableList.forEach((item, _) => {
+                    tableListTranscribed[item.oid] = item.relname;
+                })
+                return tableListTranscribed;
+            });
+    }
+
     render() {
         return (
             <div className="col">
-                <EntitySelector attributeHandler={this.attributeSelectHandler} />
+                <EntitySelector 
+                    attributeHandler={this.attributeSelectHandler}
+                    getEntityList={this.getAllTableNames}
+                     />
                 <AttributeList tableAttributes={this.state.tableAttributes}
                     selectedBaseTableAtt={this.state.selectedBaseTableAtt}
                     onChangeSelectedBaseTableAtt={this.onChangeSelectedBaseTableAtt} />
@@ -196,8 +206,21 @@ class EntityBrowser extends React.Component {
     }
 }
 
+class Application extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+
+    render() {
+        return (
+            <EntityBrowser />
+        );
+    }
+}
+
+// TODO: Will move to its parent once visualisation is implemented
 let tableSchemaList = document.getElementById("table-schema-list-cont");
-ReactDOM.render(<EntityBrowser />, tableSchemaList);
+ReactDOM.render(<Application />, tableSchemaList);
 
 
 
