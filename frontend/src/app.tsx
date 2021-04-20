@@ -5,11 +5,9 @@ import SearchDropdownList from './UIElements';
 class AttributeRow extends React.Component {
     constructor(props) {
         super(props);
-
-        this.onClickSelectButton = this.onClickSelectButton.bind(this);
     }
 
-    onClickSelectButton() {
+    onClickSelectButton = () => {
         // Do nothing if this element has already been selected
         if (this.props.isSelected) return; 
         this.props.onBaseTableAttSelect(this.props.attnum);
@@ -43,11 +41,9 @@ class AttributeRow extends React.Component {
 class AttributeList extends React.Component {
     constructor(props) {
         super(props);
-
-        this.onBaseTableAttSelect = this.onBaseTableAttSelect.bind(this);
     }
 
-    onBaseTableAttSelect(attnum) {
+    onBaseTableAttSelect = (attnum) => {
         this.props.onChangeSelectedBaseTableAtt(attnum)
     }
     
@@ -142,10 +138,6 @@ class EntitySelector extends React.Component {
     render() {
         return (
             <div className="col">
-                {/* <label htmlFor="table-select">Select a table:</label> */}
-                {/* <select name="table-select" id="table-list-select-dropdown" onChange={this.tableSelectChanged} defaultValue="-1">
-                    <option oid="-1" value="-1" disabled>*Select a table*</option>
-                </select> */}
                 <div className="dropdown-custom-text-wrapper">
                     <SearchDropdownList placeholder="Select Entity 1..." 
                         prependText="R1" dropdownList={this.state.allEntitiesList} 
@@ -169,20 +161,16 @@ class EntityBrowser extends React.Component {
             tableAttributes: [],
             selectedBaseTableAtt: undefined
         };
-        
-        // Binding handlers for child components
-        this.attributeSelectHandler = this.attributeSelectHandler.bind(this);
-        this.onChangeSelectedBaseTableAtt = this.onChangeSelectedBaseTableAtt.bind(this);
     }
 
-    onChangeSelectedBaseTableAtt(newAtt) {
+    onChangeSelectedBaseTableAtt = (newAtt) => {
         this.setState({
             selectedBaseTableAtt: newAtt
         });
     }
 
     // Handles attribute list returned from EntitySelector, passed onto AttributeList
-    attributeSelectHandler(attributeContent) {
+    attributeSelectHandler = (attributeContent) => {
         this.setState({
             tableAttributes: attributeContent["tableAttributes"],
             selectedBaseTableAtt: undefined
