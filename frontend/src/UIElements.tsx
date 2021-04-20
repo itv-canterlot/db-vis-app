@@ -94,7 +94,7 @@ class SearchDropdownList extends React.Component {
             inputNode.value = "";
         }
         return (
-            <div>
+            <div className="col">
                 <div className="input-group mb-0">
                     <div className="input-group-prepend">
                         <span className="input-group-text">{this.props.prependText}</span>

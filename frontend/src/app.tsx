@@ -111,10 +111,49 @@ class EntitySelector extends React.Component {
             </a>
     }
 
-    fkAttributeList = () => 
+    entitiesListNode = () => 
+    (<div className="row">
+        <SearchDropdownList placeholder="Select Entity 1..." 
+            prependText="R1" dropdownList={this.props.state.allEntitiesList} 
+            updateListHandler={this.props.updateOnTableListFocus}
+            selectedIndex={this.props.state.selectedTableIndex}
+            onListSelectionChange={this.props.onTableSelectChange}
+            />
+    </div>)
+
+    attributeListNode = () => 
+        this.props.state.selectedTableIndex >= 0
+        ? (
+            <div className="row mt-2 ms-4">
+                <SearchDropdownList placeholder="Select Attribute 1..." 
+                    prependText="e1" dropdownList={this.props.state.tableAttributes} 
+                    selectedIndex={this.props.state.selectedAttributeIndex}
+                    onListSelectionChange={this.props.onAttributeSelectChange}
+                    arrayRenderer={this.attributeArrayRenderer}
+                    />
+            </div>
+        ) 
+        : null;
+
+    foreignKeyNode = () => 
+        this.props.state.selectedTableIndex >= 0 
+        ? (
+            <div className="row mt-2">
+                <SearchDropdownList placeholder="Select Entity 2..." 
+                    prependText="R2" 
+                    dropdownList={this.props.state.tableForeignKeys}
+                    selectedIndex={this.props.state.selectedForeignKeyIndex}
+                    onListSelectionChange={this.props.onForeignKeySelectChange}
+                    arrayRenderer={this.FKArrayRenderer}
+                    />
+            </div>
+        ) 
+        : null;
+
+    fkAttributeListNode = () => 
         this.props.state.selectedForeignKeyIndex >= 0 
         ? (
-            <div className="mt-2 ms-4">
+            <div className="row mt-2 ms-4">
                 <SearchDropdownList placeholder="Select Attribute 2..." 
                     prependText="e2" dropdownList={this.props.state.frelAtts[this.props.state.selectedForeignKeyIndex]} 
                     selectedIndex={this.props.state.selectedFKAttributeIndex}
@@ -127,41 +166,11 @@ class EntitySelector extends React.Component {
 
     render() {
         return (
-            <div className="col">
-                <div className="dropdown-custom-text-wrapper">
-                    <SearchDropdownList placeholder="Select Entity 1..." 
-                        prependText="R1" dropdownList={this.props.state.allEntitiesList} 
-                        updateListHandler={this.props.updateOnTableListFocus}
-                        selectedIndex={this.props.state.selectedTableIndex}
-                        onListSelectionChange={this.props.onTableSelectChange}
-                        />  
-                    {
-                        // Check if the first entity had been selected or not
-                        this.props.state.selectedTableIndex >= 0 ?
-                            (<div>
-                                <div className="mt-2 ms-4">
-                                    <SearchDropdownList placeholder="Select Attribute 1..." 
-                                        prependText="e1" dropdownList={this.props.state.tableAttributes} 
-                                        selectedIndex={this.props.state.selectedAttributeIndex}
-                                        onListSelectionChange={this.props.onAttributeSelectChange}
-                                        arrayRenderer={this.attributeArrayRenderer}
-                                        />
-                                </div>
-                                <div className="mt-2">
-                                    <SearchDropdownList placeholder="Select Entity 2..." 
-                                        prependText="R2" 
-                                        dropdownList={this.props.state.tableForeignKeys}
-                                        selectedIndex={this.props.state.selectedForeignKeyIndex}
-                                        onListSelectionChange={this.props.onForeignKeySelectChange}
-                                        arrayRenderer={this.FKArrayRenderer}
-                                        />
-                                </div>
-                                <div>
-                                    {this.fkAttributeList()}
-                                </div>
-                            </div>) : null
-                    }
-                </div>
+            <div className="col dropdown-custom-text-wrapper">
+                {this.entitiesListNode()}
+                {this.attributeListNode()}
+                {this.foreignKeyNode()}
+                {this.fkAttributeListNode()}
             </div>
         )
     }
