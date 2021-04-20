@@ -115,7 +115,6 @@ class EntitySelector extends React.Component {
                         tableForeignKeys: attributeContent["tableForeignKeys"],
                         frelAtts: attributeContent["frelAtts"]
                     })
-                    console.log(this.state.tableForeignKeys);
                 });
             
             this.setState({
@@ -146,7 +145,6 @@ class EntitySelector extends React.Component {
 
     onForeignKeySelectChange = (e) => {
         let fkIndex = e.target.getAttribute("data-index");
-        console.log(fkIndex);
 
         if (fkIndex < 0) return;
 
@@ -221,7 +219,7 @@ class EntitySelector extends React.Component {
 
     render() {
         return (
-            <div className="col">
+            <div>
                 <div className="dropdown-custom-text-wrapper">
                     <SearchDropdownList placeholder="Select Entity 1..." 
                         prependText="R1" dropdownList={this.state.allEntitiesList} 
@@ -284,7 +282,6 @@ class EntityBrowser extends React.Component {
             tableAttributes: attributeContent["tableAttributes"],
             selectedBaseTableAtt: undefined
         })
-        console.log(attributeContent); // TODO
     }
 
     baseTableAttSelectHander(attSelectId) {
@@ -312,10 +309,19 @@ class EntityBrowser extends React.Component {
                     attributeHandler={this.attributeSelectHandler}
                     getEntityList={this.getAllTableNames}
                      />
-                {/* <AttributeList tableAttributes={this.state.tableAttributes}
-                    selectedBaseTableAtt={this.state.selectedBaseTableAtt}
-                    onChangeSelectedBaseTableAtt={this.onChangeSelectedBaseTableAtt} /> */}
             </div>
+        )
+    }
+}
+
+class Visualiser extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+
+    render() {
+        return (
+            <div className="col"></div>
         )
     }
 }
@@ -327,14 +333,17 @@ class Application extends React.Component {
 
     render() {
         return (
-            <EntityBrowser />
+            <div className="row g-0">
+                <EntityBrowser />
+                <Visualiser />
+            </div>
         );
     }
 }
 
 // TODO: Will move to its parent once visualisation is implemented
-let tableSchemaList = document.getElementById("table-schema-list-cont");
-ReactDOM.render(<Application />, tableSchemaList);
+let appContNode = document.getElementById("app-cont");
+ReactDOM.render(<Application />, appContNode);
 
 
 
