@@ -123,7 +123,6 @@ class EntitySelector extends React.Component {
         this.setState({
             selectedAttributeIndex: attributeIndex
         });
-        console.log(attributeIndex);
     }
 
     updateOnTableListFocus = () => {
