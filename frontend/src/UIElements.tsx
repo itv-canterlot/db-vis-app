@@ -37,14 +37,16 @@ class SearchDropdownList extends React.Component {
                 return (
                     <div className={"dropdown-menu dropdown-custom-text-content" + (this.state.showList ? " d-block" : "")}>
                         {this.props.dropdownList.map((item, index) => {
-                            <a className="dropdown-item" data-key={index} data-index={index} key={index} href="#" onMouseDown={this.onListItemClick}>{item}</a>
+                            <a className={"dropdown-item" + (index == this.props.selectedIndex ? " active" : "")} 
+                                data-key={index} data-index={index} key={index} href="#" onMouseDown={this.onListItemClick}>{item}</a>
                         })}
                     </div>
                 )
             } else {
                 let itemList = Object.entries(this.props.dropdownList)
                     .map(([k, v], index) => {
-                        return <a className="dropdown-item" data-key={k} data-index={index} key={k} href="#" onMouseDown={this.onListItemClick}>{v}</a>
+                        return <a className={"dropdown-item" + (index == this.props.selectedIndex ? " active" : "")} 
+                            data-key={k} data-index={index} key={k} href="#" onMouseDown={this.onListItemClick}>{v}</a>
                     })
                 return (
                     <div className={"dropdown-menu dropdown-custom-text-content" + (this.state.showList ? " d-block" : "")}>
