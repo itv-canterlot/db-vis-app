@@ -4,30 +4,13 @@ const fs = require("fs");
 const { exception } = require("console");
 
 // SQL boilerplates
-const queryGeneralInfoSchema = "SELECT * FROM information_schema.tables WHERE table_schema = 'public';"
-const queryTableNames = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"
-const queryTableColumns = "SELECT table_name FROM information_schema.columns WHERE table_schema = 'public';"
-const queryColumnInfoSchema = (tableName) => `SELECT * FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '${tableName}';`
+const dataSelectByTableNameAndFields = (tableName, fields) => `SELECT ${fields.join(" ")} FROM ${tableName};`
 
 const queryPgCatConstraints = 
     `SELECT c.oid, c.conname, c.contype, c.conrelid, c.conkey, c.confrelid, c.confkey, pg_catalog.pg_get_constraintdef(c.oid)
         AS con_def FROM pg_catalog.pg_constraint c
         LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.connamespace 
         WHERE n.nspname = 'public';`;
-
-const queryPgTableConstraints = (targetTableOID = 0, foreignKey = false) => {
-    let constQueryConditions = "";
-    if (targetTableOID > 0) {
-        constQueryConditions += " AND c.conrelid = " + targetTableOID;
-        if (foreignKey) {
-            constQueryConditions += " AND c.contype = 'f'";
-        }
-    }
-    return `SELECT c.oid, c.conname, c.contype, c.conrelid, c.conkey, c.confrelid, c.confkey, pg_catalog.pg_get_constraintdef(c.oid)
-        AS con_def FROM pg_catalog.pg_constraint c
-        LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.connamespace 
-        WHERE n.nspname = 'public'${constQueryConditions};`;
-}
 
 const queryPgTableForeignKeys = (targetTableOID = 0) => {
     let constQueryConditions = "";
@@ -132,4 +115,12 @@ async function getTableInfo(constraints = true, rels = true) {
     return out;
 }
 
-module.exports = { getTableInfo, getTableNames, getTableForeignKeys, getTableAttributes }
+async function getDataByTableNameAndFields(tableName, fields) {
+    try {
+        return await singlePoolRequest(dataSelectByTableNameAndFields(tableName, fields))
+    } catch (err) {
+        return err;
+    }
+}
+
+module.exports = { getTableInfo, getTableNames, getTableForeignKeys, getTableAttributes, getDataByTableNameAndFields: getDataByTableNameAndFields }

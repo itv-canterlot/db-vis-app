@@ -7,19 +7,36 @@ app.use(express.json());
 
 app.get('/', (req, res) => {
   res.send('Not implemented')
-})
+});
 
 app.get('/temp-db-table-list', (req, res) => {
   pgconnect.getTableNames().then(tabRes => {
     res.send(tabRes);
   });
-})
+});
 
 app.get('/temp-db-schema', (req, res) => {
   pgconnect.getTableInfo().then(tabRes => {
     res.send(tabRes);
   });
-})
+});
+
+app.post('/temp-data-table-name-fields', (req, res) => {
+  let fields = req.body["fields"];
+  let tableName = req.body["tableName"];
+  if (!fields || !tableName) {
+    return res.status(400).json("Input format error");
+  }
+
+  pgconnect.getDataByTableNameAndFields(tableName, fields).then(tabRes => {
+    if (tabRes instanceof Error) {
+      return res.status(402).json("Internal error: " + tabRes.message);
+    }
+    else {
+      return res.send(tabRes);
+    }
+  });
+});
 
 app.post('/temp-db-table-foreign-keys', (req, res) => {
   var baseResponse = {};
