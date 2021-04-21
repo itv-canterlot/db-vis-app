@@ -115,7 +115,7 @@ class EntitySelector extends React.Component {
     entitiesListNode = () => 
     (<div className="row">
         <SearchDropdownList placeholder="Select Entity 1..." 
-            prependText="R1" dropdownList={this.props.state.allEntitiesList} 
+            prependText="E1" dropdownList={this.props.state.allEntitiesList} 
             updateListHandler={this.props.updateOnTableListFocus}
             selectedIndex={this.props.state.selectedTableIndex}
             onListSelectionChange={this.props.onTableSelectChange}
@@ -127,7 +127,7 @@ class EntitySelector extends React.Component {
         ? (
             <div className="row mt-2 ms-4">
                 <SearchDropdownList placeholder="Select Attribute 1..." 
-                    prependText="e1" dropdownList={this.props.state.tableAttributes} 
+                    prependText="a1" dropdownList={this.props.state.tableAttributes} 
                     selectedIndex={this.props.state.selectedAttributeIndex}
                     onListSelectionChange={this.props.onAttributeSelectChange}
                     arrayRenderer={this.attributeArrayRenderer}
@@ -141,7 +141,7 @@ class EntitySelector extends React.Component {
         ? (
             <div className="row mt-2">
                 <SearchDropdownList placeholder="Select Entity 2..." 
-                    prependText="R2" 
+                    prependText="E2" 
                     dropdownList={this.props.state.tableForeignKeys}
                     selectedIndex={this.props.state.selectedForeignKeyIndex}
                     onListSelectionChange={this.props.onForeignKeySelectChange}
@@ -156,7 +156,7 @@ class EntitySelector extends React.Component {
         ? (
             <div className="row mt-2 ms-4">
                 <SearchDropdownList placeholder="Select Attribute 2..." 
-                    prependText="e2" dropdownList={this.props.state.frelAtts[this.props.state.selectedForeignKeyIndex]} 
+                    prependText="a2" dropdownList={this.props.state.frelAtts[this.props.state.selectedForeignKeyIndex]} 
                     selectedIndex={this.props.state.selectedFKAttributeIndex}
                     onListSelectionChange={this.props.onFKAttributeSelectChange}
                     arrayRenderer={this.attributeArrayRenderer}
