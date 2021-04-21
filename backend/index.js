@@ -44,8 +44,11 @@ app.post('/temp-db-table-foreign-keys', (req, res) => {
     baseResponse["tableForeignKeys"] = tabRes;
     return pgconnect.getTableAttributes(req.body["oid"]);
   }).then(attrRes => {
-    // Attributes for the current table
     baseResponse["tableAttributes"] = attrRes;
+    return pgconnect.getTablePrimaryKeys(req.body["oid"]);
+  }).then(attrRes => {
+    // Attributes for the current table
+    baseResponse["tablePrimaryKeys"] = attrRes;
     
     // Generating attributes for the corresponding referenced tables
     var attrPromises = [];

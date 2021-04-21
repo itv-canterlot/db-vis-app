@@ -26,6 +26,19 @@ const queryPgTableForeignKeys = (targetTableOID = 0) => {
         WHERE n.nspname = 'public'${constQueryConditions};`;
 }
 
+const queryPgTablePrimaryKeys = (targetTableOID = 0) => {
+    let constQueryConditions = "";
+    if (targetTableOID > 0) {
+        constQueryConditions += " AND c1.conrelid = " + targetTableOID;
+        constQueryConditions += " AND c1.contype = 'p'";
+    }
+    return `SELECT c1.oid, c1.conname, c1.contype, c1.conrelid, c1.conkey,
+        pg_catalog.pg_get_constraintdef(c1.oid) AS con_def 
+        FROM pg_catalog.pg_constraint c1
+        LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c1.connamespace
+        WHERE n.nspname = 'public'${constQueryConditions};`;
+}
+
 const queryPgAttributesByTable = (targetTableOID) => {
     if (targetTableOID > 0) {
         return `SELECT a.attname, a.attlen, a.attnum, a.attndims, t.typname, t.typcategory, a.attrelid, c.relname from pg_catalog.pg_attribute a
@@ -86,6 +99,17 @@ async function getTableForeignKeys(oid) {
     return poolQuery["rows"];
 }
 
+async function getTablePrimaryKeys(oid) {
+    const pool = new Pool(connConfig);
+    pool.on("error", (err, client) => errorHandling(err));
+    let thisQuery = queryPgTablePrimaryKeys(oid);
+
+    poolQuery = await pool.query(thisQuery);
+    pool.end();
+
+    return poolQuery["rows"];
+}
+
 async function getTableNames() {
     return singlePoolRequest(queryPgTableNames);
 }
@@ -123,4 +147,7 @@ async function getDataByTableNameAndFields(tableName, fields) {
     }
 }
 
-module.exports = { getTableInfo, getTableNames, getTableForeignKeys, getTableAttributes, getDataByTableNameAndFields: getDataByTableNameAndFields }
+module.exports = { 
+    getTableInfo, getTableNames, getTableForeignKeys,
+    getTablePrimaryKeys, getTableAttributes, getDataByTableNameAndFields 
+};
