@@ -11,3 +11,24 @@
     max-height: 20em;
     overflow-x: hidden;
 }
+
+.dropdown-tip {
+    padding-top: .15rem;
+    padding-bottom: .15rem;
+    padding-left: .25rem;
+    padding-right: .25rem;
+    font-size: .8rem;
+    border-radius: .2rem;
+}
+
+.bg-tip-type {
+    background-color: lightblue;
+}
+
+.bg-tip-pk {
+    background-color: #d9ffdb;
+}
+
+.bg-tip-fk {
+    background-color: #f4e5e1;
+}

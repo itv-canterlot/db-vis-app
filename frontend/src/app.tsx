@@ -84,16 +84,50 @@ class EntitySelector extends React.Component {
         super(props);
     }
 
-    attributeArrayRenderer = (item, index, onClickCallback, selectedIndex) => { 
-        return <a className={"d-flex dropdown-item" + (index == selectedIndex ? " active" : "")} 
+    attributeArrayRenderer = (item, index, onClickCallback, selectedIndex) => {
+        let itemIsPrimaryKey = false;
+        let itemIsForeignKey = false;
+        let pkConstraintName;
+        let fkConstraintNames = [];
+        if (this.props.state.tablePrimaryKeys) {
+            if (this.props.state.tablePrimaryKeys.conkey.includes(item.attnum)) {
+                itemIsPrimaryKey = true;
+                pkConstraintName = this.props.state.tablePrimaryKeys.conname;
+            }
+        }
+        if (this.props.state.tableForeignKeys) {
+            this.props.state.tableForeignKeys.forEach(cons => {
+                if (cons.conkey.includes(item.attnum)) {
+                    itemIsForeignKey = true;
+                    fkConstraintNames.push(cons.conname);
+                }
+            });
+        }
+        return <a className={"d-flex dropdown-item" + (index == selectedIndex ? " active" : "") + (itemIsPrimaryKey ? " disabled" : "")} 
             data-key={index} data-index={index} data-content={item.attname} key={item.attnum} href="#" onMouseDown={onClickCallback}>
                 <div className="d-flex">
                 {item.attname}
                 </div>
-                <div className="d-flex ms-auto">
-                    <em>
+                <div className="d-flex ms-auto align-items-center">
+                    {
+                        // Print primary key prompt
+                        itemIsPrimaryKey ?
+                        <div className="me-1 text-muted dropdown-tip bg-tip-pk">pk: <em>{pkConstraintName}</em></div> :
+                        null
+                    }
+                    {
+                        // Print foreign key prompt(s)
+                        itemIsForeignKey ?
+                        fkConstraintNames.map((fkConstraintName, index) => {
+                            return <div className="me-1 text-muted dropdown-tip bg-tip-fk" key={index}>fk: <em>{fkConstraintName}</em></div>;
+                        }) :
+                        null
+                    }
+                    <div className="bg-tip-type text-secondary dropdown-tip">
+                        <em>
                         {item.typname}
-                    </em>
+                        </em>
+                    </div>
                 </div>
             </a>
     }
@@ -105,9 +139,7 @@ class EntitySelector extends React.Component {
                 {item.confname}
                 </div>
                 <div className="d-flex ms-auto">
-                    <em>
-                        {item.conname}
-                    </em>
+                    <div className="me-1 text-muted dropdown-tip bg-tip-fk" key={index}>fk: <em>{item.conname}</em></div>
                 </div>
             </a>
     }
@@ -227,6 +259,7 @@ class Application extends React.Component {
                     this.setState({
                         tableAttributes: attributeContent["tableAttributes"],
                         tableForeignKeys: attributeContent["tableForeignKeys"],
+                        tablePrimaryKeys: attributeContent["tablePrimaryKeys"][0],
                         frelAtts: attributeContent["frelAtts"]
                     })
                 });
