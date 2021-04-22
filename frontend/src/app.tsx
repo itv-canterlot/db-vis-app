@@ -145,6 +145,12 @@ class Visualiser extends React.Component {
     }
 }
 
+enum EntityRelationshipTypes {
+    OneToOne,
+    OneToMany,
+    ManyToMany
+}
+
 class Application extends React.Component {
     constructor(props) {
         super(props);
@@ -162,6 +168,50 @@ class Application extends React.Component {
         };
     }
 
+    getEntityRelationshipType = () => {
+        let pkConKey = this.state.tablePrimaryKeys.conkey
+        let pkConKeySet = new Set(pkConKey);
+
+        // Return nothing if no PK exist
+        if (!pkConKey || pkConKey.size === 0) {
+            // TODO: implement this
+            console.log("No primary key");
+            return undefined;
+        }
+
+        if (!this.state.tableForeignKeys) {
+            // TODO: check this
+            console.log("No foreign keys");
+            return undefined;
+        }
+
+        let fkConKeys = this.state.tableForeignKeys.map(e => e.conkey);
+        
+        if (this.state.tableForeignKeys.length < 2) {
+            // If there is none or one foreign key, TODO
+        } else {
+            // This entity might be a link table between many-to-many relationships
+            // For each FK, check if the PK set covered all of its constraints
+            var fkMatchCount = 0;
+            this.state.tableForeignKeys.forEach(element => {
+                // If this FK is a subset of the PK
+                if (element.conkey.every(v => pkConKey.includes(v))) {
+                    fkMatchCount++;
+                }
+            });
+            
+            if (fkMatchCount >= 2) {
+                // This is a many-to-many link table
+                // TODO: do things
+                return EntityRelationshipTypes.ManyToMany;
+            } else {
+                return undefined;
+            }
+            
+        }        
+``    }
+
+    
     // Called when R1 is changed
     onTableSelectChange = (e) => {
         let tableIndex = parseInt(e.target.getAttribute("data-index"));
@@ -185,7 +235,12 @@ class Application extends React.Component {
                         tableForeignKeys: attributeContent["tableForeignKeys"],
                         tablePrimaryKeys: attributeContent["tablePrimaryKeys"][0],
                         frelAtts: attributeContent["frelAtts"]
-                    })
+                    });
+
+                    let thisRelationshipType = this.getEntityRelationshipType() as EntityRelationshipTypes;
+                    if (thisRelationshipType == EntityRelationshipTypes.ManyToMany) {
+                        // Do things here
+                    }
                 });
             
             this.setState({
