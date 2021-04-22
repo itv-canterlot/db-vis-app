@@ -68,11 +68,13 @@ class EntitySelector extends React.Component {
             </a>
     }
 
-    entityRenderer = (item: Table, index, onClickCallback) => { 
+    entityArrayRenderer = (item: Table, index, onClickCallback) => { 
         let oid = item.oid;
         let relname = item.relname;
         return <a className={"dropdown-item" + (index == this.props.selectedIndex ? " active" : "")} 
-            data-key={oid} data-index={index} data-content={relname} key={index} href="#" onMouseDown={onClickCallback}>{relname}</a>
+            data-key={oid} data-index={index} data-content={relname} key={index} href="#" onMouseDown={onClickCallback}>
+                {item.isJunction? <i className="fas fa-compress-alt me-1" /> : null}{relname}
+            </a>
     }
 
     entitiesListNode = () => 
@@ -82,7 +84,7 @@ class EntitySelector extends React.Component {
             updateListHandler={this.props.updateOnTableListFocus}
             selectedIndex={this.props.state.selectedTableIndex}
             onListSelectionChange={this.props.onTableSelectChange}
-            arrayRenderer={this.entityRenderer}
+            arrayRenderer={this.entityArrayRenderer}
             />
     </div>)
 
