@@ -68,6 +68,13 @@ class EntitySelector extends React.Component {
             </a>
     }
 
+    entityRenderer = (item: Table, index, onClickCallback) => { 
+        let oid = item.oid;
+        let relname = item.relname;
+        return <a className={"dropdown-item" + (index == this.props.selectedIndex ? " active" : "")} 
+            data-key={oid} data-index={index} data-content={relname} key={index} href="#" onMouseDown={onClickCallback}>{relname}</a>
+    }
+
     entitiesListNode = () => 
     (<div className="row">
         <SearchDropdownList placeholder="Select Entity 1..." 
@@ -75,6 +82,7 @@ class EntitySelector extends React.Component {
             updateListHandler={this.props.updateOnTableListFocus}
             selectedIndex={this.props.state.selectedTableIndex}
             onListSelectionChange={this.props.onTableSelectChange}
+            arrayRenderer={this.entityRenderer}
             />
     </div>)
 
@@ -151,6 +159,29 @@ enum EntityRelationshipTypes {
     ManyToMany
 }
 
+interface Table {
+    oid: number,
+    relname: string,
+    pk?: PublicKey,
+    fk?: [ForeignKey],
+    isJunction: boolean
+}
+
+interface Key {
+    oid: number,
+    conname: string,
+    conkey: number[],
+    condef: string
+}
+
+interface PublicKey extends Key { }
+
+interface ForeignKey extends Key {
+    confrelid: number,
+    confkey: number[],
+    confname: string
+}
+
 class Application extends React.Component {
     constructor(props) {
         super(props);
@@ -168,6 +199,7 @@ class Application extends React.Component {
         };
     }
 
+    // TO BE DEPRECATED
     getEntityRelationshipType = () => {
         let pkConKey = this.state.tablePrimaryKeys.conkey
         let pkConKeySet = new Set(pkConKey);
@@ -209,9 +241,52 @@ class Application extends React.Component {
             }
             
         }        
-``    }
+    }
 
-    
+    tableIsJunction = (table: Table) => {
+        if (!table.pk) return false;
+        let pkConKey = table.pk.conkey;
+        // Return nothing if no PK/FK exist
+        if (!pkConKey || pkConKey.length === 0) {
+            return false;
+        }
+
+        if (!table.fk || table.fk.length < 2) {
+            return false;
+        }
+
+        // This entity might be a link table between many-to-many relationships
+        // For each FK, check if the PK set covered all of its constraints
+        var fkMatchCount = 0;
+        var comparedFKKeys = []; // Keeping track for duplicates
+        table.fk.forEach(element => {
+            // If this FK is a subset of the PK
+            let thisTableKey = element.conkey as [number];
+            for (let comparedIndex = 0; comparedIndex < comparedFKKeys.length; comparedIndex++) {
+                const comparedKey = comparedFKKeys[comparedIndex] as [number];
+                if (thisTableKey.length === comparedKey.length) {
+                    if (thisTableKey.every(v => comparedKey.includes(v))) {
+                        return false;
+                    }
+                }
+            }
+
+            if (thisTableKey.every(v => pkConKey.includes(v))) {
+                comparedFKKeys.push(thisTableKey);
+                fkMatchCount++;
+            }
+        });
+
+        if (fkMatchCount >= 2) {
+            // This is a many-to-many link table
+            // TODO: do things
+            return EntityRelationshipTypes.ManyToMany;
+        } else {
+            return false;
+        }
+            
+    }
+
     // Called when R1 is changed
     onTableSelectChange = (e) => {
         let tableIndex = parseInt(e.target.getAttribute("data-index"));
@@ -233,7 +308,7 @@ class Application extends React.Component {
                     this.setState({
                         tableAttributes: attributeContent["tableAttributes"],
                         tableForeignKeys: attributeContent["tableForeignKeys"],
-                        tablePrimaryKeys: attributeContent["tablePrimaryKeys"][0],
+                        tablePrimaryKeys: attributeContent["tablePrimaryKeys"],
                         frelAtts: attributeContent["frelAtts"]
                     });
 
@@ -324,7 +399,9 @@ class Application extends React.Component {
                 let attributeEntry = this.state.tableAttributes[this.state.selectedAttributeIndex];
                 let attributeTypeCat = attributeEntry.typcategory;
                 let tableOID = this.state.selectedTableOID;
+                let tableIndex = this.state.selectedTableIndex;
                 if (attributeTypeCat === "N") {
+                    // TODO: Fitting the new table list
                     // If it is a number, retrieve data from database
                     fetch("http://localhost:3000/temp-data-table-name-fields", {
                         headers: {
@@ -333,7 +410,7 @@ class Application extends React.Component {
                         },
                         method: "POST",
                         body: JSON.stringify({
-                            "tableName": this.state.allEntitiesList[tableOID],
+                            "tableName": this.state.allEntitiesList[tableIndex].relname,
                             "fields": [
                                 attributeEntry.attname
                             ]
@@ -350,14 +427,21 @@ class Application extends React.Component {
     }
 
     getAllTableNames = () => {
-        return fetch('http://localhost:3000/temp-db-table-list')
+        // TODO/Work under progress: new backend hook
+        return fetch('http://localhost:3000/tables')
             .then(rawResponse => rawResponse.json())
             .then(tableList => {
+                // Annotate each table based on its key relationships
                 let tableListTranscribed = {};
-                tableList.forEach((item, _) => {
+                tableList.forEach((item: Table, _) => {
+                    if (this.tableIsJunction(item) == EntityRelationshipTypes.ManyToMany) {
+                        item.isJunction = true;
+                    }
                     tableListTranscribed[item.oid] = item.relname;
-                })
-                return tableListTranscribed;
+                });
+                
+                return tableList;
+                // return tableListTranscribed;
             });
     }
 
@@ -397,4 +481,17 @@ async function getAttributeContentFromDatabase(tableIndex) {
         return val.json();
     })
     return response;
+}
+
+// TODO: set operation(s)
+function symmetricDifference(setA, setB) {
+    let _difference = new Set(setA)
+    for (let elem of setB) {
+        if (_difference.has(elem)) {
+            _difference.delete(elem)
+        } else {
+            _difference.add(elem)
+        }
+    }
+    return _difference
 }

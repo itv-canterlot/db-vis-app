@@ -18,7 +18,7 @@ const queryPgTableForeignKeys = (targetTableOID = 0) => {
         constQueryConditions += " AND c1.conrelid = " + targetTableOID;
         constQueryConditions += " AND c1.contype = 'f'";
     }
-    return `SELECT c1.oid, c1.conname, c1.contype, c1.conrelid, c1.conkey, c1.confrelid, c1.confkey, 
+    return `SELECT c1.oid, c1.conname, c1.conkey, c1.confrelid, c1.confkey, 
         c2.relname as confname, pg_catalog.pg_get_constraintdef(c1.oid)
         AS con_def FROM pg_catalog.pg_constraint c1
         LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c1.connamespace
@@ -32,7 +32,7 @@ const queryPgTablePrimaryKeys = (targetTableOID = 0) => {
         constQueryConditions += " AND c1.conrelid = " + targetTableOID;
         constQueryConditions += " AND c1.contype = 'p'";
     }
-    return `SELECT c1.oid, c1.conname, c1.contype, c1.conrelid, c1.conkey,
+    return `SELECT c1.oid, c1.conname, c1.conkey,
         pg_catalog.pg_get_constraintdef(c1.oid) AS con_def 
         FROM pg_catalog.pg_constraint c1
         LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c1.connamespace
@@ -99,6 +99,14 @@ async function getTableForeignKeys(oid) {
     return poolQuery["rows"];
 }
 
+async function getTablePrimaryAndForeignKeys(tbl) {
+    let out = {...tbl};
+    out.pk = await getTablePrimaryKeys(tbl.oid);
+    out.fk = await getTableForeignKeys(tbl.oid);
+
+    return out;
+}
+
 async function getTablePrimaryKeys(oid) {
     const pool = new Pool(connConfig);
     pool.on("error", (err, client) => errorHandling(err));
@@ -107,7 +115,16 @@ async function getTablePrimaryKeys(oid) {
     poolQuery = await pool.query(thisQuery);
     pool.end();
 
-    return poolQuery["rows"];
+    return poolQuery["rows"][0];
+}
+
+async function getTableMetatdata() {
+    const tableNames = await getTableNames();
+    return Promise.all(
+        tableNames.map(tbl => {
+            return getTablePrimaryAndForeignKeys(tbl);
+        })
+    );
 }
 
 async function getTableNames() {
@@ -149,5 +166,6 @@ async function getDataByTableNameAndFields(tableName, fields) {
 
 module.exports = { 
     getTableInfo, getTableNames, getTableForeignKeys,
-    getTablePrimaryKeys, getTableAttributes, getDataByTableNameAndFields 
+    getTablePrimaryKeys, getTableAttributes, getDataByTableNameAndFields,
+    getTablePrimaryAndForeignKeys, getTableMetatdata
 };

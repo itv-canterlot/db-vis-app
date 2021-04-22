@@ -9,6 +9,13 @@ app.get('/', (req, res) => {
   res.send('Not implemented')
 });
 
+app.get('/tables', (_, webRes) => {
+  console.debug("GET /tables")
+  pgconnect.getTableMetatdata().then(tabRes => {
+    webRes.send(tabRes);
+  });
+});
+
 app.get('/temp-db-table-list', (req, res) => {
   pgconnect.getTableNames().then(tabRes => {
     res.send(tabRes);
