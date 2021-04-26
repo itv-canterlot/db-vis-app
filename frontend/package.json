@@ -6,7 +6,8 @@
   "scripts": {
     "start": "electron .",
     "build": "webpack-cli ./src/app.tsx --config webpack-config.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "webpack --watch --config webpack-config.js"
   },
   "keywords": [],
   "author": "",
