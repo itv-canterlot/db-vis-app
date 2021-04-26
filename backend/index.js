@@ -78,6 +78,13 @@ app.post('/temp-db-table-foreign-keys', (req, res) => {
   })
 })
 
+app.get('/table-attributes', (req, webRes) => {
+  console.debug("GET /table-attributes")
+  pgconnect.getTableAttributes(req.body["oid"]).then(tabRes => {
+    webRes.send(tabRes);
+  });
+});
+
 app.listen(port, () => {
   console.log(`Background app listening at http://localhost:${port}`)
 })
