@@ -3,6 +3,7 @@ const ReactDOM = require('react-dom');
 import SearchDropdownList from './UIElements';
 import {ForeignKey, PrimaryKey, Table, Attribute} from './ts/types'
 import * as ComponentTypes from './ts/components';
+import {DBSchemaContext} from './DBSchemaContext'
 
 class JunctionTableLinks extends React.Component<ComponentTypes.JunctionTableLinksProps, {}> {
     constructor(props) {
@@ -65,28 +66,33 @@ class FixedAttributeSelector extends React.Component<ComponentTypes.FixedAttribu
         let fk = this.props.fk as ForeignKey;
 
         console.log(fk);
-        // TODO
         return (
-            <div className="mt-1 mb-1">
-                <div className="text-muted">
-                    <div className="dropdown-tip bg-tip-fk d-inline-block">
-                        <i className="fas fa-link me-2" />{fk.conname}
-                    </div>
-                    <div className="ms-1 tip-fontsize d-inline-block">
-                    <i className="fas fa-arrow-right" />
-                    </div>
-                </div>
-                <div className="ms-2">
-                    <AttributeListSelector 
-                        dropdownList={thisEntity.attr}
-                        onListSelectionChange={this.onListSelectionChange}
-                        prependText={fk.confname}
-                        selectedIndex={this.state.selectedAttribute}
-                        tableForeignKeys={[fk]}
-                        tablePrimaryKey={thisEntity.pk}
-                     />
-                </div>
-            </div>
+            <DBSchemaContext.Consumer>
+                {(context) => {
+                    let fkEntity = getEntityFromOID(context.allEntitiesList, fk.confrelid)
+                    return (<div className="mt-1 mb-1">
+                        <div className="text-muted">
+                            <div className="dropdown-tip bg-tip-fk d-inline-block">
+                                <i className="fas fa-link me-2" />{fk.conname}
+                            </div>
+                            <div className="ms-1 tip-fontsize d-inline-block">
+                            <i className="fas fa-arrow-right" />
+                            </div>
+                        </div>
+                        <div className="ms-2">
+                            <AttributeListSelector 
+                                dropdownList={fkEntity.attr}
+                                onListSelectionChange={this.onListSelectionChange}
+                                prependText={fk.confname}
+                                selectedIndex={this.state.selectedAttribute}
+                                tableForeignKeys={fkEntity.fk}
+                                tablePrimaryKey={fkEntity.pk}
+                            />
+                        </div>
+                    </div>);
+                    }
+                }
+            </DBSchemaContext.Consumer>
         )
     }
 }
@@ -478,16 +484,33 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
     render() {
         return (
-            <div className="row g-0">
-                <EntitySelector state={this.state} 
-                onTableSelectChange={this.onTableSelectChange}
-                onAttributeSelectChange={this.onAttributeSelectChange}
-                onFKAttributeSelectChange={this.onFKAttributeSelectChange}
-                onForeignKeySelectChange={this.onForeignKeySelectChange}
-                updateOnTableListFocus={this.updateOnTableListFocus}
-                />
-                <Visualiser />
-            </div>
+            // <DBSchemaContext.Consumer>
+            //     {(allEntitiesList) => (
+            //         <div className="row g-0">
+            //             <EntitySelector state={this.state} 
+            //             onTableSelectChange={this.onTableSelectChange}
+            //             onAttributeSelectChange={this.onAttributeSelectChange}
+            //             onFKAttributeSelectChange={this.onFKAttributeSelectChange}
+            //             onForeignKeySelectChange={this.onForeignKeySelectChange}
+            //             updateOnTableListFocus={this.updateOnTableListFocus}
+            //             />
+            //             <Visualiser />
+            //         </div>
+            //     )}
+            // </DBSchemaContext.Consumer>
+            <DBSchemaContext.Provider value={{allEntitiesList: this.state.allEntitiesList}}>
+                <div className="row g-0">
+                    <EntitySelector state={this.state} 
+                    onTableSelectChange={this.onTableSelectChange}
+                    onAttributeSelectChange={this.onAttributeSelectChange}
+                    onFKAttributeSelectChange={this.onFKAttributeSelectChange}
+                    onForeignKeySelectChange={this.onForeignKeySelectChange}
+                    updateOnTableListFocus={this.updateOnTableListFocus}
+                    />
+                    <Visualiser />
+                </div>
+            </DBSchemaContext.Provider>
+
         );
     }
 }
@@ -527,7 +550,7 @@ function symmetricDifference(setA, setB) {
     return _difference
 }
 
-const getAttrsFromOID = (entities: Table[], oid: number) => {
+const getEntityFromOID = (entities: Table[], oid: number) => {
     let fkRelIndex;
     for (let i = 0; i < entities.length; i++) {
         if (entities[i].oid === oid) {
@@ -536,7 +559,11 @@ const getAttrsFromOID = (entities: Table[], oid: number) => {
         }
     }
 
-    return entities[fkRelIndex].attr
+    return entities[fkRelIndex];
+}
+
+const getAttrsFromOID = (entities: Table[], oid: number) => {
+    return getEntityFromOID(entities, oid).attr;
 }
 
 // TODO: refactor this to another file?
