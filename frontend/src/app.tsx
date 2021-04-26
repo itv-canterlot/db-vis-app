@@ -37,7 +37,7 @@ class AttributeListSelector extends React.Component<ComponentTypes.AttributeList
 
     render() {
         return (
-        <div className="row mt-2 ms-4">
+        <div className="row mt-2 ms-4 position-relative">
             <SearchDropdownList placeholder="Select Attribute 1..." 
                 prependText={this.props.prependText} dropdownList={this.props.dropdownList} 
                 selectedIndex={this.props.selectedIndex}
@@ -130,7 +130,7 @@ class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps>
         let selectedIsJunction = selectedEntity ? selectedEntity.isJunction : false;
         return (<div className="row">
             <div className="col">
-                <div className="row">
+                <div className="row position-relative">
                     <SearchDropdownList placeholder="Select Entity 1..." 
                         prependText="E1" dropdownList={this.props.state.allEntitiesList} 
                         updateListHandler={this.props.updateOnTableListFocus}
@@ -173,7 +173,7 @@ class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps>
     foreignKeyNode = () => 
         this.props.state.selectedTableIndex >= 0 
         ? (
-            <div className="row mt-2">
+            <div className="row mt-2 position-relative">
                 <SearchDropdownList placeholder="Select Entity 2..." 
                     prependText="E2" 
                     dropdownList={this.props.state.allEntitiesList[this.props.state.selectedTableIndex].fk}
@@ -196,7 +196,7 @@ class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps>
                 .allEntitiesList[this.props.state.selectedTableIndex]
                 .fk[this.props.state.selectedForeignKeyIndex].confrelid
             return (
-                <div className="row mt-2 ms-4">
+                <div className="row mt-2 ms-4 position-relative">
                     <SearchDropdownList placeholder="Select Attribute 2..." 
                         prependText="a2" dropdownList={getAttrsFromOID(this.props.state.allEntitiesList, selectedFkOID)} 
                         selectedIndex={this.props.state.selectedFKAttributeIndex}
@@ -484,20 +484,6 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
     render() {
         return (
-            // <DBSchemaContext.Consumer>
-            //     {(allEntitiesList) => (
-            //         <div className="row g-0">
-            //             <EntitySelector state={this.state} 
-            //             onTableSelectChange={this.onTableSelectChange}
-            //             onAttributeSelectChange={this.onAttributeSelectChange}
-            //             onFKAttributeSelectChange={this.onFKAttributeSelectChange}
-            //             onForeignKeySelectChange={this.onForeignKeySelectChange}
-            //             updateOnTableListFocus={this.updateOnTableListFocus}
-            //             />
-            //             <Visualiser />
-            //         </div>
-            //     )}
-            // </DBSchemaContext.Consumer>
             <DBSchemaContext.Provider value={{allEntitiesList: this.state.allEntitiesList}}>
                 <div className="row g-0">
                     <EntitySelector state={this.state} 
