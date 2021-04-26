@@ -103,7 +103,7 @@ async function getTablePrimaryAndForeignKeys(tbl) {
     let out = {...tbl};
     out.pk = await getTablePrimaryKeys(tbl.oid);
     out.fk = await getTableForeignKeys(tbl.oid);
-    out.atts = await getTableAttributes(tbl.oid);
+    out.attr = await getTableAttributes(tbl.oid);
 
     return out;
 }
