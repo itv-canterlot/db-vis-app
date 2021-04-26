@@ -3,6 +3,53 @@ const ReactDOM = require('react-dom');
 import { closeSync } from 'node:fs';
 import SearchDropdownList from './UIElements';
 
+class FixedAttributeSelector extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+
+    render() {
+        let thisEntity = this.props.entity as Table;
+        let fk = this.props.fk as ForeignKey;
+        return (
+            <div className="mt-1 mb-1">
+                <div className="text-muted">
+                    <div className="dropdown-tip bg-tip-fk d-inline-block">
+                        <i className="fas fa-link me-2" />{fk.conname}
+                    </div>
+                    <div className="ms-1 tip-fontsize d-inline-block">
+                    <i className="fas fa-arrow-right" />
+                    </div>
+                </div>
+                <div className="ms-2">
+                    {fk.confname}
+                </div>
+            </div>
+        )
+    }
+}
+
+class JunctionTableLinks extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+
+    render() {
+        let selectedEntity = this.props.selectedEntity as Table;
+        let foreignKeyList = selectedEntity.fk;
+        let fkListNode = foreignKeyList.map(fk => {
+            return (
+                <FixedAttributeSelector key={fk.oid} entity={selectedEntity} fk={fk} />
+            );
+        });
+        return (
+            <div className="col">
+                {fkListNode}
+            </div>
+        );
+    }
+}
+
 class EntitySelector extends React.Component {
     constructor(props) {
         super(props);
@@ -77,16 +124,33 @@ class EntitySelector extends React.Component {
             </a>
     }
 
-    entitiesListNode = () => 
-    (<div className="row">
-        <SearchDropdownList placeholder="Select Entity 1..." 
-            prependText="E1" dropdownList={this.props.state.allEntitiesList} 
-            updateListHandler={this.props.updateOnTableListFocus}
-            selectedIndex={this.props.state.selectedTableIndex}
-            onListSelectionChange={this.props.onTableSelectChange}
-            arrayRenderer={this.entityArrayRenderer}
-            />
-    </div>)
+    /* React components for entity selectors */
+    entitiesListNode = () => {
+        let selectedEntity = this.props.state.allEntitiesList[this.props.state.selectedTableIndex] as Table;
+        let selectedIsJunction = selectedEntity ? selectedEntity.isJunction : false;
+        return (<div className="row">
+            <div className="col">
+                <div className="row">
+                    <SearchDropdownList placeholder="Select Entity 1..." 
+                        prependText="E1" dropdownList={this.props.state.allEntitiesList} 
+                        updateListHandler={this.props.updateOnTableListFocus}
+                        selectedIndex={this.props.state.selectedTableIndex}
+                        onListSelectionChange={this.props.onTableSelectChange}
+                        arrayRenderer={this.entityArrayRenderer}
+                        />
+
+                </div>
+                {
+                    // Display the linked tables if the selected table is a junction table
+                    selectedIsJunction 
+                    ? <div className="row ms-4">
+                        <JunctionTableLinks selectedEntity={selectedEntity} />
+                    </div>
+                    : null
+                }
+            </div>
+        </div>)
+    }
 
     attributeListNode = () => 
         this.props.state.selectedTableIndex >= 0
@@ -379,7 +443,7 @@ class Application extends React.Component {
                 this.setState({
                     allEntitiesList: res
                 });
-            })
+            });
             
             this.setState({
                 load: false
@@ -434,7 +498,7 @@ class Application extends React.Component {
             .then(rawResponse => rawResponse.json())
             .then(tableList => {
                 // Annotate each table based on its key relationships
-                let tableListTranscribed = {};
+                let tableListTranscribed = {}; // TODO: TO BE DEPRECATED
                 tableList.forEach((item: Table, _) => {
                     if (this.tableIsJunction(item) == EntityRelationshipTypes.ManyToMany) {
                         item.isJunction = true;
@@ -443,7 +507,6 @@ class Application extends React.Component {
                 });
                 
                 return tableList;
-                // return tableListTranscribed;
             });
     }
 

@@ -21,6 +21,10 @@
     border-radius: .2rem;
 }
 
+.tip-fontsize {
+    font-size: .8rem;
+}
+
 .bg-tip-type {
     background-color: lightblue;
 }
