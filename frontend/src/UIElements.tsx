@@ -1,7 +1,8 @@
-const React = require('react');
-const ReactDOM = require('react-dom');
+import * as React from 'react';
+import {SearchDropdownListProps} from './ts/components';
+class SearchDropdownList extends React.Component<SearchDropdownListProps, {showList: boolean}> {
+    inputRef: React.RefObject<HTMLInputElement>;
 
-class SearchDropdownList extends React.Component {
     constructor(props) {
         super(props);
 
