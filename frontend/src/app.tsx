@@ -49,16 +49,19 @@ class AttributeListSelector extends React.Component<ComponentTypes.AttributeList
     }
 }
 
-class FixedAttributeSelector extends React.Component<ComponentTypes.FixedAttributeSelectorProps, {selectedAttribute?: number}> {
+class FixedAttributeSelector extends React.Component<ComponentTypes.FixedAttributeSelectorProps, {selectedAttributeIndex?: number}> {
     constructor(props) {
         super(props);
         this.state = {
-            selectedAttribute: -1
+            selectedAttributeIndex: -1
         }
     }
 
-    onListSelectionChange = (el) => {
-        console.log(el);
+    onAttributeSelectionChange = (el: React.BaseSyntheticEvent) => {
+        console.log(el.target);
+        this.setState({
+            selectedAttributeIndex: el.target.getAttribute("data-index")
+        }); // TODO
     }
 
     render() {
@@ -82,9 +85,9 @@ class FixedAttributeSelector extends React.Component<ComponentTypes.FixedAttribu
                         <div className="ms-2">
                             <AttributeListSelector 
                                 dropdownList={fkEntity.attr}
-                                onListSelectionChange={this.onListSelectionChange}
+                                onListSelectionChange={this.onAttributeSelectionChange}
                                 prependText={fk.confname}
-                                selectedIndex={this.state.selectedAttribute}
+                                selectedIndex={this.state.selectedAttributeIndex}
                                 tableForeignKeys={fkEntity.fk}
                                 tablePrimaryKey={fkEntity.pk}
                             />
@@ -103,12 +106,12 @@ class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps>
     }
 
     FKArrayRenderer = (item, index, onClickCallback, selectedIndex) => { 
-        return <a className={"d-flex dropdown-item" + (index == selectedIndex ? " active" : "")} 
+        return <a className={"d-flex dropdown-item pe-auto" + (index == selectedIndex ? " active" : "")} 
             data-key={item.confrelid} data-index={index} data-content={item.confname} key={index} href="#" onMouseDown={onClickCallback}>
-                <div className="d-flex">
+                <div className="d-flex pe-none">
                 {item.confname}
                 </div>
-                <div className="d-flex ms-auto">
+                <div className="d-flex ms-auto pe-none">
                     <div className="me-1 text-muted dropdown-tip bg-tip-fk" key={index}>fk: <em>{item.conname}</em></div>
                 </div>
             </a>
@@ -118,9 +121,9 @@ class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps>
         let oid = item.oid;
         let relname = item.relname;
         // Check this.props.state.selectedIndex
-        return <a className={"dropdown-item" + (index == this.props.state.selectedTableIndex ? " active" : "")} 
+        return <a className={"dropdown-item pe-auto" + (index == this.props.state.selectedTableIndex ? " active" : "")} 
             data-key={oid} data-index={index} data-content={relname} key={index} href="#" onMouseDown={onClickCallback}>
-                {item.isJunction? <i className="fas fa-compress-alt me-1" /> : null}{relname}
+                {item.isJunction? <i className="fas fa-compress-alt me-1 pe-none" /> : null}{relname}
             </a>
     }
 
@@ -572,9 +575,10 @@ const attributeArrayRenderer = (item:Attribute, index: number, onClickCallback, 
             }
         });
     }
-    return <a className={"d-flex dropdown-item" + (index == selectedIndex ? " active" : "") + (itemIsPrimaryKey ? " disabled" : "")} 
+
+    return <a className={"d-flex dropdown-item pe-auto" + (index == selectedIndex ? " active" : "") + (itemIsPrimaryKey ? " disabled" : "")} 
         data-key={index} data-index={index} data-content={item.attname} key={item.attnum} href="#" onMouseDown={onClickCallback}>
-            <div className="d-flex">
+            <div className="d-flex pe-none">
             {item.attname}
             </div>
             <div className="d-flex ms-auto align-items-center">
