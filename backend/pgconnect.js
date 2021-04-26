@@ -41,7 +41,7 @@ const queryPgTablePrimaryKeys = (targetTableOID = 0) => {
 
 const queryPgAttributesByTable = (targetTableOID) => {
     if (targetTableOID > 0) {
-        return `SELECT a.attname, a.attlen, a.attnum, a.attndims, t.typname, t.typcategory, a.attrelid, c.relname from pg_catalog.pg_attribute a
+        return `SELECT a.attname, a.attlen, a.attnum, a.attndims, t.typname, t.typcategory, a.attrelid from pg_catalog.pg_attribute a
             INNER JOIN pg_catalog.pg_type t ON a.atttypid = t.oid
             INNER JOIN pg_catalog.pg_class c ON c.oid = a.attrelid
             LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
@@ -103,6 +103,7 @@ async function getTablePrimaryAndForeignKeys(tbl) {
     let out = {...tbl};
     out.pk = await getTablePrimaryKeys(tbl.oid);
     out.fk = await getTableForeignKeys(tbl.oid);
+    out.atts = await getTableAttributes(tbl.oid);
 
     return out;
 }
