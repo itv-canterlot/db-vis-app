@@ -1,19 +1,19 @@
-enum VISPARAMTYPES {
+declare enum VISPARAMTYPES {
     TEMPORAL = "TEMPORAL",
     GEOGRAPHICAL = "GEOGRAPHICAL",
     LEXICAL = "LEXICAL",
     COLOR = "COLOR"
-};
+}
 
 
-enum VISSCHEMATYPES {
-    BASIC,
-    WEAKENTITY,
-    ONEMANY,
-    MANYMANY
-};
+declare enum VISSCHEMATYPES {
+    BASIC = 0,
+    WEAKENTITY = 1,
+    ONEMANY = 2,
+    MANYMANY = 3
+}
 
-type VisSchema = {
+export type VisSchema = {
     name: string,
     type: VISSCHEMATYPES.BASIC,
     keys: Key
@@ -39,14 +39,14 @@ type VisSchema = {
     reflexive: boolean,
     mandatoryParameters?: VisParam[],
     optionalParameters?: []
-};
+}
 
 interface VisParam {
     scalar: boolean,
-    type?: VisParamType
-};
+    type?: VISPARAMTYPES
+}
 
-interface Key implements VisParam { 
+interface Key extends VisParam { 
     minCount: number,
     maxCount?: number
 }
