@@ -1,0 +1,80 @@
+{
+    "schema": [
+        {
+            "name": "Bar Chart",
+            "type": 0,
+            "keys": {
+                "minCount": 1,
+                "maxCount": 100
+            },
+            "mandatoryParameters": [
+                {
+                    "scalar": true
+                }
+            ]
+        }, {
+            "name": "Calendar",
+            "type": 0,
+            "keys": {
+                "minCount": 1
+            },
+            "mandatoryParameters": [
+                {
+                    "scalar": true,
+                    "type": "TEMPORAL"
+                }
+            ],
+            "optionalParameters": [
+                {
+                    "scalar": false,
+                    "type": "COLOR"
+                }
+            ]
+        }, {
+            "name": "Scatter Diagrams",
+            "type": 0,
+            "keys": {
+                "minCount": 1
+            },
+            "mandatoryParameters": [
+                {
+                    "scalar": true,
+                    "type": "TEMPORAL"
+                }, {
+                    "scalar": true,
+                    "type": "TEMPORAL"
+                }
+            ],
+            "optionalParameters": [
+                {
+                    "scalar": false,
+                    "type": "COLOR"
+                }
+            ]
+        }, {
+            "name": "Bubble Charts",
+            "type": 0,
+            "keys": {
+                "minCount": 1
+            },
+            "mandatoryParameters": [
+                {
+                    "scalar": true,
+                    "type": "TEMPORAL"
+                }, {
+                    "scalar": true,
+                    "type": "TEMPORAL"
+                }, {
+                    "scalar": true,
+                    "type": "TEMPORAL"
+                }
+            ],
+            "optionalParameters": [
+                {
+                    "scalar": false,
+                    "type": "COLOR"
+                }
+            ]
+        }
+    ]
+}
