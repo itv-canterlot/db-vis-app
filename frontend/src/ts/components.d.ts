@@ -24,7 +24,7 @@ export type FixedAttributeSelectorProps = {
 }
 
 export type EntitySelectorProps = {
-    state: ApplicationStates, // TODO
+    state: ApplicationStates,
     onTableSelectChange: Function,
     onAttributeSelectChange: Function,
     onFKAttributeSelectChange: Function,
@@ -33,11 +33,10 @@ export type EntitySelectorProps = {
 }
 
 export type AttributeListSelectorProps = {
-    dropdownList: Attribute[], // TODO: attribute type
+    dropdownList: Attribute[],
     selectedIndex: number,
     prependText: string,
     onListSelectionChange: Function,
-    // arrayRenderer?: Function,
     tablePrimaryKey: PrimaryKey,
     tableForeignKeys: ForeignKey[]
 }
@@ -50,8 +49,4 @@ export type ApplicationStates = {
     selectedForeignKeyIndex?: number,
     selectedFKAttributeIndex?: number,
     load: boolean,
-    // TODO: TO BE REPLACED
-    // tableAttributes?: any[],// TODO: attribute type
-    // tableForeignKeys?: ForeignKey[],
-    // frelAtts?: any[] // TODO: attribute type
 }
