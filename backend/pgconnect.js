@@ -4,7 +4,11 @@ const fs = require("fs");
 const { exception } = require("console");
 
 // SQL boilerplates
-const dataSelectByTableNameAndFields = (tableName, fields) => `SELECT ${fields.join(" ")} FROM ${tableName};`
+const dataSelectByTableNameAndFields = (tableName, fields) => `SELECT ${fields.join(" ")} FROM ${tableName};`;
+
+const dataSelectAllColumnsByTableName = (tablename) => `SELECT * FROM ${tableName};`;
+
+const dataColumnCounts = (tableName, fieldName) => `SELECT COUNT(${fieldName}) as count, COUNT(DISTINCT ${fieldName}) as distinct_count FROM ${tableName};`;
 
 const queryPgCatConstraints = 
     `SELECT c.oid, c.conname, c.contype, c.conrelid, c.conkey, c.confrelid, c.confkey, pg_catalog.pg_get_constraintdef(c.oid)
@@ -64,6 +68,11 @@ const queryPgTableNames =
         LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
         WHERE n.nspname = 'public' AND c.reltype > 0 AND c.relkind = 'r'
         ORDER BY relname;`;
+
+const queryTableColumns = (tableName) =>
+    `SELECT column_name
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_NAME = '${tableName}'`;
 
 const connConfigFile = fs.readFileSync("./pg-connection.yaml", {encoding: "utf8"});
 connConfig = YAML.parse(connConfigFile);
@@ -165,8 +174,24 @@ async function getDataByTableNameAndFields(tableName, fields) {
     }
 }
 
+async function getTableDistinctColumnCount(tableName) {
+    try {
+        let columnNames =  await singlePoolRequest(queryTableColumns(tableName));
+        columnCountPromises = columnNames.map(val => singlePoolRequest(dataColumnCounts(tableName, val["column_name"])));
+        return Promise.all(columnCountPromises).then(columnRes => {
+            columnRes = columnRes.map(val => val[0]);
+            for (let i = 0; i < columnRes.length; i++) {
+                columnRes[i]["columnName"] = columnNames[i]["column_name"];
+            }
+            return columnRes;
+        });
+    } catch (err) {
+        return err;
+    }
+}
+
 module.exports = { 
     getTableInfo, getTableNames, getTableForeignKeys,
     getTablePrimaryKeys, getTableAttributes, getDataByTableNameAndFields,
-    getTablePrimaryAndForeignKeys, getTableMetatdata
+    getTablePrimaryAndForeignKeys, getTableMetatdata, getTableColumnDistinctCount: getTableDistinctColumnCount
 };
