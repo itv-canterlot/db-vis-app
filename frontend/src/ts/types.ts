@@ -5,6 +5,7 @@ export interface Table {
     fk?: ForeignKey[],
     isJunction: boolean,
     attr: Attribute[]
+    weakEntitiesIndices: number[]
 }
 
 export interface Key {

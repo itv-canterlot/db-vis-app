@@ -68,7 +68,6 @@ class FixedAttributeSelector extends React.Component<ComponentTypes.FixedAttribu
         let thisEntity = this.props.entity as Table;
         let fk = this.props.fk as ForeignKey;
 
-        console.log(fk);
         return (
             <DBSchemaContext.Consumer>
                 {(context) => {
@@ -120,10 +119,44 @@ class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps>
     entityArrayRenderer = (item: Table, index, onClickCallback) => { 
         let oid = item.oid;
         let relname = item.relname;
+        let affix = () => {
+            // Markers of the type of table
+            if (item.isJunction) {
+                return <i className="fas fa-compress-alt me-1 pe-none" />
+            }
+        }
+
+        let weRels = () => {
+            if (item.weakEntitiesIndices != undefined) {
+                if (item.weakEntitiesIndices.length > 0) {
+                    let visitedKeys = [];
+                    return item.weakEntitiesIndices.map((weIndex:number, arrayIndex:number) => {
+                        if (visitedKeys.includes(item.fk[weIndex].confrelid)) {
+                            return null;
+                        }
+                        visitedKeys.push(item.fk[weIndex].confrelid);
+                        return (
+                        <div className="me-1 text-muted dropdown-tip bg-tip-weak-link d-flex align-items-center tip-fontsize" key={arrayIndex}>
+                            <i className="fas fa-asterisk me-1 pe-none fa-xs" /> <em>{item.fk[weIndex].confname}</em>
+                        </div>)
+                    })
+                     // TODO: more information
+                } else {
+                    return null;
+                }
+            } else {
+                return null;
+            }
+        }
         // Check this.props.state.selectedIndex
         return <a className={"dropdown-item pe-auto" + (index == this.props.state.selectedTableIndex ? " active" : "")} 
             data-key={oid} data-index={index} data-content={relname} key={index} href="#" onMouseDown={onClickCallback}>
-                {item.isJunction? <i className="fas fa-compress-alt me-1 pe-none" /> : null}{relname}
+                <div className="pe-none">
+                    {affix()}{relname}
+                </div>
+                <div className="pe-none d-flex">
+                    {weRels()}
+                </div>
             </a>
     }
 
@@ -267,13 +300,11 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         // Return nothing if no PK exist
         if (!pkConKey || pkConKey.length === 0) {
             // TODO: implement this
-            console.log("No primary key");
             return undefined;
         }
 
         if (!fks) {
             // TODO: check this
-            console.log("No foreign keys");
             return undefined;
         }
 
@@ -303,15 +334,65 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         }        
     }
 
-    tableIsJunction = (table: Table) => {
-        if (!table.pk) return false;
-        let pkConKey = table.pk.conkey;
+    tableHasPKAndFK = (table: Table) => {
         // Return nothing if no PK/FK exist
-        if (!pkConKey || pkConKey.length === 0) {
+        if (!table.pk) return false;
+        if (!table.pk.conkey || table.pk.conkey.length === 0) {
+            return false;
+        }
+        if (!table.fk || table.fk.length === 0) {
             return false;
         }
 
-        if (!table.fk || table.fk.length < 2) {
+        let fkHasLength = false;
+        for (var i = 0; i < table.fk.length; i++) {
+            if (table.fk[i].conkey.length != 0) {
+                fkHasLength = true;
+                break;
+            }
+        }
+
+        return fkHasLength;
+    }
+
+    /**
+     * Find out if the entity is a weak entity, and if so, which entity does it lead to.
+     * @param table Table in question
+     * @returns Empty array if the entity is not a weak entity. Otherwise the array contains all foreign keys 
+     * that formed a subset of the primary key. 
+     */
+    getWeakEntityStatus = (table: Table) => {
+        // An entity is a weak entity if:
+        // > It has a compound key
+        // > A proper subset of those key attributes are foreign
+        // First - check the existance of PK/FK
+        if (!this.tableHasPKAndFK) return [];
+        const conkeyLength = table.pk ? table.pk.conkey.length : 0;
+
+        let subsetKeyIdx: number[] = []; // TODO: should I also pass this on?
+        for (let i = 0; i < table.fk.length; i++) {
+            let fkElem = table.fk[i];
+            let fkKeys = fkElem.conkey;
+            if (fkKeys.length >= conkeyLength) {
+                // If this key is longer than the primary key it self, it is not a proper subset
+                continue;
+            } else {
+                if (fkKeys.every(val => table.pk.conkey.includes(val))) {
+                    // This is a proper subset
+                    subsetKeyIdx.push(i);
+                }
+            }
+        }
+
+        return subsetKeyIdx;
+    }
+
+    tableIsJunction = (table: Table) => {
+        // Return nothing if no PK/FK exist
+        if (!this.tableHasPKAndFK(table)) return false;
+
+        // Return if there is less than 2 foreign keys
+        if (table.fk.length < 2) {
             return false;
         }
 
@@ -331,7 +412,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 }
             }
 
-            if (thisTableKey.every(v => pkConKey.includes(v))) {
+            if (thisTableKey.every(v => table.pk.conkey.includes(v))) {
                 comparedFKKeys.push(thisTableKey);
                 fkMatchCount++;
             }
@@ -477,6 +558,9 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 tableList.forEach((item: Table, _) => {
                     if (this.tableIsJunction(item) == EntityRelationshipTypes.ManyToMany) {
                         item.isJunction = true;
+                    }
+                    else {
+                        item.weakEntitiesIndices = this.getWeakEntityStatus(item);
                     }
                     tableListTranscribed[item.oid] = item.relname;
                 });
