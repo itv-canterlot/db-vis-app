@@ -4,6 +4,7 @@ import SearchDropdownList from './UIElements';
 import {ForeignKey, PrimaryKey, Table, Attribute} from './ts/types'
 import * as ComponentTypes from './ts/components';
 import {DBSchemaContext} from './DBSchemaContext'
+import { VisSchema } from './ts/vis-encodings'
 
 class JunctionTableLinks extends React.Component<ComponentTypes.JunctionTableLinksProps, {}> {
     constructor(props) {
@@ -291,49 +292,6 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         };
     }
 
-    // TO BE DEPRECATED
-    getEntityRelationshipType = () => {
-        let selectedEntity = this.state.allEntitiesList[this.state.selectedTableIndex];
-        let pkConKey = selectedEntity.pk.conkey;
-        let fks = selectedEntity.fk;
-
-        // Return nothing if no PK exist
-        if (!pkConKey || pkConKey.length === 0) {
-            // TODO: implement this
-            return undefined;
-        }
-
-        if (!fks) {
-            // TODO: check this
-            return undefined;
-        }
-
-        let fkConKeys = fks.map(e => e.conkey);
-        
-        if (fks.length < 2) {
-            // If there is none or one foreign key, TODO
-        } else {
-            // This entity might be a link table between many-to-many relationships
-            // For each FK, check if the PK set covered all of its constraints
-            var fkMatchCount = 0;
-            fks.forEach(element => {
-                // If this FK is a subset of the PK
-                if (element.conkey.every(v => pkConKey.includes(v))) {
-                    fkMatchCount++;
-                }
-            });
-            
-            if (fkMatchCount >= 2) {
-                // This is a many-to-many link table
-                // TODO: do things
-                return EntityRelationshipTypes.ManyToMany;
-            } else {
-                return undefined;
-            }
-            
-        }        
-    }
-
     tableHasPKAndFK = (table: Table) => {
         // Return nothing if no PK/FK exist
         if (!table.pk) return false;
@@ -428,6 +386,28 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             
     }
 
+    TEMPcheckVisualisationPossibility = () => {
+        let selectedEntity = this.state.allEntitiesList[this.state.selectedTableIndex];
+        // TODO: implement other vis types
+        // For demo: simple entity
+        if ((!selectedEntity.hasOwnProperty("weakEntitiesIndices") || selectedEntity.weakEntitiesIndices.length === 0) && 
+            (!selectedEntity.hasOwnProperty("isJunction") || !selectedEntity.isJunction)) {
+            
+            let selectedAttributes: Attribute[] = [];
+            let TEMPattCount = 2;
+            selectedEntity.attr.forEach(att => {
+                // TODO: .d.ts the typcategories
+                if (att.typcategory === "N") {
+                    selectedAttributes.push(att);
+                }
+            });
+
+            getTableDistCounts(selectedEntity.relname, selectedAttributes.map(e => e.attname)).then(res => {
+                console.log(res);
+            })
+        }
+    }
+
     // Called when R1 is changed
     onTableSelectChange = (e) => {
         let tableIndex = parseInt(e.target.getAttribute("data-index"));
@@ -442,6 +422,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             selectedForeignKeyIndex: -1,
             selectedFKAttributeIndex: -1,
             load: true
+        }, () => {
+            this.TEMPcheckVisualisationPossibility(); // TODO: major overhaul
         });
     }
 
@@ -507,6 +489,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     }
 
     checkVisualisationPossibility = () => {
+        return;
         // Check, based on state indexes, if it is possible to request data from the database
         // -- 1 -- A first entity and one of its attributes have been selected
         if (this.state.selectedTableIndex >= 0 && this.state.selectedAttributeIndex >= 0) {
@@ -561,12 +544,23 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     }
                     else {
                         item.weakEntitiesIndices = this.getWeakEntityStatus(item);
+                        // Check if this entity is a weak entity
+                        if (item.weakEntitiesIndices.length > 0) {
+                            // TODO
+                        } else {
+                            // TODO
+                        }
                     }
                     tableListTranscribed[item.oid] = item.relname;
                 });
                 
                 return tableList;
             });
+    }
+
+    async componentDidMount() {
+        // Can even do some loading screen stuff here
+        await readVisSchemaJSON();
     }
 
     render() {
@@ -588,8 +582,19 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     }
 }
 
+// Code to run
 let appContNode = document.getElementById("app-cont");
 ReactDOM.render(<Application />, appContNode);
+let visSchema: VisSchema[];
+
+// Load schema files
+async function readVisSchemaJSON() {
+    fetch("./src/vis-encodings/simple-entity.json").then(res => {
+        return res.json();
+    }).then(res => {
+        visSchema = res["schema"] as VisSchema[];
+    });
+}
 
 async function getAttributeContentFromDatabase(tableIndex) {
     const rawResponse = fetch("http://localhost:3000/table-attributes", {
@@ -600,6 +605,26 @@ async function getAttributeContentFromDatabase(tableIndex) {
         method: "POST",
         body: JSON.stringify({
             "oid": tableIndex
+        }),
+        
+    })
+
+    const response = rawResponse.then(val => {
+        return val.json();
+    })
+    return response;
+}
+
+async function getTableDistCounts(tableName, columnNames?) {
+    const rawResponse = fetch("http://localhost:3000/table-dist-counts", {
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        method: "POST",
+        body: JSON.stringify({
+            "tableName": tableName,
+            "columnNames": columnNames === undefined ? [] : columnNames
         }),
         
     })
