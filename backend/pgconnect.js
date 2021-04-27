@@ -174,14 +174,23 @@ async function getDataByTableNameAndFields(tableName, fields) {
     }
 }
 
-async function getTableDistinctColumnCount(tableName) {
+async function getTableDistinctColumnCountByAllColumns(tableName) {
     try {
         let columnNames =  await singlePoolRequest(queryTableColumns(tableName));
-        columnCountPromises = columnNames.map(val => singlePoolRequest(dataColumnCounts(tableName, val["column_name"])));
+        columnNames = columnNames.map(e => e["column_name"])
+        return getTableDistinctColumnCountByColumnName(tableName, columnNames);
+    } catch (err) {
+        return err;
+    }
+}
+
+async function getTableDistinctColumnCountByColumnName(tableName, columnNames) {
+    try {
+        columnCountPromises = columnNames.map(val => singlePoolRequest(dataColumnCounts(tableName, val)));
         return Promise.all(columnCountPromises).then(columnRes => {
             columnRes = columnRes.map(val => val[0]);
             for (let i = 0; i < columnRes.length; i++) {
-                columnRes[i]["columnName"] = columnNames[i]["column_name"];
+                columnRes[i]["columnName"] = columnNames[i];
             }
             return columnRes;
         });
@@ -193,5 +202,6 @@ async function getTableDistinctColumnCount(tableName) {
 module.exports = { 
     getTableInfo, getTableNames, getTableForeignKeys,
     getTablePrimaryKeys, getTableAttributes, getDataByTableNameAndFields,
-    getTablePrimaryAndForeignKeys, getTableMetatdata, getTableColumnDistinctCount: getTableDistinctColumnCount
+    getTablePrimaryAndForeignKeys, getTableMetatdata,
+    getTableDistinctColumnCountByAllColumns, getTableDistinctColumnCountByColumnName
 };

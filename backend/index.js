@@ -22,8 +22,9 @@ app.get('/temp-db-table-list', (req, res) => {
   });
 });
 
-app.get('/temp-column-dist-counts', (req, res) => {
-  pgconnect.getTableColumnDistinctCount(req.body["tableName"]).then(tabRes => {
+app.post('/table-dist-counts', (req, res) => {
+  let reqBody = req.body;
+  pgconnect.getTableDistinctColumnCountByColumnName(reqBody["tableName"], reqBody["columnNames"]).then(tabRes => {
     res.send(tabRes);
   });
 });
