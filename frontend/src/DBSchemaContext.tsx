@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Table } from './ts/types';
 
-interface DBSchemaContextInterface {
+export interface DBSchemaContextInterface {
     allEntitiesList: Table[]
 }
 

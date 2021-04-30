@@ -36,8 +36,11 @@ app.get('/temp-db-schema', (req, res) => {
 });
 
 app.post('/temp-data-table-name-fields', (req, res) => {
+  console.debug("POST /temp-data-table-name-fields")
   let fields = req.body["fields"];
   let tableName = req.body["tableName"];
+  console.debug(`-- fields: ${fields}`);
+  console.debug(`-- tableName: ${tableName}`);
   if (!fields || !tableName) {
     return res.status(400).json("Input format error");
   }

@@ -3,8 +3,10 @@ const ReactDOM = require('react-dom');
 import SearchDropdownList from './UIElements';
 import {ForeignKey, PrimaryKey, Table, Attribute} from './ts/types'
 import * as ComponentTypes from './ts/components';
-import {DBSchemaContext} from './DBSchemaContext'
-import { VisSchema } from './ts/vis-encodings'
+import * as d3 from 'd3';
+import { DBSchemaContext } from './DBSchemaContext';
+import { VisSchema } from './ts/vis-encodings';
+import { Visualiser } from './Visualiser';
 
 class JunctionTableLinks extends React.Component<ComponentTypes.JunctionTableLinksProps, {}> {
     constructor(props) {
@@ -259,18 +261,6 @@ class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps>
     }
 }
 
-class Visualiser extends React.Component {
-    constructor(props) {
-        super(props);
-    }
-
-    render() {
-        return (
-            <div className="col"></div>
-        )
-    }
-}
-
 enum EntityRelationshipTypes {
     OneToOne,
     OneToMany,
@@ -404,7 +394,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
             getTableDistCounts(selectedEntity.relname, selectedAttributes.map(e => e.attname)).then(res => {
                 console.log(res);
-            })
+            });
         }
     }
 
@@ -574,7 +564,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     onForeignKeySelectChange={this.onForeignKeySelectChange}
                     updateOnTableListFocus={this.updateOnTableListFocus}
                     />
-                    <Visualiser />
+                    <Visualiser selectedTableIndex={this.state.selectedTableIndex} />
                 </div>
             </DBSchemaContext.Provider>
 
