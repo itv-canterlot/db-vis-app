@@ -3,7 +3,6 @@ const ReactDOM = require('react-dom');
 import SearchDropdownList from './UIElements';
 import {ForeignKey, PrimaryKey, Table, Attribute} from './ts/types'
 import * as ComponentTypes from './ts/components';
-import * as d3 from 'd3';
 import { DBSchemaContext } from './DBSchemaContext';
 import { VisSchema } from './ts/vis-encodings';
 import { Visualiser } from './Visualiser';
@@ -260,13 +259,6 @@ class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps>
         )
     }
 }
-
-enum EntityRelationshipTypes {
-    OneToOne,
-    OneToMany,
-    ManyToMany
-}
-
 class Application extends React.Component<{}, ComponentTypes.ApplicationStates> {
     constructor(props) {
         super(props);
@@ -369,7 +361,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         if (fkMatchCount >= 2) {
             // This is a many-to-many link table
             // TODO: do things
-            return EntityRelationshipTypes.ManyToMany;
+            return true;
         } else {
             return false;
         }
@@ -529,7 +521,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 // Annotate each table based on its key relationships
                 let tableListTranscribed = {}; // TODO: TO BE DEPRECATED
                 tableList.forEach((item: Table, _) => {
-                    if (this.tableIsJunction(item) == EntityRelationshipTypes.ManyToMany) {
+                    if (this.tableIsJunction(item)) {
                         item.isJunction = true;
                     }
                     else {
