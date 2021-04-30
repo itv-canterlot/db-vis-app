@@ -6,12 +6,12 @@ module.exports = {
         filename: "./app-bundle.js"
     },
     resolve: {
-        extensions: ['.Webpack.js', '.web.js', '.ts', '.js', '.jsx', '.tsx', '.css']
+        extensions: ['.Webpack.js', '.web.js', '.ts','.d.ts', '.js', '.jsx', '.tsx', '.css']
     },
     module: {
         rules: [
             {
-                test: /\.tsx$/,
+                test: /\.(ts|tsx)$/,
                 exclude: /(node_modules|bower_components)/,
                 use: {
                     loader: 'ts-loader'

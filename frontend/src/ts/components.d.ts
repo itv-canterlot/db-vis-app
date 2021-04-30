@@ -44,7 +44,6 @@ export type AttributeListSelectorProps = {
 export type ApplicationStates = {
     allEntitiesList?: Table[],
     selectedTableIndex?: number,
-    selectedTableOID?: number,
     selectedAttributeIndex?: number,
     selectedForeignKeyIndex?: number,
     selectedFKAttributeIndex?: number,

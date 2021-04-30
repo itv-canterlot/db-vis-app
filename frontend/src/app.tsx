@@ -6,6 +6,8 @@ import * as ComponentTypes from './ts/components';
 import { DBSchemaContext } from './DBSchemaContext';
 import { VisSchema } from './ts/vis-encodings';
 import { Visualiser } from './Visualiser';
+import * as Connections from './Connections';
+import * as UIRenderers from './UIRenderers';
 
 class JunctionTableLinks extends React.Component<ComponentTypes.JunctionTableLinksProps, {}> {
     constructor(props) {
@@ -34,7 +36,7 @@ class AttributeListSelector extends React.Component<ComponentTypes.AttributeList
     }
 
     attributeArrayRendererHandler = (item, index, onClickCallback, selectedIndex) => {
-        return attributeArrayRenderer(item, index, onClickCallback, selectedIndex, this.props.tablePrimaryKey, this.props.tableForeignKeys);
+        return UIRenderers.attributeArrayRenderer(item, index, onClickCallback, selectedIndex, this.props.tablePrimaryKey, this.props.tableForeignKeys);
     }
 
     render() {
@@ -106,60 +108,13 @@ class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps>
         super(props);
     }
 
-    FKArrayRenderer = (item, index, onClickCallback, selectedIndex) => { 
-        return <a className={"d-flex dropdown-item pe-auto" + (index == selectedIndex ? " active" : "")} 
-            data-key={item.confrelid} data-index={index} data-content={item.confname} key={index} href="#" onMouseDown={onClickCallback}>
-                <div className="d-flex pe-none">
-                {item.confname}
-                </div>
-                <div className="d-flex ms-auto pe-none">
-                    <div className="me-1 text-muted dropdown-tip bg-tip-fk" key={index}>fk: <em>{item.conname}</em></div>
-                </div>
-            </a>
+    attributeArrayRendererHandler = (item, index, onClickCallback, selectedIndex) => {
+        let selectedEntity = this.props.state.allEntitiesList[this.props.state.selectedTableIndex];
+        return UIRenderers.attributeArrayRenderer(item, index, onClickCallback, selectedIndex, selectedEntity.pk, selectedEntity.fk);
     }
 
-    entityArrayRenderer = (item: Table, index, onClickCallback) => { 
-        let oid = item.oid;
-        let relname = item.relname;
-        let affix = () => {
-            // Markers of the type of table
-            if (item.isJunction) {
-                return <i className="fas fa-compress-alt me-1 pe-none" />
-            }
-        }
-
-        let weRels = () => {
-            if (item.weakEntitiesIndices != undefined) {
-                if (item.weakEntitiesIndices.length > 0) {
-                    let visitedKeys = [];
-                    return item.weakEntitiesIndices.map((weIndex:number, arrayIndex:number) => {
-                        if (visitedKeys.includes(item.fk[weIndex].confrelid)) {
-                            return null;
-                        }
-                        visitedKeys.push(item.fk[weIndex].confrelid);
-                        return (
-                        <div className="me-1 text-muted dropdown-tip bg-tip-weak-link d-flex align-items-center tip-fontsize" key={arrayIndex}>
-                            <i className="fas fa-asterisk me-1 pe-none fa-xs" /> <em>{item.fk[weIndex].confname}</em>
-                        </div>)
-                    })
-                     // TODO: more information
-                } else {
-                    return null;
-                }
-            } else {
-                return null;
-            }
-        }
-        // Check this.props.state.selectedIndex
-        return <a className={"dropdown-item pe-auto" + (index == this.props.state.selectedTableIndex ? " active" : "")} 
-            data-key={oid} data-index={index} data-content={relname} key={index} href="#" onMouseDown={onClickCallback}>
-                <div className="pe-none">
-                    {affix()}{relname}
-                </div>
-                <div className="pe-none d-flex">
-                    {weRels()}
-                </div>
-            </a>
+    entityArrayRendererHandler = (item: Table, index: number, onClickCallback: React.MouseEventHandler<HTMLAnchorElement>) => {
+        return UIRenderers.entityArrayRenderer(item, index, onClickCallback, this.props.state.selectedTableIndex);
     }
 
     /* React components for entity selectors */
@@ -174,7 +129,7 @@ class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps>
                         updateListHandler={this.props.updateOnTableListFocus}
                         selectedIndex={this.props.state.selectedTableIndex}
                         onListSelectionChange={this.props.onTableSelectChange}
-                        arrayRenderer={this.entityArrayRenderer}
+                        arrayRenderer={this.entityArrayRendererHandler}
                         />
 
                 </div>
@@ -217,16 +172,11 @@ class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps>
                     dropdownList={this.props.state.allEntitiesList[this.props.state.selectedTableIndex].fk}
                     selectedIndex={this.props.state.selectedForeignKeyIndex}
                     onListSelectionChange={this.props.onForeignKeySelectChange}
-                    arrayRenderer={this.FKArrayRenderer}
+                    arrayRenderer={UIRenderers.FKArrayRenderer}
                     />
             </div>
         ) 
         : null;
-
-    attributeArrayRendererHandler = (item, index, onClickCallback, selectedIndex) => {
-        let selectedEntity = this.props.state.allEntitiesList[this.props.state.selectedTableIndex];
-        return attributeArrayRenderer(item, index, onClickCallback, selectedIndex, selectedEntity.pk, selectedEntity.fk);
-    }
 
     fkAttributeListNode = () => {
         if (this.props.state.selectedForeignKeyIndex >= 0) {
@@ -266,7 +216,6 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         this.state = {
             allEntitiesList: [],
             selectedTableIndex: -1,
-            selectedTableOID: -1,
             selectedAttributeIndex: -1,
             selectedForeignKeyIndex: -1,
             selectedFKAttributeIndex: -1,
@@ -384,7 +333,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 }
             });
 
-            getTableDistCounts(selectedEntity.relname, selectedAttributes.map(e => e.attname)).then(res => {
+            Connections.getTableDistCounts(selectedEntity.relname, selectedAttributes.map(e => e.attname)).then(res => {
                 console.log(res);
             });
         }
@@ -399,7 +348,6 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
         this.setState({
             selectedTableIndex: tableIndex,
-            selectedTableOID: tableKey,
             selectedAttributeIndex: -1,
             selectedForeignKeyIndex: -1,
             selectedFKAttributeIndex: -1,
@@ -456,11 +404,12 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         this.setState({
             load: true
         }, () => {
-            let entitiesListPromise = this.getAllTableMetadata();
+            let entitiesListPromise = Connections.getAllTableMetadata();
 
             Promise.resolve(entitiesListPromise).then(res => {
+                let entitiesList = this.preprocessEntities(res);
                 this.setState({
-                    allEntitiesList: res
+                    allEntitiesList: entitiesList
                 });
             });
             
@@ -485,7 +434,6 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 let tableAttributes = this.state.allEntitiesList[this.state.selectedTableIndex].attr;
                 let attributeEntry = tableAttributes[this.state.selectedAttributeIndex];
                 let attributeTypeCat = attributeEntry.typcategory;
-                let tableOID = this.state.selectedTableOID;
                 let tableIndex = this.state.selectedTableIndex;
                 if (attributeTypeCat === "N") {
                     // TODO: Fitting the new table list
@@ -513,31 +461,23 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         }
     }
 
-    getAllTableMetadata = () => {
-        // TODO/Work under progress: new backend hook
-        return fetch('http://localhost:3000/tables')
-            .then(rawResponse => rawResponse.json())
-            .then(tableList => {
-                // Annotate each table based on its key relationships
-                let tableListTranscribed = {}; // TODO: TO BE DEPRECATED
-                tableList.forEach((item: Table, _) => {
-                    if (this.tableIsJunction(item)) {
-                        item.isJunction = true;
-                    }
-                    else {
-                        item.weakEntitiesIndices = this.getWeakEntityStatus(item);
-                        // Check if this entity is a weak entity
-                        if (item.weakEntitiesIndices.length > 0) {
-                            // TODO
-                        } else {
-                            // TODO
-                        }
-                    }
-                    tableListTranscribed[item.oid] = item.relname;
-                });
-                
-                return tableList;
-            });
+    preprocessEntities(tableList: Table[]) {
+        tableList.forEach((item: Table, _) => {
+            if (this.tableIsJunction(item)) {
+                item.isJunction = true;
+            }
+            else {
+                item.weakEntitiesIndices = this.getWeakEntityStatus(item);
+                // Check if this entity is a weak entity
+                if (item.weakEntitiesIndices.length > 0) {
+                    // TODO
+                } else {
+                    // TODO
+                }
+            }
+        });
+
+        return tableList;
     }
 
     async componentDidMount() {
@@ -565,70 +505,13 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 }
 
 // Code to run
+const readVisSchemaJSON = () => {
+    Connections.readVisSchemaJSON().then((res:VisSchema[]) => visSchema = res)
+}
+
 let appContNode = document.getElementById("app-cont");
 ReactDOM.render(<Application />, appContNode);
 let visSchema: VisSchema[];
-
-// Load schema files
-async function readVisSchemaJSON() {
-    fetch("./src/vis-encodings/simple-entity.json").then(res => {
-        return res.json();
-    }).then(res => {
-        visSchema = res["schema"] as VisSchema[];
-    });
-}
-
-async function getAttributeContentFromDatabase(tableIndex) {
-    const rawResponse = fetch("http://localhost:3000/table-attributes", {
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        method: "POST",
-        body: JSON.stringify({
-            "oid": tableIndex
-        }),
-        
-    })
-
-    const response = rawResponse.then(val => {
-        return val.json();
-    })
-    return response;
-}
-
-async function getTableDistCounts(tableName, columnNames?) {
-    const rawResponse = fetch("http://localhost:3000/table-dist-counts", {
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        method: "POST",
-        body: JSON.stringify({
-            "tableName": tableName,
-            "columnNames": columnNames === undefined ? [] : columnNames
-        }),
-        
-    })
-
-    const response = rawResponse.then(val => {
-        return val.json();
-    })
-    return response;
-}
-
-// TODO: set operation(s)
-function symmetricDifference(setA, setB) {
-    let _difference = new Set(setA)
-    for (let elem of setB) {
-        if (_difference.has(elem)) {
-            _difference.delete(elem)
-        } else {
-            _difference.add(elem)
-        }
-    }
-    return _difference
-}
 
 const getEntityFromOID = (entities: Table[], oid: number) => {
     let fkRelIndex;
@@ -647,51 +530,3 @@ const getAttrsFromOID = (entities: Table[], oid: number) => {
 }
 
 // TODO: refactor this to another file?
-const attributeArrayRenderer = (item:Attribute, index: number, onClickCallback, selectedIndex: number, tablePrimaryKey?: PrimaryKey, tableForeignKeys?: ForeignKey[]) => {
-    let itemIsPrimaryKey = false;
-    let itemIsForeignKey = false;
-    let pkConstraintName;
-    let fkConstraintNames = [];
-    if (tablePrimaryKey) {
-        if (tablePrimaryKey.conkey.includes(item.attnum)) {
-            itemIsPrimaryKey = true;
-            pkConstraintName = tablePrimaryKey.conname;
-        }
-    }
-    if (tableForeignKeys) {
-        tableForeignKeys.forEach(cons => {
-            if (cons.conkey.includes(item.attnum)) {
-                itemIsForeignKey = true;
-                fkConstraintNames.push(cons.conname);
-            }
-        });
-    }
-
-    return <a className={"d-flex dropdown-item pe-auto" + (index == selectedIndex ? " active" : "") + (itemIsPrimaryKey ? " disabled" : "")} 
-        data-key={index} data-index={index} data-content={item.attname} key={item.attnum} href="#" onMouseDown={onClickCallback}>
-            <div className="d-flex pe-none">
-            {item.attname}
-            </div>
-            <div className="d-flex ms-auto align-items-center">
-                {
-                    // Print primary key prompt
-                    itemIsPrimaryKey ?
-                    <div className="me-1 text-muted dropdown-tip bg-tip-pk">pk: <em>{pkConstraintName}</em></div> :
-                    null
-                }
-                {
-                    // Print foreign key prompt(s)
-                    itemIsForeignKey ?
-                    fkConstraintNames.map((fkConstraintName, index) => {
-                        return <div className="me-1 text-muted dropdown-tip bg-tip-fk" key={index}>fk: <em>{fkConstraintName}</em></div>;
-                    }) :
-                    null
-                }
-                <div className="bg-tip-type text-secondary dropdown-tip">
-                    <em>
-                    {item.typname}
-                    </em>
-                </div>
-            </div>
-        </a>
-}
