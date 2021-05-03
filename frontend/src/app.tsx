@@ -1,13 +1,16 @@
 import * as React from 'react';
 const ReactDOM = require('react-dom');
+
 import SearchDropdownList from './UIElements';
-import {ForeignKey, PrimaryKey, Table, Attribute} from './ts/types'
-import * as ComponentTypes from './ts/components';
+import {ForeignKey, Table, Attribute, VisSchema} from './ts/types'
 import { DBSchemaContext } from './DBSchemaContext';
-import { VisSchema } from './ts/vis-encodings';
 import { Visualiser } from './Visualiser';
+
+import * as ComponentTypes from './ts/components';
 import * as Connections from './Connections';
 import * as UIRenderers from './UIRenderers';
+import * as SchemaParser from './SchemaParser';
+
 
 class JunctionTableLinks extends React.Component<ComponentTypes.JunctionTableLinksProps, {}> {
     constructor(props) {
@@ -201,6 +204,7 @@ class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps>
     render() {
         return (
             <div className="col dropdown-custom-text-wrapper">
+                {/* TODO: logic to be changed */}
                 {this.entitiesListNode()}
                 {this.props.state.selectedTableIndex >= 0 ? this.attributeListNode() : null}
                 {this.props.state.selectedTableIndex >= 0 ? this.foreignKeyNode() : null}
@@ -221,100 +225,6 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             selectedFKAttributeIndex: -1,
             load: false
         };
-    }
-
-    tableHasPKAndFK = (table: Table) => {
-        // Return nothing if no PK/FK exist
-        if (!table.pk) return false;
-        if (!table.pk.conkey || table.pk.conkey.length === 0) {
-            return false;
-        }
-        if (!table.fk || table.fk.length === 0) {
-            return false;
-        }
-
-        let fkHasLength = false;
-        for (var i = 0; i < table.fk.length; i++) {
-            if (table.fk[i].conkey.length != 0) {
-                fkHasLength = true;
-                break;
-            }
-        }
-
-        return fkHasLength;
-    }
-
-    /**
-     * Find out if the entity is a weak entity, and if so, which entity does it lead to.
-     * @param table Table in question
-     * @returns Empty array if the entity is not a weak entity. Otherwise the array contains all foreign keys 
-     * that formed a subset of the primary key. 
-     */
-    getWeakEntityStatus = (table: Table) => {
-        // An entity is a weak entity if:
-        // > It has a compound key
-        // > A proper subset of those key attributes are foreign
-        // First - check the existance of PK/FK
-        if (!this.tableHasPKAndFK) return [];
-        const conkeyLength = table.pk ? table.pk.conkey.length : 0;
-
-        let subsetKeyIdx: number[] = []; // TODO: should I also pass this on?
-        for (let i = 0; i < table.fk.length; i++) {
-            let fkElem = table.fk[i];
-            let fkKeys = fkElem.conkey;
-            if (fkKeys.length >= conkeyLength) {
-                // If this key is longer than the primary key it self, it is not a proper subset
-                continue;
-            } else {
-                if (fkKeys.every(val => table.pk.conkey.includes(val))) {
-                    // This is a proper subset
-                    subsetKeyIdx.push(i);
-                }
-            }
-        }
-
-        return subsetKeyIdx;
-    }
-
-    tableIsJunction = (table: Table) => {
-        // Return nothing if no PK/FK exist
-        if (!this.tableHasPKAndFK(table)) return false;
-
-        // Return if there is less than 2 foreign keys
-        if (table.fk.length < 2) {
-            return false;
-        }
-
-        // This entity might be a link table between many-to-many relationships
-        // For each FK, check if the PK set covered all of its constraints
-        var fkMatchCount = 0;
-        var comparedFKKeys = []; // Keeping track for duplicates
-        table.fk.forEach(element => {
-            // If this FK is a subset of the PK
-            let thisTableKey = element.conkey as [number];
-            for (let comparedIndex = 0; comparedIndex < comparedFKKeys.length; comparedIndex++) {
-                const comparedKey = comparedFKKeys[comparedIndex] as [number];
-                if (thisTableKey.length === comparedKey.length) {
-                    if (thisTableKey.every(v => comparedKey.includes(v))) {
-                        return false;
-                    }
-                }
-            }
-
-            if (thisTableKey.every(v => table.pk.conkey.includes(v))) {
-                comparedFKKeys.push(thisTableKey);
-                fkMatchCount++;
-            }
-        });
-
-        if (fkMatchCount >= 2) {
-            // This is a many-to-many link table
-            // TODO: do things
-            return true;
-        } else {
-            return false;
-        }
-            
     }
 
     TEMPcheckVisualisationPossibility = () => {
@@ -407,7 +317,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             let entitiesListPromise = Connections.getAllTableMetadata();
 
             Promise.resolve(entitiesListPromise).then(res => {
-                let entitiesList = this.preprocessEntities(res);
+                let entitiesList = SchemaParser.preprocessEntities(res);
                 this.setState({
                     allEntitiesList: entitiesList
                 });
@@ -461,28 +371,9 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         }
     }
 
-    preprocessEntities(tableList: Table[]) {
-        tableList.forEach((item: Table, _) => {
-            if (this.tableIsJunction(item)) {
-                item.isJunction = true;
-            }
-            else {
-                item.weakEntitiesIndices = this.getWeakEntityStatus(item);
-                // Check if this entity is a weak entity
-                if (item.weakEntitiesIndices.length > 0) {
-                    // TODO
-                } else {
-                    // TODO
-                }
-            }
-        });
-
-        return tableList;
-    }
-
     async componentDidMount() {
         // Can even do some loading screen stuff here
-        await readVisSchemaJSON();
+        readVisSchemaJSON();
     }
 
     render() {
