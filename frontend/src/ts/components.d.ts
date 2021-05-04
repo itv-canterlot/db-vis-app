@@ -29,7 +29,6 @@ export type EntitySelectorProps = {
     onAttributeSelectChange: Function,
     onFKAttributeSelectChange: Function,
     onForeignKeySelectChange: Function,
-    updateOnTableListFocus: Function
 }
 
 export type AttributeListSelectorProps = {

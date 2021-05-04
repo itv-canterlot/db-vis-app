@@ -10,7 +10,6 @@ import * as ComponentTypes from './ts/components';
 import * as Connections from './Connections';
 import * as UIRenderers from './UIRenderers';
 import * as SchemaParser from './SchemaParser';
-import { isPropertyAccessOrQualifiedName } from 'typescript';
 
 
 class JunctionTableLinks extends React.Component<ComponentTypes.JunctionTableLinksProps, {}> {
@@ -130,7 +129,6 @@ class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps>
                 <div className="row position-relative">
                     <SearchDropdownList placeholder="Select Entity 1..." 
                         prependText="E1" dropdownList={this.props.state.allEntitiesList} 
-                        updateListHandler={this.props.updateOnTableListFocus}
                         selectedIndex={this.props.state.selectedTableIndex}
                         onListSelectionChange={this.props.onTableSelectChange}
                         arrayRenderer={this.entityArrayRendererHandler}
@@ -307,7 +305,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         
     }
 
-    updateOnTableListFocus = () => {
+    getTableMetadata = () => {
         if (this.state.allEntitiesList.length !== 0) {
             return;
         }
@@ -376,6 +374,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     async componentDidMount() {
         // Can even do some loading screen stuff here
         readVisSchemaJSON();
+        this.getTableMetadata();
     }
 
     render() {
@@ -387,7 +386,6 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     onAttributeSelectChange={this.onAttributeSelectChange}
                     onFKAttributeSelectChange={this.onFKAttributeSelectChange}
                     onForeignKeySelectChange={this.onForeignKeySelectChange}
-                    updateOnTableListFocus={this.updateOnTableListFocus}
                     />
                     <Visualiser selectedTableIndex={this.state.selectedTableIndex} />
                 </div>
