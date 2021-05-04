@@ -1,4 +1,6 @@
-import { Table } from './ts/types';
+import { randomNormal } from 'd3-random';
+import { table } from 'node:console';
+import { Table, RelationNode, VISSCHEMATYPES, ForeignKey } from './ts/types';
 
 /**
  * Find out if the entity is a weak entity, and if so, which entity does it lead to.
@@ -37,24 +39,23 @@ import { Table } from './ts/types';
  * @param table Table in question
  * @returns Boolean indicating the property of the table.
  */
-const tableIsJunction = (table: Table) => {
+const getJunctionTableLinks = (table: Table) => {
     // Return nothing if no PK/FK exist
-    if (!tableHasPKAndFK(table)) return false;
+    if (!tableHasPKAndFK(table)) return [];
 
     // Return if there is less than 2 foreign keys
     if (table.fk.length < 2) {
-        return false;
+        return [];
     }
 
     // This entity might be a link table between many-to-many relationships
     // For each FK, check if the PK set covered all of its constraints
-    var fkMatchCount = 0;
-    var comparedFKKeys = []; // Keeping track for duplicates
+    var comparedFKKeys: ForeignKey[] = []; // Keeping track for duplicates
     table.fk.forEach(element => {
         // If this FK is a subset of the PK
         let thisTableKey = element.conkey as [number];
         for (let comparedIndex = 0; comparedIndex < comparedFKKeys.length; comparedIndex++) {
-            const comparedKey = comparedFKKeys[comparedIndex] as [number];
+            const comparedKey = comparedFKKeys[comparedIndex].conkey as [number];
             if (thisTableKey.length === comparedKey.length) {
                 if (thisTableKey.every(v => comparedKey.includes(v))) {
                     return false;
@@ -63,16 +64,16 @@ const tableIsJunction = (table: Table) => {
         }
 
         if (thisTableKey.every(v => table.pk.conkey.includes(v))) {
-            comparedFKKeys.push(thisTableKey);
-            fkMatchCount++;
+            comparedFKKeys.push(element);
         }
     });
 
-    if (fkMatchCount >= 2) {
+    if (comparedFKKeys.length >= 2) {
         // This is a many-to-many link table
-        return true;
+        // Return sets of 
+        return comparedFKKeys;
     } else {
-        return false;
+        return [];
     }
         
 }
@@ -103,6 +104,113 @@ const tableHasPKAndFK = (table: Table) => {
     return fkHasLength;
 }
 
+// Not sure what to do with this
+// const getRelationByName = (searchObjective: RelationNode[], visitedNodes: RelationNode[], tableList: Table[], tableName: string) => {
+//     // Search in the existing relations list for the element
+//     let newSearchObjective: RelationNode[] = [];
+//     let existingRelation = undefined;
+//     for (let ri = 0; ri < searchObjective.length; ri++) {
+//         let rnode = searchObjective[ri];
+//         // If this node has been visited already, skip
+//         if (visitedNodes.some(vnode => vnode.parentEntity.relname === rnode.parentEntity.relname)) {
+//             continue;
+//         }
+
+//         // Check if this rnode is the one being searched for
+//         if (rnode.parentEntity.relname === tableName) {
+//             existingRelation = rnode;
+//             break;
+//         } else {
+//             // Look for children nodes
+//             if (rnode.childEntities.length === 0) {
+//                 continue;
+//             } else {
+//                 // Add new objectives for recursive search (?)
+//                 newSearchObjective.push(...rnode.childEntities);
+//                 visitedNodes.push(rnode);
+//             }
+//         }
+//     }
+
+//     if (existingRelation !== undefined) {
+//         return existingRelation;
+//     } else {
+//         if (newSearchObjective.length === 0) {
+//             // Search ended, return a new relation
+//             let thisTable = searchTableListByName(tableList, tableName);
+//             if (thisTable.isJunction) {
+//                 let newRelation: RelationNode = {
+//                     type: VISSCHEMATYPES.MANYMANY,
+//                     parentEntity: thisTable,
+//                     childEntities: thisTable.fk.map(key => getRelationByName(searchObjective, [], tableList, key.conname))
+//                 }
+//             } else if (thisTable.weakEntitiesIndices.length !== 0) {
+//                 let newRelation: RelationNode = {
+//                     type: VISSCHEMATYPES.WEAKENTITY,
+//                     parentEntity: thisTable,
+//                     childEntities: [] // TODO
+//                 }
+//             } else {
+//                 // Determine one-to-many or one-to-one?
+//                 let newRelation: RelationNode = {
+//                     type: VISSCHEMATYPES.ONEMANY,
+//                     parentEntity: thisTable,
+//                     childEntities: [] // TODO
+//                 }
+//             }
+//         }
+//         return getRelationByName(newSearchObjective, visitedNodes, tableList, tableName)
+//     }
+// }
+
+const getRelationInListByName = (relationsList: RelationNode[], tableName: string) => {
+    for (let i = 0; i < relationsList.length; i++) {
+        if (relationsList[i].parentEntity.relname === tableName) {
+            return relationsList[i];
+        }
+    }
+
+    return undefined;
+}
+
+const constructRelation = (tableList: Table[]) => {
+    let relationsList: RelationNode[] = [];
+    tableList.forEach(item => {
+        let newRelation: RelationNode;
+        if (item.isJunction) {
+            newRelation = {
+                type: VISSCHEMATYPES.MANYMANY,
+                parentEntity: item,
+                childEntities: []
+            }
+        } else if (item.weakEntitiesIndices.length !== 0) {
+            newRelation = {
+                type: VISSCHEMATYPES.WEAKENTITY,
+                parentEntity: item,
+                childEntities: []
+            }
+        } else {
+            // Determine one-to-many or one-to-one?
+            newRelation = {
+                type: VISSCHEMATYPES.ONEMANY,
+                parentEntity: item,
+                childEntities: []
+            }
+        }
+        relationsList.push(newRelation);
+    });
+    // Fill in the child entities
+
+    relationsList.forEach(rel => {
+        let relFks = rel.parentEntity.fk;
+        if (relFks.length !== 0) {
+            rel.childEntities = relFks.map(key => getRelationInListByName(relationsList, key.confname));
+        }
+    });
+
+    return relationsList;
+}
+
 /**
  * Called after the table metadata has been retrieved. Extracts relations and prepare for display.
  * @param tableList List of entities to be marked or processed.
@@ -110,31 +218,50 @@ const tableHasPKAndFK = (table: Table) => {
  */
 export const preprocessEntities = (tableList: Table[]) => {
     tableList.forEach((item: Table, _) => {
-        if (tableIsJunction(item)) {
+        let junctionTableSearchResult: ForeignKey[] = getJunctionTableLinks(item);
+        if (junctionTableSearchResult.length >= 2) {
             item.isJunction = true;
         }
         else {
-            item.weakEntitiesIndices = getWeakEntityStatus(item);
             // Check if this entity is a weak entity
-            if (item.weakEntitiesIndices.length > 0) {
-                // TODO
-            } else {
-                // TODO
-            }
+            item.weakEntitiesIndices = getWeakEntityStatus(item);
         }
-        let fkString = "";
-        if (item.fk && item.fk.length > 0) {
-            item.fk.forEach(f => {
-                fkString += "\n  " + f.confname;
-            })
-        }
-        console.log(
-            (item.weakEntitiesIndices && item.weakEntitiesIndices.length > 0 ? "*" : "") + 
-            (item.isJunction ? "°" : "") + 
-            item.relname + 
-            ((item.fk && item.fk.length > 0) ? (" -> " + fkString) : ""));
+        // let fkString = "";
+        // if (item.fk && item.fk.length > 0) {
+        //     item.fk.forEach(f => {
+        //         fkString += "\n  " + f.confname;
+        //     })
+        // }
+        
+        // console.log(
+        //     (item.weakEntitiesIndices && item.weakEntitiesIndices.length > 0 ? "*" : "") + 
+        //     (item.isJunction ? "°" : "") + 
+        //     item.relname + 
+        //     ((item.fk && item.fk.length > 0) ? (" -> " + fkString) : ""));
+
     });
 
-
+    let relationsList = constructRelation(tableList);
+    
+    console.log(relationsList);
     return tableList;
+}
+
+// Some searcher helper function - might need in the future
+let searchTableListByOID = (tableList: Table[], oid: number) => {
+    for (let i = 0; i < tableList.length; i++) {
+        if (tableList[i].oid === oid) {
+            return tableList[i];
+        }
+    }
+    return undefined;
+}
+
+let searchTableListByName = (tableList: Table[], searchString: string) => {
+    for (let i = 0; i < tableList.length; i++) {
+        if (tableList[i].relname === searchString) {
+            return tableList[i];
+        }
+    }
+    return undefined;
 }

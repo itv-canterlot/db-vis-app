@@ -44,7 +44,7 @@ declare enum VISPARAMTYPES {
 }
 
 
-declare enum VISSCHEMATYPES {
+export enum VISSCHEMATYPES {
     BASIC = 0,
     WEAKENTITY = 1,
     ONEMANY = 2,
@@ -93,13 +93,13 @@ interface VisKey extends VisParam {
 export type RelationNode = {
     type: VISSCHEMATYPES.ONEMANY,
     parentEntity: Table,
-    childEntity: Table
+    childEntities: RelationNode[]
 } | {
     type: VISSCHEMATYPES.MANYMANY,
     parentEntity: Table,
-    childEntity: Table[]
+    childEntities: RelationNode[]
 } | {
     type: VISSCHEMATYPES.WEAKENTITY,
     parentEntity: Table,
-    childEntity: Table
+    childEntities: RelationNode[]
 }
