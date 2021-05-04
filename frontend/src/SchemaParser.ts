@@ -243,8 +243,10 @@ export const preprocessEntities = (tableList: Table[]) => {
 
     let relationsList = constructRelation(tableList);
     
-    console.log(relationsList);
-    return tableList;
+    return {
+        tableList: tableList,
+        relationsList: relationsList
+    };
 }
 
 // Some searcher helper function - might need in the future

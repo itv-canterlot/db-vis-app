@@ -10,6 +10,7 @@ import * as ComponentTypes from './ts/components';
 import * as Connections from './Connections';
 import * as UIRenderers from './UIRenderers';
 import * as SchemaParser from './SchemaParser';
+import { isPropertyAccessOrQualifiedName } from 'typescript';
 
 
 class JunctionTableLinks extends React.Component<ComponentTypes.JunctionTableLinksProps, {}> {
@@ -317,9 +318,10 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             let entitiesListPromise = Connections.getAllTableMetadata();
 
             Promise.resolve(entitiesListPromise).then(res => {
-                let entitiesList = SchemaParser.preprocessEntities(res);
+                let preprocessResult = SchemaParser.preprocessEntities(res);
                 this.setState({
-                    allEntitiesList: entitiesList
+                    allEntitiesList: preprocessResult.tableList,
+                    relationsList: preprocessResult.relationsList
                 });
             });
             

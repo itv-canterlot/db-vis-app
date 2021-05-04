@@ -1,4 +1,4 @@
-import {PrimaryKey, ForeignKey, Key, Table, Attribute} from './types'
+import {PrimaryKey, ForeignKey, Table, Attribute, RelationNode} from './types'
 
 /** UIElements.tsx **/
 export type SearchDropdownListProps = {
@@ -43,6 +43,7 @@ export type AttributeListSelectorProps = {
 
 export type ApplicationStates = {
     allEntitiesList?: Table[],
+    relationsList?: RelationNode[],
     selectedTableIndex?: number,
     selectedAttributeIndex?: number,
     selectedForeignKeyIndex?: number,
