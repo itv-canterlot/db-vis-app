@@ -36,7 +36,7 @@ export interface ForeignKey extends Key {
 
 
 // Visualisation types
-declare enum VISPARAMTYPES {
+export declare enum VISPARAMTYPES {
     TEMPORAL = "TEMPORAL",
     GEOGRAPHICAL = "GEOGRAPHICAL",
     LEXICAL = "LEXICAL",
@@ -54,32 +54,32 @@ export enum VISSCHEMATYPES {
 export type VisSchema = {
     name: string,
     type: VISSCHEMATYPES.BASIC,
-    keys: Key
+    keys: VisKey
     mandatoryParameters: VisParam[],
     optionalParameters?: VisParam[],
 } | {
     name: string,
     type: VISSCHEMATYPES.WEAKENTITY,
-    keys: Key[]
+    keys: VisKey[]
     complete: boolean,
     mandatoryParameters: VisParam[],
     optionalParameters?: VisParam[],
 } | {
     name: string,
     type: VISSCHEMATYPES.ONEMANY,
-    keys: Key[],
+    keys: VisKey[],
     mandatoryParameters?: VisParam[],
     optionalParameters?: []
 } | {
     name: string,
     type: VISSCHEMATYPES.ONEMANY,
-    keys: Key[],
+    keys: VisKey[],
     reflexive: boolean,
     mandatoryParameters?: VisParam[],
     optionalParameters?: []
 }
 
-interface VisParam {
+export interface VisParam {
     scalar: boolean,
     type?: VISPARAMTYPES
 }

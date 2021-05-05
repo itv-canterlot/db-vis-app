@@ -2,7 +2,8 @@ import * as React from 'react';
 const ReactDOM = require('react-dom');
 
 import SearchDropdownList from './UIElements';
-import {ForeignKey, Table, Attribute, VisSchema} from './ts/types'
+import {Attribute, ForeignKey, Table, VisSchema, 
+    VISSCHEMATYPES, VISPARAMTYPES} from './ts/types'
 import { DBSchemaContext } from './DBSchemaContext';
 import { Visualiser } from './Visualiser';
 
@@ -226,25 +227,52 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         };
     }
 
+    isAttributeScalar = (att: Attribute) => {
+        // TODO: use information_schema
+    }
+
     TEMPcheckVisualisationPossibility = () => {
+        if (this.state.relationsList === undefined) return;
+        if (visSchema === undefined) return;
+
+        // Check type of the relation
         let selectedEntity = this.state.allEntitiesList[this.state.selectedTableIndex];
         // TODO: implement other vis types
+        
         // For demo: simple entity
         if ((!selectedEntity.hasOwnProperty("weakEntitiesIndices") || selectedEntity.weakEntitiesIndices.length === 0) && 
             (!selectedEntity.hasOwnProperty("isJunction") || !selectedEntity.isJunction)) {
-            
-            let selectedAttributes: Attribute[] = [];
-            let TEMPattCount = 2;
-            selectedEntity.attr.forEach(att => {
-                // TODO: .d.ts the typcategories
-                if (att.typcategory === "N") {
-                    selectedAttributes.push(att);
-                }
-            });
+            let pkAtts = selectedEntity.pk.conkey.map(attIndex => selectedEntity.attr[attIndex].attname);
+            Connections.getTableDistCounts(selectedEntity.relname, pkAtts).then(distCountRes => {
+                return Math.max(distCountRes.map(count => count.distinct_count));
 
-            Connections.getTableDistCounts(selectedEntity.relname, selectedAttributes.map(e => e.attname)).then(res => {
-                console.log(res);
-            });
+            }).then(maxDistCount => {
+                // TODO: colours not checked - need additional markup
+                for (const schema of visSchema) {
+                    if (schema.type === VISSCHEMATYPES.BASIC) {
+                        // Count check
+                        if (!(schema.keys.minCount <= maxDistCount)) continue;
+                        if (schema.keys.maxCount !== undefined) {
+                            if (!(schema.keys.maxCount >= maxDistCount)) continue;
+                        }
+                        
+                        // Type check
+                        console.log(schema);
+                    }
+                    // For each schema, compare
+                }
+            })
+            // let selectedAttributes: Attribute[] = [];
+            // selectedEntity.attr.forEach(att => {
+            //     // TODO: .d.ts the typcategories
+            //     if (att.typcategory === "N") {
+            //         selectedAttributes.push(att);
+            //     }
+            // });
+
+            // Connections.getTableDistCounts(selectedEntity.relname, selectedAttributes.map(e => e.attname)).then(res => {
+            //     console.log(res);
+            // });
         }
     }
 
