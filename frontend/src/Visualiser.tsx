@@ -44,7 +44,7 @@ const renderScatterPlot = (e1: Table, e2: Table, a1Index: number, a2Index: numbe
         },
         method: "POST",
         body: JSON.stringify({
-            "tableName": e1.relname,
+            "tableName": e1.tableName,
             "fields": [
                 a1.attname
             ]
@@ -58,7 +58,7 @@ const renderScatterPlot = (e1: Table, e2: Table, a1Index: number, a2Index: numbe
         },
         method: "POST",
         body: JSON.stringify({
-            "tableName": e2.relname,
+            "tableName": e2.tableName,
             "fields": [
                 a2.attname
             ]

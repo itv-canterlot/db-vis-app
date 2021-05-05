@@ -1,7 +1,7 @@
 // Entity types
 export interface Table {
-    oid: number,
-    relname: string,
+    oid?: number,
+    tableName: string,
     pk?: PrimaryKey,
     fk?: ForeignKey[],
     isJunction: boolean,
@@ -10,20 +10,26 @@ export interface Table {
 }
 
 export interface Key {
-    oid: number,
-    conname: string,
-    conkey: number[],
-    condef: string
+    oid?: number,
+    conName?: string,
+    keyName: string,
+    keyPos: number[],
+    condef?: string
 }
+
+// export interface Key {
+//     conName: string,
+//     keyName: string,
+//     keyPos: number[],
+//     condef?: string
+// }
 
 export interface Attribute {
     attname: string,
-    attlen: number,
     attnum: number,
-    attndims: number,
     typname: string,
-    typcategory: string, // TODO: enum?
-    attrelid: number
+    isNullable?: boolean,
+    // typcategory: string, // TODO: enum?
 }
 
 export interface PrimaryKey extends Key { }

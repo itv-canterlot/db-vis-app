@@ -16,21 +16,9 @@ app.get('/tables', (_, webRes) => {
   });
 });
 
-app.get('/temp-db-table-list', (req, res) => {
-  pgconnect.getTableNames().then(tabRes => {
-    res.send(tabRes);
-  });
-});
-
 app.post('/table-dist-counts', (req, res) => {
   let reqBody = req.body;
   pgconnect.getTableDistinctColumnCountByColumnName(reqBody["tableName"], reqBody["columnNames"]).then(tabRes => {
-    res.send(tabRes);
-  });
-});
-
-app.get('/temp-db-schema', (req, res) => {
-  pgconnect.getTableInfo().then(tabRes => {
     res.send(tabRes);
   });
 });

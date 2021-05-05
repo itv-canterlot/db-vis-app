@@ -83,7 +83,7 @@ class FixedAttributeSelector extends React.Component<ComponentTypes.FixedAttribu
                     return (<div className="mt-1 mb-1">
                         <div className="text-muted">
                             <div className="dropdown-tip bg-tip-fk d-inline-block">
-                                <i className="fas fa-link me-2" />{fk.conname}
+                                <i className="fas fa-link me-2" />{fk.keyName}
                             </div>
                             <div className="ms-1 tip-fontsize d-inline-block">
                             <i className="fas fa-arrow-right" />
@@ -242,8 +242,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         // For demo: simple entity
         if ((!selectedEntity.hasOwnProperty("weakEntitiesIndices") || selectedEntity.weakEntitiesIndices.length === 0) && 
             (!selectedEntity.hasOwnProperty("isJunction") || !selectedEntity.isJunction)) {
-            let pkAtts = selectedEntity.pk.conkey.map(attIndex => selectedEntity.attr[attIndex].attname);
-            Connections.getTableDistCounts(selectedEntity.relname, pkAtts).then(distCountRes => {
+            let pkAtts = selectedEntity.pk.keyPos.map(attIndex => selectedEntity.attr[attIndex].attname);
+            Connections.getTableDistCounts(selectedEntity.tableName, pkAtts).then(distCountRes => {
                 return Math.max(distCountRes.map(count => count.distinct_count));
 
             }).then(maxDistCount => {
@@ -361,42 +361,42 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         return;
         // Check, based on state indexes, if it is possible to request data from the database
         // -- 1 -- A first entity and one of its attributes have been selected
-        if (this.state.selectedTableIndex >= 0 && this.state.selectedAttributeIndex >= 0) {
-            // -- 2 -- A second entity/attribute pair have been selected
-            if (this.state.selectedForeignKeyIndex >= 0 && this.state.selectedFKAttributeIndex >= 0) {
-                // TODO
-                return;
-            } else {
-                // Single attribute: bar chart (more to be implemented)
-                // Check attribute data type
-                let tableAttributes = this.state.allEntitiesList[this.state.selectedTableIndex].attr;
-                let attributeEntry = tableAttributes[this.state.selectedAttributeIndex];
-                let attributeTypeCat = attributeEntry.typcategory;
-                let tableIndex = this.state.selectedTableIndex;
-                if (attributeTypeCat === "N") {
-                    // TODO: Fitting the new table list
-                    // If it is a number, retrieve data from database
-                    fetch("http://localhost:3000/temp-data-table-name-fields", {
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json'
-                        },
-                        method: "POST",
-                        body: JSON.stringify({
-                            "tableName": this.state.allEntitiesList[tableIndex].relname,
-                            "fields": [
-                                attributeEntry.attname
-                            ]
-                        }),
-                    }).then(rawResponse => rawResponse.json())
-                    .then(data => {
-                        console.log(data);
-                    })
-                }
-            }
-        } else {
-            return;
-        }
+        // if (this.state.selectedTableIndex >= 0 && this.state.selectedAttributeIndex >= 0) {
+        //     // -- 2 -- A second entity/attribute pair have been selected
+        //     if (this.state.selectedForeignKeyIndex >= 0 && this.state.selectedFKAttributeIndex >= 0) {
+        //         // TODO
+        //         return;
+        //     } else {
+        //         // Single attribute: bar chart (more to be implemented)
+        //         // Check attribute data type
+        //         let tableAttributes = this.state.allEntitiesList[this.state.selectedTableIndex].attr;
+        //         let attributeEntry = tableAttributes[this.state.selectedAttributeIndex];
+        //         let attributeTypeCat = attributeEntry.typcategory;
+        //         let tableIndex = this.state.selectedTableIndex;
+        //         if (attributeTypeCat === "N") {
+        //             // TODO: Fitting the new table list
+        //             // If it is a number, retrieve data from database
+        //             fetch("http://localhost:3000/temp-data-table-name-fields", {
+        //                 headers: {
+        //                     'Accept': 'application/json',
+        //                     'Content-Type': 'application/json'
+        //                 },
+        //                 method: "POST",
+        //                 body: JSON.stringify({
+        //                     "tableName": this.state.allEntitiesList[tableIndex].tableName,
+        //                     "fields": [
+        //                         attributeEntry.attname
+        //                     ]
+        //                 }),
+        //             }).then(rawResponse => rawResponse.json())
+        //             .then(data => {
+        //                 console.log(data);
+        //             })
+        //         }
+        //     }
+        // } else {
+        //     return;
+        // }
     }
 
     async componentDidMount() {

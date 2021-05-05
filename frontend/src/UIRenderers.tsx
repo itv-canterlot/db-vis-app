@@ -16,7 +16,7 @@ export const FKArrayRenderer = (item, index, onClickCallback, selectedIndex) => 
 
 export const entityArrayRenderer = (item: Table, index: number, onClickCallback: React.MouseEventHandler<HTMLAnchorElement>, selectedIndex: number) => { 
     let oid = item.oid;
-    let relname = item.relname;
+    let relname = item.tableName;
     let affix = () => {
         // Markers of the type of table
         if (item.isJunction) {
@@ -64,16 +64,16 @@ export const attributeArrayRenderer = (item:Attribute, index: number, onClickCal
     let pkConstraintName;
     let fkConstraintNames = [];
     if (tablePrimaryKey) {
-        if (tablePrimaryKey.conkey.includes(item.attnum)) {
+        if (tablePrimaryKey.keyPos.includes(item.attnum)) {
             itemIsPrimaryKey = true;
-            pkConstraintName = tablePrimaryKey.conname;
+            pkConstraintName = tablePrimaryKey.keyName;
         }
     }
     if (tableForeignKeys) {
         tableForeignKeys.forEach(cons => {
-            if (cons.conkey.includes(item.attnum)) {
+            if (cons.keyPos.includes(item.attnum)) {
                 itemIsForeignKey = true;
-                fkConstraintNames.push(cons.conname);
+                fkConstraintNames.push(cons.keyName);
             }
         });
     }

@@ -1,7 +1,11 @@
 export const getAllTableMetadata = () => {
     // TODO/Work under progress: new backend hook
     return fetch('http://localhost:3000/tables')
-        .then(rawResponse => rawResponse.json());
+        .then(rawResponse => rawResponse.json())
+        .then(res => {
+            console.log(res);
+            return res;
+        });
 }
 
 // Loads schema files

@@ -14,17 +14,17 @@ import { Table, RelationNode, VISSCHEMATYPES, ForeignKey } from './ts/types';
     // > A proper subset of those key attributes are foreign
     // First - check the existance of PK/FK
     if (!tableHasPKAndFK(table)) return [];
-    const conkeyLength = table.pk ? table.pk.conkey.length : 0;
+    const conkeyLength = table.pk ? table.pk.keyPos.length : 0;
 
     let subsetKeyIdx: number[] = []; // TODO: should I also pass this on?
     for (let i = 0; i < table.fk.length; i++) {
         let fkElem = table.fk[i];
-        let fkKeys = fkElem.conkey;
+        let fkKeys = fkElem.keyPos;
         if (fkKeys.length >= conkeyLength) {
             // If this key is longer than the primary key it self, it is not a proper subset
             continue;
         } else {
-            if (fkKeys.every(val => table.pk.conkey.includes(val))) {
+            if (fkKeys.every(val => table.pk.keyPos.includes(val))) {
                 // This is a proper subset
                 subsetKeyIdx.push(i);
             }
@@ -53,9 +53,9 @@ const getJunctionTableLinks = (table: Table) => {
     var comparedFKKeys: ForeignKey[] = []; // Keeping track for duplicates
     table.fk.forEach(element => {
         // If this FK is a subset of the PK
-        let thisTableKey = element.conkey as [number];
+        let thisTableKey = element.keyPos as [number];
         for (let comparedIndex = 0; comparedIndex < comparedFKKeys.length; comparedIndex++) {
-            const comparedKey = comparedFKKeys[comparedIndex].conkey as [number];
+            const comparedKey = comparedFKKeys[comparedIndex].keyPos as [number];
             if (thisTableKey.length === comparedKey.length) {
                 if (thisTableKey.every(v => comparedKey.includes(v))) {
                     return false;
@@ -63,7 +63,7 @@ const getJunctionTableLinks = (table: Table) => {
             }
         }
 
-        if (thisTableKey.every(v => table.pk.conkey.includes(v))) {
+        if (thisTableKey.every(v => table.pk.keyPos.includes(v))) {
             comparedFKKeys.push(element);
         }
     });
@@ -86,7 +86,7 @@ const getJunctionTableLinks = (table: Table) => {
 const tableHasPKAndFK = (table: Table) => {
     // Return nothing if no PK/FK exist
     if (!table.pk) return false;
-    if (!table.pk.conkey || table.pk.conkey.length === 0) {
+    if (!table.pk.keyPos || table.pk.keyPos.length === 0) {
         return false;
     }
     if (!table.fk || table.fk.length === 0) {
@@ -95,7 +95,7 @@ const tableHasPKAndFK = (table: Table) => {
 
     let fkHasLength = false;
     for (var i = 0; i < table.fk.length; i++) {
-        if (table.fk[i].conkey.length != 0) {
+        if (table.fk[i].keyPos.length != 0) {
             fkHasLength = true;
             break;
         }
@@ -165,7 +165,7 @@ const tableHasPKAndFK = (table: Table) => {
 
 const getRelationInListByName = (relationsList: RelationNode[], tableName: string) => {
     for (let i = 0; i < relationsList.length; i++) {
-        if (relationsList[i].parentEntity.relname === tableName) {
+        if (relationsList[i].parentEntity.tableName === tableName) {
             return relationsList[i];
         }
     }
@@ -261,7 +261,7 @@ let searchTableListByOID = (tableList: Table[], oid: number) => {
 
 let searchTableListByName = (tableList: Table[], searchString: string) => {
     for (let i = 0; i < tableList.length; i++) {
-        if (tableList[i].relname === searchString) {
+        if (tableList[i].tableName === searchString) {
             return tableList[i];
         }
     }
