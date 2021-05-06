@@ -9,13 +9,39 @@ export interface Table {
     weakEntitiesIndices: number[]
 }
 
-export interface Key {
-    oid?: number,
-    conName?: string,
-    keyName: string,
-    keyPos: number[],
-    condef?: string
+interface ForeignKeyColumn extends KeyColumn {
+    fkColName: string,
+    fkColPos: number,
+    pkColName: string,
+    pkColPos: number
 }
+
+interface PrimaryKeyColumn extends KeyColumn {
+    colName: string,
+    colPos: number,
+}
+
+interface KeyColumn {
+
+}
+
+export interface Key {
+    keyName: string,
+    columns: KeyColumn[]
+}
+
+export interface PrimaryKey extends Key {
+    columns: PrimaryKeyColumn[]
+ }
+
+export interface ForeignKey extends Key {
+    pkTableName: string,
+    columns: ForeignKeyColumn[]
+}
+
+// export interface Key {
+
+// }
 
 // export interface Key {
 //     conName: string,
@@ -31,15 +57,6 @@ export interface Attribute {
     isNullable?: boolean,
     // typcategory: string, // TODO: enum?
 }
-
-export interface PrimaryKey extends Key { }
-
-export interface ForeignKey extends Key {
-    confrelid: number,
-    confkey: number[],
-    confname: string
-}
-
 
 // Visualisation types
 export declare enum VISPARAMTYPES {

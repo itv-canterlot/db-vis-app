@@ -1,6 +1,9 @@
 import { randomNormal } from 'd3-random';
 import { table } from 'node:console';
-import { Table, RelationNode, VISSCHEMATYPES, ForeignKey } from './ts/types';
+import { Table, RelationNode, VISSCHEMATYPES, ForeignKey, PrimaryKey } from './ts/types';
+
+const getKeyPosFromPK = (pk: PrimaryKey) => pk.columns.map(key => key.colPos);
+const getKeyPosFromFK = (fk: ForeignKey) => fk.columns.map(key => key.fkColPos);
 
 /**
  * Find out if the entity is a weak entity, and if so, which entity does it lead to.
@@ -14,17 +17,17 @@ import { Table, RelationNode, VISSCHEMATYPES, ForeignKey } from './ts/types';
     // > A proper subset of those key attributes are foreign
     // First - check the existance of PK/FK
     if (!tableHasPKAndFK(table)) return [];
-    const conkeyLength = table.pk ? table.pk.keyPos.length : 0;
+    const conkeyLength = table.pk.columns ? table.pk.columns.length : 0;
 
     let subsetKeyIdx: number[] = []; // TODO: should I also pass this on?
     for (let i = 0; i < table.fk.length; i++) {
         let fkElem = table.fk[i];
-        let fkKeys = fkElem.keyPos;
+        let fkKeys = getKeyPosFromFK(fkElem);
         if (fkKeys.length >= conkeyLength) {
             // If this key is longer than the primary key it self, it is not a proper subset
             continue;
         } else {
-            if (fkKeys.every(val => table.pk.keyPos.includes(val))) {
+            if (fkKeys.every(val => getKeyPosFromPK(table.pk).includes(val))) {
                 // This is a proper subset
                 subsetKeyIdx.push(i);
             }
@@ -51,20 +54,22 @@ const getJunctionTableLinks = (table: Table) => {
     // This entity might be a link table between many-to-many relationships
     // For each FK, check if the PK set covered all of its constraints
     var comparedFKKeys: ForeignKey[] = []; // Keeping track for duplicates
-    table.fk.forEach(element => {
+    table.fk.forEach(key => {
         // If this FK is a subset of the PK
-        let thisTableKey = element.keyPos as [number];
+        let thisFK = getKeyPosFromFK(key) as [number];
+        
+        // Comparing past keys
         for (let comparedIndex = 0; comparedIndex < comparedFKKeys.length; comparedIndex++) {
-            const comparedKey = comparedFKKeys[comparedIndex].keyPos as [number];
-            if (thisTableKey.length === comparedKey.length) {
-                if (thisTableKey.every(v => comparedKey.includes(v))) {
+            const comparedKey = getKeyPosFromFK(comparedFKKeys[comparedIndex]) as [number];
+            if (thisFK.length === comparedKey.length) {
+                if (thisFK.every(v => comparedKey.includes(v))) {
                     return false;
                 }
             }
         }
 
-        if (thisTableKey.every(v => table.pk.keyPos.includes(v))) {
-            comparedFKKeys.push(element);
+        if (thisFK.every(v => getKeyPosFromPK(table.pk).includes(v))) {
+            comparedFKKeys.push(key);
         }
     });
 
@@ -86,7 +91,7 @@ const getJunctionTableLinks = (table: Table) => {
 const tableHasPKAndFK = (table: Table) => {
     // Return nothing if no PK/FK exist
     if (!table.pk) return false;
-    if (!table.pk.keyPos || table.pk.keyPos.length === 0) {
+    if (!table.pk.columns || table.pk.columns.length === 0) {
         return false;
     }
     if (!table.fk || table.fk.length === 0) {
@@ -95,7 +100,7 @@ const tableHasPKAndFK = (table: Table) => {
 
     let fkHasLength = false;
     for (var i = 0; i < table.fk.length; i++) {
-        if (table.fk[i].keyPos.length != 0) {
+        if (table.fk[i].columns.length != 0) {
             fkHasLength = true;
             break;
         }
@@ -204,7 +209,7 @@ const constructRelation = (tableList: Table[]) => {
     relationsList.forEach(rel => {
         let relFks = rel.parentEntity.fk;
         if (relFks.length !== 0) {
-            rel.childEntities = relFks.map(key => getRelationInListByName(relationsList, key.confname));
+            rel.childEntities = relFks.map(key => getRelationInListByName(relationsList, key.pkTableName));
         }
     });
 

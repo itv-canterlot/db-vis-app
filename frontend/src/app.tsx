@@ -23,7 +23,7 @@ class JunctionTableLinks extends React.Component<ComponentTypes.JunctionTableLin
         let foreignKeyList = selectedEntity.fk;
         let fkListNode = foreignKeyList.map(fk => {
             return (
-                <FixedAttributeSelector key={fk.oid} entity={selectedEntity} fk={fk} />
+                <FixedAttributeSelector key={fk.keyName} entity={selectedEntity} fk={fk} />
             );
         });
         return (
@@ -66,7 +66,6 @@ class FixedAttributeSelector extends React.Component<ComponentTypes.FixedAttribu
     }
 
     onAttributeSelectionChange = (el: React.BaseSyntheticEvent) => {
-        console.log(el.target);
         this.setState({
             selectedAttributeIndex: el.target.getAttribute("data-index")
         }); // TODO
@@ -79,7 +78,7 @@ class FixedAttributeSelector extends React.Component<ComponentTypes.FixedAttribu
         return (
             <DBSchemaContext.Consumer>
                 {(context) => {
-                    let fkEntity = getEntityFromOID(context.allEntitiesList, fk.confrelid)
+                    let fkEntity = getEntityFromTableName(context.allEntitiesList, fk.pkTableName)
                     return (<div className="mt-1 mb-1">
                         <div className="text-muted">
                             <div className="dropdown-tip bg-tip-fk d-inline-block">
@@ -93,7 +92,7 @@ class FixedAttributeSelector extends React.Component<ComponentTypes.FixedAttribu
                             <AttributeListSelector 
                                 dropdownList={fkEntity.attr}
                                 onListSelectionChange={this.onAttributeSelectionChange}
-                                prependText={fk.confname}
+                                prependText={fk.pkTableName}
                                 selectedIndex={this.state.selectedAttributeIndex}
                                 tableForeignKeys={fkEntity.fk}
                                 tablePrimaryKey={fkEntity.pk}
@@ -183,13 +182,13 @@ class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps>
 
     fkAttributeListNode = () => {
         if (this.props.state.selectedForeignKeyIndex >= 0) {
-            let selectedFkOID = this.props.state
+            let selectedFkName = this.props.state
                 .allEntitiesList[this.props.state.selectedTableIndex]
-                .fk[this.props.state.selectedForeignKeyIndex].confrelid
+                .fk[this.props.state.selectedForeignKeyIndex].pkTableName
             return (
                 <div className="row mt-2 ms-4 position-relative">
                     <SearchDropdownList placeholder="Select Attribute 2..." 
-                        prependText="a2" dropdownList={getAttrsFromOID(this.props.state.allEntitiesList, selectedFkOID)} 
+                        prependText="a2" dropdownList={getAttrsFromTableName(this.props.state.allEntitiesList, selectedFkName)} 
                         selectedIndex={this.props.state.selectedFKAttributeIndex}
                         onListSelectionChange={this.props.onFKAttributeSelectChange}
                         arrayRenderer={this.attributeArrayRendererHandler}
@@ -242,7 +241,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         // For demo: simple entity
         if ((!selectedEntity.hasOwnProperty("weakEntitiesIndices") || selectedEntity.weakEntitiesIndices.length === 0) && 
             (!selectedEntity.hasOwnProperty("isJunction") || !selectedEntity.isJunction)) {
-            let pkAtts = selectedEntity.pk.keyPos.map(attIndex => selectedEntity.attr[attIndex].attname);
+            let pkAtts = selectedEntity.pk.columns.map(key => selectedEntity.attr[key.colPos].attname);
             Connections.getTableDistCounts(selectedEntity.tableName, pkAtts).then(distCountRes => {
                 return Math.max(distCountRes.map(count => count.distinct_count));
 
@@ -342,6 +341,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             load: true
         }, () => {
             let entitiesListPromise = Connections.getAllTableMetadata();
+
 
             Promise.resolve(entitiesListPromise).then(res => {
                 let preprocessResult = SchemaParser.preprocessEntities(res);
@@ -444,8 +444,24 @@ const getEntityFromOID = (entities: Table[], oid: number) => {
     return entities[fkRelIndex];
 }
 
+const getEntityFromTableName = (entities: Table[], tableName: string) => {
+    let fkRelIndex;
+    for (let i = 0; i < entities.length; i++) {
+        if (entities[i].tableName === tableName) {
+            fkRelIndex = i;
+            break;
+        }
+    }
+
+    return entities[fkRelIndex];
+}
+
 const getAttrsFromOID = (entities: Table[], oid: number) => {
     return getEntityFromOID(entities, oid).attr;
+}
+
+const getAttrsFromTableName = (entities: Table[], tableName: string) => {
+    return getEntityFromTableName(entities, tableName).attr;
 }
 
 // TODO: refactor this to another file?

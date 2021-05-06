@@ -29,13 +29,13 @@ export const entityArrayRenderer = (item: Table, index: number, onClickCallback:
             if (item.weakEntitiesIndices.length > 0) {
                 let visitedKeys = [];
                 return item.weakEntitiesIndices.map((weIndex:number, arrayIndex:number) => {
-                    if (visitedKeys.includes(item.fk[weIndex].confrelid)) {
+                    if (visitedKeys.includes(item.fk[weIndex].pkTableName)) {
                         return null;
                     }
-                    visitedKeys.push(item.fk[weIndex].confrelid);
+                    visitedKeys.push(item.fk[weIndex].pkTableName);
                     return (
                     <div className="me-1 text-muted dropdown-tip bg-tip-weak-link d-flex align-items-center tip-fontsize" key={arrayIndex}>
-                        <i className="fas fa-asterisk me-1 pe-none fa-xs" /> <em>{item.fk[weIndex].confname}</em>
+                        <i className="fas fa-asterisk me-1 pe-none fa-xs" /> <em>{item.fk[weIndex].pkTableName}</em>
                     </div>)
                 })
                  // TODO: more information
@@ -64,14 +64,14 @@ export const attributeArrayRenderer = (item:Attribute, index: number, onClickCal
     let pkConstraintName;
     let fkConstraintNames = [];
     if (tablePrimaryKey) {
-        if (tablePrimaryKey.keyPos.includes(item.attnum)) {
+        if (tablePrimaryKey.columns.map(key => key.colPos).includes(item.attnum)) {
             itemIsPrimaryKey = true;
             pkConstraintName = tablePrimaryKey.keyName;
         }
     }
     if (tableForeignKeys) {
         tableForeignKeys.forEach(cons => {
-            if (cons.keyPos.includes(item.attnum)) {
+            if (cons.columns.map(key => key.fkColPos).includes(item.attnum)) {
                 itemIsForeignKey = true;
                 fkConstraintNames.push(cons.keyName);
             }

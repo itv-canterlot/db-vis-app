@@ -253,18 +253,19 @@ async function getTableMetatdata() {
         let tableFksGrouped = groupBy(tableFks, "constraint_name");
         let tableFksProcessed = [];
         for (const [conName, keys] of Object.entries(tableFksGrouped)) {
+            const pkTableName = keys[0]["pk_table"];
             const columns = keys.map(k => {
                 return {
                     "fkColName": k["fk_column"],
                     "fkColPos": findColumnPosByName(tableAtts, k["fk_column"]),
                     "pkColName": k["pk_column"],
                     "pkColPos": findColumnPosByName(tableObjects.find(tt => tt["tableName"] === k["pk_table"])["attr"], k["pk_column"]),
-                    "pkTableName": k["pk_table"],
                 };
             });
 
             let newFkObject = {
                 "keyName": conName,
+                "pkTableName": pkTableName,
                 "columns": columns
             }
             tableFksProcessed.push(newFkObject);

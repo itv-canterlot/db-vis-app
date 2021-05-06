@@ -3,7 +3,6 @@ export const getAllTableMetadata = () => {
     return fetch('http://localhost:3000/tables')
         .then(rawResponse => rawResponse.json())
         .then(res => {
-            console.log(res);
             return res;
         });
 }
