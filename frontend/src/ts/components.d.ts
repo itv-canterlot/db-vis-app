@@ -24,11 +24,14 @@ export type FixedAttributeSelectorProps = {
 }
 
 export type EntitySelectorProps = {
-    state: ApplicationStates,
     onTableSelectChange: Function,
     onAttributeSelectChange: Function,
     onFKAttributeSelectChange: Function,
     onForeignKeySelectChange: Function,
+    selectedTableIndex: number,
+    selectedAttributeIndex: number,
+    selectedForeignKeyIndex: number,
+    selectedFKAttributeIndex: number
 }
 
 export type AttributeListSelectorProps = {
