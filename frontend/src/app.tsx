@@ -20,7 +20,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             selectedAttributeIndex: -1,
             selectedForeignKeyIndex: -1,
             selectedFKAttributeIndex: -1,
-            load: false
+            load: false,
+            listLoaded: false
         };
     }
 
@@ -134,7 +135,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 let preprocessResult = SchemaParser.preprocessEntities(res);
                 this.setState({
                     allEntitiesList: preprocessResult.tableList,
-                    relationsList: preprocessResult.relationsList
+                    relationsList: preprocessResult.relationsList,
+                    listLoaded: true
                 });
             });
             
@@ -194,7 +196,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
     render() {
         return (
-            <DBSchemaContext.Provider value={{allEntitiesList: this.state.allEntitiesList}}>
+            <DBSchemaContext.Provider value={{allEntitiesList: this.state.allEntitiesList, relationsList: this.state.relationsList}}>
                 <div className="row g-0">
                     <EntitySelector
                     onTableSelectChange={this.onTableSelectChange}
@@ -205,6 +207,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     selectedAttributeIndex={this.state.selectedAttributeIndex}
                     selectedForeignKeyIndex={this.state.selectedForeignKeyIndex}
                     selectedFKAttributeIndex={this.state.selectedFKAttributeIndex}
+                    listLoaded={this.state.listLoaded}
                     />
                     <Visualiser selectedTableIndex={this.state.selectedTableIndex} />
                 </div>

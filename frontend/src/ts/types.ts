@@ -116,13 +116,16 @@ interface VisKey extends VisParam {
 export type RelationNode = {
     type: VISSCHEMATYPES.ONEMANY,
     parentEntity: Table,
-    childEntities: RelationNode[]
+    childEntities: RelationNode[],
+    index?: number
 } | {
     type: VISSCHEMATYPES.MANYMANY,
     parentEntity: Table,
-    childEntities: RelationNode[]
+    childEntities: RelationNode[],
+    index?: number
 } | {
     type: VISSCHEMATYPES.WEAKENTITY,
     parentEntity: Table,
-    childEntities: RelationNode[]
+    childEntities: RelationNode[],
+    index?: number
 }

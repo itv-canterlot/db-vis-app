@@ -31,7 +31,8 @@ export type EntitySelectorProps = {
     selectedTableIndex: number,
     selectedAttributeIndex: number,
     selectedForeignKeyIndex: number,
-    selectedFKAttributeIndex: number
+    selectedFKAttributeIndex: number,
+    listLoaded: boolean
 }
 
 export type AttributeListSelectorProps = {
@@ -51,4 +52,5 @@ export type ApplicationStates = {
     selectedForeignKeyIndex?: number,
     selectedFKAttributeIndex?: number,
     load: boolean,
+    listLoaded: boolean
 }

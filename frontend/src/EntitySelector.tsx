@@ -2,11 +2,11 @@ import * as React from 'react';
 
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import SearchDropdownList from './UIElements';
-import {Attribute, ForeignKey, Table, VisSchema, 
-    VISSCHEMATYPES, VISPARAMTYPES} from './ts/types';
+import {ForeignKey, Table} from './ts/types';
 
 import * as ComponentTypes from './ts/components';
 import * as UIRenderers from './UIRenderers';
+import * as d3 from 'd3';
 
 export class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps> {
     constructor(props) {
@@ -112,11 +112,171 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
                 {this.props.selectedTableIndex >= 0 ? this.attributeListNode() : null}
                 {this.props.selectedTableIndex >= 0 ? this.foreignKeyNode() : null}
                 {this.props.selectedTableIndex >= 0 && this.props.selectedForeignKeyIndex >= 0 ? this.fkAttributeListNode() : null}
+                <MetadataGraph listLoaded={this.props.listLoaded} />
             </div>
         )
     }
 }
 EntitySelector.contextType = DBSchemaContext;
+
+class MetadataGraph extends React.Component<{listLoaded: boolean}, {loaded?: boolean}> {
+    constructor(props) {
+        super(props);
+        this.state = {
+            loaded: false
+        }
+    }
+
+    componentDidUpdate() {
+        if (this.state.loaded) return;
+        if (this.props.listLoaded) {
+            this.renderMetaGraph();
+            this.setState({
+                loaded: true
+            });
+        }
+    }
+
+    getLinkedListBetweenTables = () => {
+        if (!this.props.listLoaded) {
+            return;
+        }
+        let strings = [];
+        let dbSchemaContext: DBSchemaContextInterface = this.context;
+        let relationsList = dbSchemaContext.relationsList;
+        
+        relationsList.forEach(rel => {
+            strings.push(rel.parentEntity.tableName + "->" + rel.childEntities.map(t => t.parentEntity.tableName).join());
+        })
+
+        console.log(strings);
+
+        return (<div>{strings.map(string => (<p>{string}</p>))}</div>)
+    }
+    
+
+    renderMetaGraph() {
+        let margin = {top: 10, right: 30, bottom: 30, left: 40},
+        maxWidth = 400, maxHeight = 400,
+        width = maxWidth - margin.left - margin.right,
+        height = maxHeight - margin.top - margin.bottom;
+        
+        let dbSchemaContext: DBSchemaContextInterface = this.context;
+        let links = [];
+        console.log(dbSchemaContext.relationsList);
+
+        dbSchemaContext.relationsList.forEach(rel => {
+            let thisId = rel.index;
+            let listOfLinks = rel.childEntities.map(child => {
+                return {
+                    "source": thisId,
+                    "target": child.index
+                }
+            });
+            links = links.concat(listOfLinks);
+        });
+        
+        const containerViewport = document.getElementById("meta-graph-cont");
+        let containerWidth = containerViewport.parentElement.parentElement.clientWidth,
+            containerHeight = 600;
+
+        let containerString = `0 0 ${containerWidth} ${containerHeight}`;
+        var svg = d3.select("#meta-graph-cont")
+            .append("svg")
+                .attr("width", "100%")
+                .attr("height", "600px")
+                // .attr("preserveAspectRatio", "none")
+                // .attr("viewBox", containerString)
+            .append("g")
+                .attr("transform",
+                    "translate(" + margin.left + "," + margin.top + ")");
+
+
+        const simulation = d3.forceSimulation(dbSchemaContext.relationsList)
+            .force("link", d3.forceLink(links).id(d => d.index))
+            .force("charge", d3.forceManyBody())
+            .force("center", d3.forceCenter(containerViewport.clientWidth / 2, containerViewport.clientHeight / 2))
+            .force("collide", d3.forceCollide());;
+
+            
+        const link = svg.append("g")
+            .attr("stroke", "#999")
+            .attr("stroke-opacity", 0.6)
+            .selectAll("line")
+            .data(links)
+            .join("line")
+            
+        const node = svg.append("g")
+            .attr("stroke", "#fff")
+            .attr("stroke-width", 1.5)
+        .selectAll("rect")
+        .data(dbSchemaContext.relationsList)
+        .join("rect")
+            .attr("width", "5rem")
+            .attr("height", "2rem")
+            .attr("x", Math.random() * containerViewport.clientWidth)
+            .attr("y", Math.random() * containerViewport.clientHeight)
+            .attr("fill", "orange");
+        simulation.on("tick", () => {
+            link
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+        
+            node
+                .attr("x", d => d["x"])
+                .attr("y", d => d["y"]);
+            });
+
+        return svg.node();
+    
+
+        // let simulation = d3.forceSimulation()
+        //     .force("center", d3.forceCenter(width / 2, height / 2 ))
+        //     .force("charge", d3.forceManyBody())
+        //     .force("link", d3.forceLink().id(d => d.index));
+        // simulation.stop()
+
+        // let linkGroup = svg.selectAll(".link_group")
+        //     .data(links);
+        // linkGroup.exit().remove();
+
+        // let enter = linkGroup.enter()
+        //     .append("g").attr("class", "link_group");
+        // enter.append("line").attr("class", "link_line");
+
+        // linkGroup = linkGroup.merge(enter);
+        // linkGroup.select("link_line")
+        //     .attr("stroke", "orange");
+
+        // let nodeGroup = svg.selectAll(".node_group")
+        //     .data(dbSchemaContext.relationsList);
+        // nodeGroup.exit().remove();
+
+        // enter = nodeGroup.enter()
+        //     .append("g").attr("class", "node_group");
+        // enter.append("circle").attr("class", "node_circle");
+
+        // nodeGroup = nodeGroup.merge(enter);
+        // nodeGroup.select("node_circle")
+        //     .attr("fill", "orange")
+        //     .attr("r", 10);
+
+        // simulation.nodes(dbSchemaContext.relationsList);
+        // d3.forceLink(links);
+
+    }
+
+    render() {
+        return (
+            <div className="col" id="meta-graph-cont">
+                {/* {this.getLinkedListBetweenTables()} */}
+            </div>
+        );
+    }
+}
+MetadataGraph.contextType = DBSchemaContext;
 
 class JunctionTableLinks extends React.Component<ComponentTypes.JunctionTableLinksProps, {}> {
     constructor(props) {

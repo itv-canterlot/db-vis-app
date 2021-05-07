@@ -186,7 +186,7 @@ const constructRelation = (tableList: Table[]) => {
             newRelation = {
                 type: VISSCHEMATYPES.MANYMANY,
                 parentEntity: item,
-                childEntities: []
+                childEntities: [],
             }
         } else if (item.weakEntitiesIndices.length !== 0) {
             newRelation = {
@@ -206,7 +206,8 @@ const constructRelation = (tableList: Table[]) => {
     });
     // Fill in the child entities
 
-    relationsList.forEach(rel => {
+    relationsList.forEach((rel, idx) => {
+        rel["index"] = idx;
         let relFks = rel.parentEntity.fk;
         if (relFks.length !== 0) {
             rel.childEntities = relFks.map(key => getRelationInListByName(relationsList, key.pkTableName));
