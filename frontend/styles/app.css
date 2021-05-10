@@ -74,3 +74,8 @@
 .overflow-ellipses {
     text-overflow: ellipsis;
 }
+
+.modal-header .close {
+    background-color: transparent;
+    border: none;
+}

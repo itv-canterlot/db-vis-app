@@ -22,8 +22,21 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             selectedFKAttributeIndex: -1,
             load: false,
             listLoaded: false,
-            databaseLocation: "http://localhost:5432" // Placeholder
+            databaseLocation: "http://localhost:5432", // Placeholder
+            showStartingTableSelectModal: false
         };
+    }
+
+    onClickShowStartingTableSelectModal = () => {
+        this.setState({
+            showStartingTableSelectModal: true
+        });
+    }
+
+    onCloseShowStartingTableSelectModal = () => {
+        this.setState({
+            showStartingTableSelectModal: false
+        });
     }
 
     isAttributeScalar = (att: Attribute) => {
@@ -198,8 +211,16 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     render() {
         return (
             <DBSchemaContext.Provider value={{allEntitiesList: this.state.allEntitiesList, relationsList: this.state.relationsList}}>
+                {this.state.showStartingTableSelectModal ? 
+                <StartingTableSelectModal 
+                    onClose={this.onCloseShowStartingTableSelectModal} onTableSelectChange={this.onTableSelectChange} 
+                    selectedTableIndex={this.state.selectedTableIndex}/> 
+                : null}
                 <div className="row g-0" id="app-wrapper">
-                    <AppSidebar databaseLocation={this.state.databaseLocation} />
+                    <AppSidebar 
+                        databaseLocation={this.state.databaseLocation}
+                        onClickShowStartingTableSelectModal={this.onClickShowStartingTableSelectModal}
+                        selectedTableIndex={this.state.selectedTableIndex} />
                     <AppMainCont />
                 </div>
             </DBSchemaContext.Provider>
@@ -208,7 +229,41 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     }
 }
 
-class SidebarBubbleBlock extends React.Component<{headerElement: JSX.Element, bodyElement: JSX.Element, isLoaded: boolean}, {}> {
+class StartingTableSelectModal extends React.Component<{onClose: React.MouseEventHandler, onTableSelectChange: Function, selectedTableIndex: number}, {}> {
+    constructor(props) {
+        super(props);
+    }
+
+    onTableSelectChange = (e) => {
+        this.props.onTableSelectChange(e);
+    }
+    
+    render() {
+        return (
+            <div className="modal d-block" role="dialog" id="starting-table-select-modal">
+                <div className="modal-dialog" role="document">
+                    <div className="modal-content">
+                    <div className="modal-header">
+                        <h5 className="modal-title">Select starting table...</h5>
+                        <button type="button" className="close" aria-label="Close" onClick={this.props.onClose}>
+                        <span aria-hidden="true"><i className="fas fa-times" /></span>
+                        </button>
+                    </div>
+                    <div className="modal-body">
+                        <EntitySelector onTableSelectChange={this.onTableSelectChange} selectedTableIndex={this.props.selectedTableIndex} />
+                    </div>
+                    <div className="modal-footer">
+                        <button type="button" className="btn btn-primary">Save changes</button>
+                        <button type="button" className="btn btn-secondary" onClick={this.props.onClose}>Close</button>
+                    </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+}
+
+class SidebarBubbleBlock extends React.Component<ComponentTypes.SidebarBubbleBlockProps, {}> {
     render() {
         const loadingBody =
             !this.props.isLoaded ? (
@@ -220,7 +275,7 @@ class SidebarBubbleBlock extends React.Component<{headerElement: JSX.Element, bo
             ) : null;
 
         return (
-            <div className="row ms-auto me-auto app-sidebar-bubbleblock p-2 mb-3">
+            <div className="row ms-auto me-auto app-sidebar-bubbleblock p-2 mb-3" onClick={this.props.onClick}>
                 <div className="col">
                     {this.props.headerElement}
                     {this.props.isLoaded ? this.props.bodyElement : loadingBody}
@@ -230,7 +285,7 @@ class SidebarBubbleBlock extends React.Component<{headerElement: JSX.Element, bo
     }
 }
 
-class AppSidebar extends React.Component<{databaseLocation?: string}, {isLoaded?: boolean}> {
+class AppSidebar extends React.Component<ComponentTypes.AppSidebarProps, {isLoaded?: boolean}> {
     constructor(props) {
         super(props);
         this.state = {
@@ -263,6 +318,9 @@ class AppSidebar extends React.Component<{databaseLocation?: string}, {isLoaded?
             </div>
         );
 
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        console.log(dbSchemaContext);
+
         /* Bubble 2: Selected table */
         const selectedTableBubbleHeader = (
             <div className="row">
@@ -275,7 +333,7 @@ class AppSidebar extends React.Component<{databaseLocation?: string}, {isLoaded?
                 <div className="row">
                     <div className="col overflow-ellipses overflow-hidden">
                         <strong>
-                            {this.props.databaseLocation}
+                            {this.props.selectedTableIndex >= 0 ? dbSchemaContext.allEntitiesList[this.props.selectedTableIndex].tableName : (<em>None selected</em>)}
                         </strong>
                     </div>
                 </div>
@@ -283,12 +341,20 @@ class AppSidebar extends React.Component<{databaseLocation?: string}, {isLoaded?
         
         return (
         <div className="col-4 col-lg-3 p-3" id="app-sidebar-cont">
-            <SidebarBubbleBlock headerElement={databaseAddressHeader} bodyElement={databaseAddressBody} isLoaded={this.state.isLoaded} />
-            <SidebarBubbleBlock headerElement={selectedTableBubbleHeader} bodyElement={selectedTableBubbleBody} isLoaded={this.state.isLoaded} />
+            <SidebarBubbleBlock 
+                headerElement={databaseAddressHeader} 
+                bodyElement={databaseAddressBody} 
+                isLoaded={this.state.isLoaded} />
+            <SidebarBubbleBlock 
+                headerElement={selectedTableBubbleHeader} 
+                bodyElement={selectedTableBubbleBody} 
+                isLoaded={this.state.isLoaded}
+                onClick={this.props.onClickShowStartingTableSelectModal} />
         </div>
         );
     }
 }
+AppSidebar.contextType = DBSchemaContext;
 
 class AppMainCont extends React.Component {
     render() {

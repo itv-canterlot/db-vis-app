@@ -37,6 +37,7 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
                         selectedIndex={this.context.selectedTableIndex}
                         onListSelectionChange={this.props.onTableSelectChange}
                         arrayRenderer={this.entityArrayRendererHandler}
+                        innerVal={selectedEntity ? selectedEntity.tableName : ""}
                         />
 
                 </div>
@@ -108,12 +109,11 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
     render() {
         return (
             <div className="col dropdown-custom-text-wrapper">
-                {/* TODO: logic to be changed */}
                 {this.entitiesListNode()}
-                {this.props.selectedTableIndex >= 0 ? this.attributeListNode() : null}
-                {this.props.selectedTableIndex >= 0 ? this.foreignKeyNode() : null}
-                {this.props.selectedTableIndex >= 0 && this.props.selectedForeignKeyIndex >= 0 ? this.fkAttributeListNode() : null}
-                <MetadataGraph listLoaded={this.props.listLoaded} selectedTable={this.props.selectedTableIndex} />
+                {/* {this.props.selectedTableIndex >= 0 ? this.attributeListNode() : null}
+                {this.props.selectedTableIndex >= 0 ? this.foreignKeyNode() : null} */}
+                {/* {this.props.selectedTableIndex >= 0 && this.props.selectedForeignKeyIndex >= 0 ? this.fkAttributeListNode() : null} */}
+                {/* <MetadataGraph listLoaded={this.props.listLoaded} selectedTable={this.props.selectedTableIndex} /> */}
             </div>
         )
     }

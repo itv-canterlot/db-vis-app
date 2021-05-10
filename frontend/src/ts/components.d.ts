@@ -9,8 +9,8 @@ export type SearchDropdownListProps = {
     onListSelectionChange: Function,
     arrayRenderer?: Function,
     objectRenderer?: Function,
-    updateListHandler?: Function
-    
+    updateListHandler?: Function,
+    innerVal?: string    
 }
 
 /** app.tsx **/
@@ -25,14 +25,14 @@ export type FixedAttributeSelectorProps = {
 
 export type EntitySelectorProps = {
     onTableSelectChange: Function,
-    onAttributeSelectChange: Function,
-    onFKAttributeSelectChange: Function,
-    onForeignKeySelectChange: Function,
+    onAttributeSelectChange?: Function,
+    onFKAttributeSelectChange?: Function,
+    onForeignKeySelectChange?: Function,
     selectedTableIndex: number,
-    selectedAttributeIndex: number,
-    selectedForeignKeyIndex: number,
-    selectedFKAttributeIndex: number,
-    listLoaded: boolean
+    selectedAttributeIndex?: number,
+    selectedForeignKeyIndex?: number,
+    selectedFKAttributeIndex?: number,
+    listLoaded?: boolean
 }
 
 export type AttributeListSelectorProps = {
@@ -51,7 +51,21 @@ export type ApplicationStates = {
     selectedAttributeIndex?: number,
     selectedForeignKeyIndex?: number,
     selectedFKAttributeIndex?: number,
-    load: boolean,
-    listLoaded: boolean,
-    databaseLocation: string
+    load?: boolean,
+    listLoaded?: boolean,
+    databaseLocation?: string,
+    showStartingTableSelectModal?: boolean,
+}
+
+export type AppSidebarProps = {
+    databaseLocation: string,
+    onClickShowStartingTableSelectModal: React.MouseEventHandler,
+    selectedTableIndex: number
+}
+
+export type SidebarBubbleBlockProps = {
+    headerElement: JSX.Element,
+    bodyElement: JSX.Element,
+    isLoaded: boolean,
+    onClick?: React.MouseEventHandler
 }

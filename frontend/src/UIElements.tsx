@@ -88,12 +88,19 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
         inputNode.blur();
     }
 
-    render() {
+    componentDidMount() {
         // If the currently-selected index is -1, clear the input box
         const inputNode = this.inputRef.current as HTMLInputElement;
-        if (inputNode && this.props.selectedIndex < 0) {
+        if (!inputNode) return;
+        
+        if (this.props.selectedIndex < 0) {
             inputNode.value = "";
+        } if (this.props.innerVal) {
+            inputNode.value = this.props.innerVal;
         }
+    }
+
+    render() {
         return (
             <div className="col">
                 <div className="input-group mb-0">
