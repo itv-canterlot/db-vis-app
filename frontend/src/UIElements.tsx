@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {SearchDropdownListProps} from './ts/components';
+import { SearchDropdownListProps, SidebarBubbleBlockProps } from './ts/components';
 class SearchDropdownList extends React.Component<SearchDropdownListProps, {showList: boolean}> {
     inputRef: React.RefObject<HTMLInputElement>;
 
@@ -120,4 +120,26 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
     }
 }
 
-export default SearchDropdownList;
+class SidebarBubbleBlock extends React.Component<SidebarBubbleBlockProps, {}> {
+    render() {
+        const loadingBody =
+            !this.props.isLoaded ? (
+                <div className="row">
+                    <div className="col overflow-ellipses overflow-hidden">
+                        <em>Loading...</em>
+                    </div>
+                </div>
+            ) : null;
+
+        return (
+            <div className="row ms-auto me-auto app-sidebar-bubbleblock p-2 mb-3" onClick={this.props.onClick}>
+                <div className="col">
+                    {this.props.headerElement}
+                    {this.props.isLoaded ? this.props.bodyElement : loadingBody}
+                </div>
+            </div>
+        )
+    }
+}
+
+export {SearchDropdownList, SidebarBubbleBlock};

@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
-import SearchDropdownList from './UIElements';
+import { SearchDropdownList } from './UIElements';
 import { ForeignKey, RelationNode, Table } from './ts/types';
 import { getRelationInListByName } from './SchemaParser';
 
