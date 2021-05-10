@@ -41,14 +41,14 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
                         />
 
                 </div>
-                {
+                {/* {
                     // Display the linked tables if the selected table is a junction table
                     selectedIsJunction 
                     ? <div className="row ms-4">
                         <JunctionTableLinks selectedEntity={selectedEntity} />
                     </div>
                     : null
-                }
+                } */}
             </div>
         </div>)
     }
