@@ -2,7 +2,7 @@ import * as React from 'react';
 import ReactDOM = require('react-dom');
 
 import {Attribute, VisSchema, VISSCHEMATYPES} from './ts/types'
-import { DBSchemaContext } from './DBSchemaContext';
+import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { Visualiser } from './Visualiser';
 import { EntitySelector } from './EntitySelector';
 
@@ -21,7 +21,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             selectedForeignKeyIndex: -1,
             selectedFKAttributeIndex: -1,
             load: false,
-            listLoaded: false
+            listLoaded: false,
+            databaseLocation: "http://localhost:5432" // Placeholder
         };
     }
 
@@ -197,22 +198,103 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     render() {
         return (
             <DBSchemaContext.Provider value={{allEntitiesList: this.state.allEntitiesList, relationsList: this.state.relationsList}}>
-                <div className="row g-0">
-                    <EntitySelector
-                    onTableSelectChange={this.onTableSelectChange}
-                    onAttributeSelectChange={this.onAttributeSelectChange}
-                    onFKAttributeSelectChange={this.onFKAttributeSelectChange}
-                    onForeignKeySelectChange={this.onForeignKeySelectChange}
-                    selectedTableIndex={this.state.selectedTableIndex}
-                    selectedAttributeIndex={this.state.selectedAttributeIndex}
-                    selectedForeignKeyIndex={this.state.selectedForeignKeyIndex}
-                    selectedFKAttributeIndex={this.state.selectedFKAttributeIndex}
-                    listLoaded={this.state.listLoaded}
-                    />
-                    <Visualiser selectedTableIndex={this.state.selectedTableIndex} />
+                <div className="row g-0" id="app-wrapper">
+                    <AppSidebar databaseLocation={this.state.databaseLocation} />
+                    <AppMainCont />
                 </div>
             </DBSchemaContext.Provider>
 
+        );
+    }
+}
+
+class SidebarBubbleBlock extends React.Component<{headerElement: JSX.Element, bodyElement: JSX.Element, isLoaded: boolean}, {}> {
+    render() {
+        const loadingBody =
+            !this.props.isLoaded ? (
+                <div className="row">
+                    <div className="col overflow-ellipses overflow-hidden">
+                        <em>Loading...</em>
+                    </div>
+                </div>
+            ) : null;
+
+        return (
+            <div className="row ms-auto me-auto app-sidebar-bubbleblock p-2 mb-3">
+                <div className="col">
+                    {this.props.headerElement}
+                    {this.props.isLoaded ? this.props.bodyElement : loadingBody}
+                </div>
+            </div>
+        )
+    }
+}
+
+class AppSidebar extends React.Component<{databaseLocation?: string}, {isLoaded?: boolean}> {
+    constructor(props) {
+        super(props);
+        this.state = {
+            isLoaded: false
+        }
+    }
+
+    componentDidMount() {
+        if (this.state.isLoaded) return;
+        this.setState({
+            isLoaded: true
+        })
+    }
+    render() {
+        /* Bubble 1: database address */
+        const databaseAddressHeader = (
+        <div className="row">
+            <div className="col">
+                <i className="fas fa-database me-2" />Database address:
+            </div>
+        </div>);
+
+        const databaseAddressBody = (
+            <div className="row">
+                <div className="col overflow-ellipses overflow-hidden">
+                    <strong>
+                        {this.props.databaseLocation}
+                    </strong>
+                </div>
+            </div>
+        );
+
+        /* Bubble 2: Selected table */
+        const selectedTableBubbleHeader = (
+            <div className="row">
+                <div className="col">
+                    <i className="fas fa-table me-2" />Starting table:
+                </div>
+            </div>);
+    
+            const selectedTableBubbleBody = (
+                <div className="row">
+                    <div className="col overflow-ellipses overflow-hidden">
+                        <strong>
+                            {this.props.databaseLocation}
+                        </strong>
+                    </div>
+                </div>
+            );
+        
+        return (
+        <div className="col-4 col-lg-3 p-3" id="app-sidebar-cont">
+            <SidebarBubbleBlock headerElement={databaseAddressHeader} bodyElement={databaseAddressBody} isLoaded={this.state.isLoaded} />
+            <SidebarBubbleBlock headerElement={selectedTableBubbleHeader} bodyElement={selectedTableBubbleBody} isLoaded={this.state.isLoaded} />
+        </div>
+        );
+    }
+}
+
+class AppMainCont extends React.Component {
+    render() {
+        return (
+            <div className="col-auto">
+            </div>
         );
     }
 }

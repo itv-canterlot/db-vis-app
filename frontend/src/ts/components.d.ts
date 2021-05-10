@@ -52,5 +52,6 @@ export type ApplicationStates = {
     selectedForeignKeyIndex?: number,
     selectedFKAttributeIndex?: number,
     load: boolean,
-    listLoaded: boolean
+    listLoaded: boolean,
+    databaseLocation: string
 }

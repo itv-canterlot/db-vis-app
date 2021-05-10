@@ -48,3 +48,29 @@
 #meta-graph-cont g .child-node rect {
     fill: #c9f2c7;
 }
+
+#app-wrapper {
+    height: 100vh;
+}
+
+#app-sidebar-cont {
+    background-color: #4D3271;
+}
+
+.app-sidebar-bubbleblock {
+    cursor: pointer;
+    user-select: none;
+    background-color: #573880;
+    color: white;
+    border-radius: .25rem;
+    background-origin: content-box;
+}
+
+.app-sidebar-bubbleblock:hover {
+    background-color: #613E8E;
+    border-radius: .25rem;
+}
+
+.overflow-ellipses {
+    text-overflow: ellipsis;
+}
