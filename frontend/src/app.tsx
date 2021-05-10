@@ -55,7 +55,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                         }
                         
                         // Type check
-                        console.log(schema);
+                        // console.log(schema);
                     }
                     // For each schema, compare
                 }

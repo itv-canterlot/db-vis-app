@@ -2,7 +2,8 @@ import * as React from 'react';
 
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import SearchDropdownList from './UIElements';
-import {ForeignKey, Table} from './ts/types';
+import { ForeignKey, RelationNode, Table } from './ts/types';
+import { getRelationInListByName } from './SchemaParser';
 
 import * as ComponentTypes from './ts/components';
 import * as UIRenderers from './UIRenderers';
@@ -112,25 +113,31 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
                 {this.props.selectedTableIndex >= 0 ? this.attributeListNode() : null}
                 {this.props.selectedTableIndex >= 0 ? this.foreignKeyNode() : null}
                 {this.props.selectedTableIndex >= 0 && this.props.selectedForeignKeyIndex >= 0 ? this.fkAttributeListNode() : null}
-                <MetadataGraph listLoaded={this.props.listLoaded} />
+                <MetadataGraph listLoaded={this.props.listLoaded} selectedTable={this.props.selectedTableIndex} />
             </div>
         )
     }
 }
 EntitySelector.contextType = DBSchemaContext;
 
-class MetadataGraph extends React.Component<{listLoaded: boolean}, {loaded?: boolean}> {
+class MetadataGraph extends React.Component<{listLoaded: boolean, selectedTable: number}, {loaded?: boolean, selectedTableIndex?: number}> {
     constructor(props) {
         super(props);
         this.state = {
-            loaded: false
+            loaded: false,
+            selectedTableIndex: -1
         }
     }
 
     componentDidUpdate() {
+        if (this.state.selectedTableIndex !== this.props.selectedTable) {
+            this.setState({
+                selectedTableIndex: this.props.selectedTable
+            }, () => this.renderSelectedTableMetaGraph())
+        }
         if (this.state.loaded) return;
         if (this.props.listLoaded) {
-            this.renderMetaGraph();
+            // this.renderMetaGraph();
             this.setState({
                 loaded: true
             });
@@ -154,6 +161,69 @@ class MetadataGraph extends React.Component<{listLoaded: boolean}, {loaded?: boo
         return (<div>{strings.map(string => (<p>{string}</p>))}</div>)
     }
     
+    renderSelectedTableMetaGraph = () => {
+        // Attempt 1: with d3.js
+        if (this.state.selectedTableIndex < 0) return;
+        const containerViewport = document.getElementById("meta-graph-cont");
+        let margin = {top: 10, right: 30, bottom: 30, left: 40},
+        maxWidth = containerViewport.clientWidth, maxHeight = 600,
+        width = maxWidth - margin.left - margin.right,
+        height = maxHeight - margin.top - margin.bottom;
+
+        let boxWidth = 10, boxHeight = 2; // in REM
+        let boxWidthText = boxWidth + "rem", boxHeightText = boxHeight + "rem";
+
+        var svg = d3.select("#meta-graph-cont")
+            .append("svg")
+                .attr("width", "100%")
+                .attr("height", maxHeight + "px")
+                // .attr("preserveAspectRatio", "none")
+                // .attr("viewBox", containerString)
+            .append("g")
+                .attr("transform",
+                    "translate(" + margin.left + "," + margin.top + ")");
+        
+        let dbSchemaContext: DBSchemaContextInterface = this.context;
+        let linkedRelations = dbSchemaContext.relationsList[this.props.selectedTable]; // Pretty sure rel list is listed in order as well
+        let data = [linkedRelations].concat(linkedRelations.childEntities);
+        
+        let links = linkedRelations.childEntities.map(child => {
+            return {
+                "source": linkedRelations.index,
+                "target": child.index
+            };
+        });
+
+        console.log(data);
+        console.log(links);
+
+        const node = svg.selectAll("g")
+            .data(data)
+            .enter();
+
+        node.append("g")
+            .append("rect")
+            .attr("width", boxWidthText)
+            .attr("height", boxHeightText)
+            .attr("transform", (d, idx) => "translate (" + convertRemToPixels(idx * (boxWidth + 2)) + ", 0)");
+        
+        svg.selectAll("g")
+            .append("text")
+            .text((d: RelationNode) => d.parentEntity.tableName)
+            .attr("transform", (d, idx) => {
+                const textX = convertRemToPixels(idx * (boxWidth + 2)) + 10;
+                const textY = convertRemToPixels(boxHeight / 2);
+                return `translate (${textX},${textY})`;
+            })
+            
+        // Set status of parent node so CSS can do things with it
+        svg.selectAll("g").filter((d: RelationNode) => d.index === this.state.selectedTableIndex)
+            .attr("class", "parent-node");
+
+        svg.selectAll("g").filter((d: RelationNode) => d.index !== this.state.selectedTableIndex)
+            .attr("class", "child-node");
+        
+    }
 
     renderMetaGraph() {
         let margin = {top: 10, right: 30, bottom: 30, left: 40},
@@ -230,42 +300,6 @@ class MetadataGraph extends React.Component<{listLoaded: boolean}, {loaded?: boo
             });
 
         return svg.node();
-    
-
-        // let simulation = d3.forceSimulation()
-        //     .force("center", d3.forceCenter(width / 2, height / 2 ))
-        //     .force("charge", d3.forceManyBody())
-        //     .force("link", d3.forceLink().id(d => d.index));
-        // simulation.stop()
-
-        // let linkGroup = svg.selectAll(".link_group")
-        //     .data(links);
-        // linkGroup.exit().remove();
-
-        // let enter = linkGroup.enter()
-        //     .append("g").attr("class", "link_group");
-        // enter.append("line").attr("class", "link_line");
-
-        // linkGroup = linkGroup.merge(enter);
-        // linkGroup.select("link_line")
-        //     .attr("stroke", "orange");
-
-        // let nodeGroup = svg.selectAll(".node_group")
-        //     .data(dbSchemaContext.relationsList);
-        // nodeGroup.exit().remove();
-
-        // enter = nodeGroup.enter()
-        //     .append("g").attr("class", "node_group");
-        // enter.append("circle").attr("class", "node_circle");
-
-        // nodeGroup = nodeGroup.merge(enter);
-        // nodeGroup.select("node_circle")
-        //     .attr("fill", "orange")
-        //     .attr("r", 10);
-
-        // simulation.nodes(dbSchemaContext.relationsList);
-        // d3.forceLink(links);
-
     }
 
     render() {
@@ -401,4 +435,8 @@ const getEntityFromTableName = (entities: Table[], tableName: string) => {
     }
 
     return entities[fkRelIndex];
+}
+
+const convertRemToPixels = (rem) =>{    
+    return rem * parseFloat(getComputedStyle(document.documentElement).fontSize);
 }

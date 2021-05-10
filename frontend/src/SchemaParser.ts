@@ -168,7 +168,7 @@ const tableHasPKAndFK = (table: Table) => {
 //     }
 // }
 
-const getRelationInListByName = (relationsList: RelationNode[], tableName: string) => {
+export const getRelationInListByName = (relationsList: RelationNode[], tableName: string) => {
     for (let i = 0; i < relationsList.length; i++) {
         if (relationsList[i].parentEntity.tableName === tableName) {
             return relationsList[i];

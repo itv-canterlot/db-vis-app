@@ -40,3 +40,11 @@
 .bg-tip-weak-link {
     background-color: #fbeffb;
 }
+
+#meta-graph-cont g .parent-node rect {
+    fill: #66b3ba;
+}
+
+#meta-graph-cont g .child-node rect {
+    fill: #c9f2c7;
+}
