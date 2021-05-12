@@ -81,8 +81,13 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
     // Called when R1 is changed
     onTableSelectChange = (e) => {
-        let tableIndex = parseInt(e.target.getAttribute("data-index"));
-        let tableKey = parseInt(e.target.getAttribute("data-key"));
+        let tableIndex = -1;
+
+        if (e instanceof Object) {
+            tableIndex = parseInt(e.target.getAttribute("data-index"));
+        } else {
+            tableIndex = e;
+        }
 
         if (tableIndex < 0) return;
 
