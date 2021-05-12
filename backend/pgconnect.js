@@ -244,9 +244,11 @@ async function getTableMetatdata() {
             };
         });
 
-        table["pk"] = {
-            "keyName": pk[0]["constraint_name"],
-            "columns": tablePksColumns
+        if (tablePks.length > 0) {
+            table["pk"] = {
+                "keyName": tablePks[0]["constraint_name"],
+                "columns": tablePksColumns
+            }
         }
 
         // Grouping FKs by their names, affixiating their ordinal positions in their respective tables
