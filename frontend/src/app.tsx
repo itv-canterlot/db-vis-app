@@ -56,26 +56,28 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         // For demo: simple entity
         if ((!selectedEntity.hasOwnProperty("weakEntitiesIndices") || selectedEntity.weakEntitiesIndices.length === 0) && 
             (!selectedEntity.hasOwnProperty("isJunction") || !selectedEntity.isJunction)) {
-            let pkAtts = selectedEntity.pk.columns.map(key => selectedEntity.attr[key.colPos].attname);
-            Connections.getTableDistCounts(selectedEntity.tableName, pkAtts).then(distCountRes => {
-                return Math.max(distCountRes.map(count => count.distinct_count));
-
-            }).then(maxDistCount => {
-                // TODO: colours not checked - need additional markup
-                for (const schema of visSchema) {
-                    if (schema.type === VISSCHEMATYPES.BASIC) {
-                        // Count check
-                        if (!(schema.keys.minCount <= maxDistCount)) continue;
-                        if (schema.keys.maxCount !== undefined) {
-                            if (!(schema.keys.maxCount >= maxDistCount)) continue;
+            if (selectedEntity.pk) {
+                let pkAtts = selectedEntity.pk.columns.map(key => selectedEntity.attr[key.colPos].attname);
+                Connections.getTableDistCounts(selectedEntity.tableName, pkAtts).then(distCountRes => {
+                    return Math.max(distCountRes.map(count => count.distinct_count));
+    
+                }).then(maxDistCount => {
+                    // TODO: colours not checked - need additional markup
+                    for (const schema of visSchema) {
+                        if (schema.type === VISSCHEMATYPES.BASIC) {
+                            // Count check
+                            if (!(schema.keys.minCount <= maxDistCount)) continue;
+                            if (schema.keys.maxCount !== undefined) {
+                                if (!(schema.keys.maxCount >= maxDistCount)) continue;
+                            }
+                            
+                            // Type check
+                            // console.log(schema);
                         }
-                        
-                        // Type check
-                        // console.log(schema);
+                        // For each schema, compare
                     }
-                    // For each schema, compare
-                }
-            });
+                });
+            }
         }
     }
 

@@ -217,7 +217,7 @@ async function getTableMetatdata() {
         
         return {
             tableName: tableName,
-            pk: tablePks,
+            pk: tablePks.length == 0 ? null : tablePks,
             fk: tableFks,
             attr: tableAtts,
         }
@@ -236,15 +236,18 @@ async function getTableMetatdata() {
         });
 
         // Grouping PK columns together into one object
-        let tablePksColumns = tablePks.map(key => {
-            const thisKeyColumnName = key["attname"] === undefined ? key["column_name"] : key["attname"];
-            return {
-                "colName": thisKeyColumnName,
-                "colPos": findColumnPosByName(tableAtts, thisKeyColumnName)
-            };
-        });
+        let tablePksColumns;
+        if (tablePks && tablePks.length !== 0) {
+            tablePksColumns = tablePks.map(key => {
+                const thisKeyColumnName = key["attname"] === undefined ? key["column_name"] : key["attname"];
+                return {
+                    "colName": thisKeyColumnName,
+                    "colPos": findColumnPosByName(tableAtts, thisKeyColumnName)
+                };
+            });
+        }
 
-        if (tablePks.length > 0) {
+        if (tablePks && tablePks.length > 0) {
             table["pk"] = {
                 "keyName": tablePks[0]["constraint_name"],
                 "columns": tablePksColumns

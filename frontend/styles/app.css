@@ -41,6 +41,10 @@
     background-color: #fbeffb;
 }
 
+.bg-tip-grey {
+    background-color: #ccc;
+}
+
 #meta-graph-cont g .parent-node rect {
     fill: #66b3ba;
 }

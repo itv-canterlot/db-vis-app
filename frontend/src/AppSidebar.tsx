@@ -152,6 +152,27 @@ export class AppSidebar extends React.Component<ComponentTypes.AppSidebarProps, 
             isLoaded: true
         })
     }
+
+    printPrimaryKeyPrompt = () => {
+        if (this.props.selectedTableIndex >= 0) {
+            const dbSchemaContext: DBSchemaContextInterface = this.context;
+            const thisTable = dbSchemaContext.allEntitiesList[this.props.selectedTableIndex];
+            if (!thisTable.pk) {
+                return (
+                    <div className="me-1 text-muted dropdown-tip bg-tip-grey d-inline-block">
+                        <em style={{textDecoration: "line-through"}}>No pk found</em>
+                    </div>
+                )
+            };
+            return (
+                <div className="me-1 text-muted dropdown-tip bg-tip-pk d-inline-block">
+                    pk: <em>{ dbSchemaContext.allEntitiesList[this.props.selectedTableIndex].pk.keyName}</em>
+                </div>)
+        } else {
+            return null;
+        }
+    }
+
     render() {
         /* Bubble 1: database address */
         const databaseAddressHeader = (
@@ -201,9 +222,7 @@ export class AppSidebar extends React.Component<ComponentTypes.AppSidebarProps, 
                     <div className="col overflow-ellipses overflow-hidden">
                     {
                         // Print primary key prompt
-                        this.props.selectedTableIndex >= 0 ?
-                        <div className="me-1 text-muted dropdown-tip bg-tip-pk d-inline-block">pk: <em>{ dbSchemaContext.allEntitiesList[this.props.selectedTableIndex].pk.keyName}</em></div> :
-                        null
+                        this.printPrimaryKeyPrompt()
                     }
                     </div>
                 </div>
