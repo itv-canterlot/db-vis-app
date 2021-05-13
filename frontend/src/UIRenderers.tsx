@@ -14,13 +14,25 @@ export const FKArrayRenderer = (item, index, onClickCallback, selectedIndex) => 
         </a>
 }
 
+export const entityArrayFilter = (list: Table[], text: string) => {
+    return list.filter(en => {
+        return en.tableName.includes(text);
+    })
+}
+
 export const entityArrayRenderer = (item: Table, index: number, onClickCallback: React.MouseEventHandler<HTMLAnchorElement>, selectedIndex: number) => { 
     let oid = item.oid;
     let relname = item.tableName;
-    let affix = () => {
+    let relName = (name) => {
         // Markers of the type of table
         if (item.isJunction) {
-            return <i className="fas fa-compress-alt me-1 pe-none" />
+            return (
+                <div>
+                    <i className="fas fa-compress-alt me-1 pe-none" />{name}
+                </div>
+            )
+        } else {
+            return <div><i />{name}</div>;
         }
     }
 
@@ -38,7 +50,6 @@ export const entityArrayRenderer = (item: Table, index: number, onClickCallback:
                         <i className="fas fa-asterisk me-1 pe-none fa-xs" /> <em>{item.fk[weIndex].pkTableName}</em>
                     </div>)
                 })
-                 // TODO: more information
             } else {
                 return null;
             }
@@ -50,7 +61,8 @@ export const entityArrayRenderer = (item: Table, index: number, onClickCallback:
     return <a className={"dropdown-item pe-auto" + (index == selectedIndex ? " active" : "")} 
         data-key={oid} data-index={index} data-content={relname} key={index} href="#" onMouseDown={onClickCallback}>
             <div className="pe-none">
-                {affix()}{relname}
+                {relName(relname)}
+                {/* {relname} */}
             </div>
             <div className="pe-none d-flex">
                 {weRels()}

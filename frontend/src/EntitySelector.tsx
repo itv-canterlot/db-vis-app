@@ -3,7 +3,6 @@ import * as React from 'react';
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { SearchDropdownList } from './UIElements';
 import { ForeignKey, RelationNode, Table } from './ts/types';
-import { getRelationInListByName } from './SchemaParser';
 
 import * as ComponentTypes from './ts/components';
 import * as UIRenderers from './UIRenderers';
@@ -38,17 +37,10 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
                         onListSelectionChange={this.props.onTableSelectChange}
                         arrayRenderer={this.entityArrayRendererHandler}
                         innerVal={selectedEntity ? selectedEntity.tableName : ""}
+                        listFilter={UIRenderers.entityArrayFilter}
                         />
 
                 </div>
-                {/* {
-                    // Display the linked tables if the selected table is a junction table
-                    selectedIsJunction 
-                    ? <div className="row ms-4">
-                        <JunctionTableLinks selectedEntity={selectedEntity} />
-                    </div>
-                    : null
-                } */}
             </div>
         </div>)
     }

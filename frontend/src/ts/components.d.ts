@@ -10,7 +10,8 @@ export type SearchDropdownListProps = {
     arrayRenderer?: Function,
     objectRenderer?: Function,
     updateListHandler?: Function,
-    innerVal?: string    
+    innerVal?: string,
+    listFilter?: Function
 }
 
 /** app.tsx **/

@@ -1,6 +1,7 @@
+import { rollups } from 'd3-array';
 import * as React from 'react';
 import { SearchDropdownListProps, SidebarBubbleBlockProps } from './ts/components';
-class SearchDropdownList extends React.Component<SearchDropdownListProps, {showList: boolean}> {
+class SearchDropdownList extends React.Component<SearchDropdownListProps, {showList?: boolean, filtering?: boolean, loaded?: boolean, keyword: string}> {
     inputRef: React.RefObject<HTMLInputElement>;
 
     constructor(props) {
@@ -8,6 +9,9 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
 
         this.state = {
             showList: false,
+            filtering: false,
+            loaded: false,
+            keyword: ""
         };
 
         this.inputRef = React.createRef();
@@ -50,7 +54,10 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
             if (Array.isArray(this.props.dropdownList)) {
                 return (
                     <div className={"dropdown-menu dropdown-custom-text-content" + (this.state.showList ? " d-block" : "")}>
-                        {this.props.dropdownList.map(this.props.arrayRenderer ? this.arrayRendererHandler : this.defaultArrayMapper)}
+                        {this.props.listFilter(this.props.dropdownList, this.state.keyword).map(this.props.arrayRenderer ? this.arrayRendererHandler : this.defaultArrayMapper)}
+                        {/* {this.props.listFilter(this.props.dropdownList, this.state.keyword).map(e => {
+                            return (<li>e</li>)
+                        })} */}
                     </div>
                 )
             } else {
@@ -87,8 +94,67 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
         const inputNode = this.inputRef.current as HTMLInputElement;
         inputNode.blur();
     }
+    
+    onKeyDown = (e: React.KeyboardEvent) => {
+        // TODO: Ctrl
+        if (e.key === "Escape") {
+            e.preventDefault();
+            this.blurInput();
+            return;
+        } else if (e.key === "Backspace") {
+            this.setState({
+                keyword: this.state.keyword.slice(0, this.state.keyword.length - 1)
+            })
+        } else if (e.key.length > 1) {
+            const inputNode = this.inputRef.current as HTMLInputElement;
+            this.setState({
+                keyword: inputNode.value
+            });
+            return;
+        } else {
+            const inputNode = this.inputRef.current as HTMLInputElement;
+            this.setState({
+                keyword: inputNode.value + e.key
+            });
+            return;
+        }
+    }
+
+    handleListFilter = (text) => {
+        // Object.entries(filteredDropdown)
+        if (this.state.loaded) {
+            return;
+        }
+
+        this.setState({
+            loaded: false
+        }, () => {
+            let entireList;
+            
+            if (Array.isArray(this.props.dropdownList)) {
+                entireList = this.props.dropdownList;
+            } else {
+                entireList = Object.entries(this.props.dropdownList);
+            }
+            
+            let filteredDropdown;
+            if (this.props.listFilter) {
+                filteredDropdown = this.props.listFilter(entireList, text)
+            } else {
+                filteredDropdown = entireList;
+            }
+
+            this.setState({
+                loaded: true,
+            });
+        })
+
+    }
 
     componentDidMount() {
+        if (this.state.loaded) {
+            return;
+        }
         // If the currently-selected index is -1, clear the input box
         const inputNode = this.inputRef.current as HTMLInputElement;
         if (!inputNode) return;
@@ -98,6 +164,11 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
         } if (this.props.innerVal) {
             inputNode.value = this.props.innerVal;
         }
+        this.setState({
+            keyword: inputNode.value
+        })
+
+        // this.handleListFilter(inputNode.value);
     }
 
     render() {
@@ -112,9 +183,12 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
                         onFocus={this.onInputFocus}
                         onBlur={this.onInputBlur}
                         ref={this.inputRef}
+                        onKeyDown={this.onKeyDown}
                          />
                 </div>
-                {this.renderListElements()}
+                <div>
+                    {this.renderListElements()}
+                </div>
             </div>
         );
     }
