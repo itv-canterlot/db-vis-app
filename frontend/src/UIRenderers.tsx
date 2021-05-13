@@ -20,7 +20,8 @@ export const entityArrayFilter = (list: Table[], text: string) => {
     })
 }
 
-export const entityArrayRenderer = (item: Table, index: number, onClickCallback: React.MouseEventHandler<HTMLAnchorElement>, selectedIndex: number) => { 
+export const entityArrayRenderer = (item: Table, onClickCallback: React.MouseEventHandler<HTMLAnchorElement>, selectedIndex: number) => { 
+    let index = item.idx;
     let oid = item.oid;
     let relname = item.tableName;
     let relName = (name) => {

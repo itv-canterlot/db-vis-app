@@ -21,7 +21,7 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
     }
 
     entityArrayRendererHandler = (item: Table, index: number, onClickCallback: React.MouseEventHandler<HTMLAnchorElement>) => {
-        return UIRenderers.entityArrayRenderer(item, index, onClickCallback, this.props.selectedTableIndex);
+        return UIRenderers.entityArrayRenderer(item, onClickCallback, this.props.selectedTableIndex);
     }
 
     /* React components for entity selectors */

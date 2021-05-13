@@ -223,7 +223,8 @@ const constructRelation = (tableList: Table[]) => {
  * @returns Same list of tables after annotation.
  */
 export const preprocessEntities = (tableList: Table[]) => {
-    tableList.forEach((item: Table, _) => {
+    tableList.forEach((item: Table, index) => {
+        item.idx = index;
         let junctionTableSearchResult: ForeignKey[] = getJunctionTableLinks(item);
         if (junctionTableSearchResult.length >= 2) {
             item.isJunction = true;
