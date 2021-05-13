@@ -37,6 +37,9 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
     }
 
     handleOnClose = () => {
+        if (this.modalComponent) {
+            this.modalComponent.hide();
+        }
         this.props.onClose();
     }
 
