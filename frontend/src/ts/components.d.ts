@@ -11,7 +11,8 @@ export type SearchDropdownListProps = {
     objectRenderer?: Function,
     updateListHandler?: Function,
     innerVal?: string,
-    listFilter?: Function
+    listFilter?: Function,
+    id?: string
 }
 
 /** app.tsx **/
@@ -33,7 +34,8 @@ export type EntitySelectorProps = {
     selectedAttributeIndex?: number,
     selectedForeignKeyIndex?: number,
     selectedFKAttributeIndex?: number,
-    listLoaded?: boolean
+    listLoaded?: boolean,
+    id?: string
 }
 
 export type AttributeListSelectorProps = {

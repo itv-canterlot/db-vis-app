@@ -134,7 +134,7 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
                         onFocus={this.onInputFocus}
                         onBlur={this.onInputBlur}
                         ref={this.inputRef}
-                        // onKeyDown={this.onKeyDown}
+                        id={this.props.id}
                         onKeyUp={this.onKeyUp}
                          />
                 </div>

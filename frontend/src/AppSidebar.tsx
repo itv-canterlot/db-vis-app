@@ -1,18 +1,21 @@
 import * as React from 'react';
+import * as bootstrap from 'bootstrap';
 import { SidebarBubbleBlock } from './UIElements';
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { EntitySelector } from './EntitySelector';
-
-import * as ComponentTypes from './ts/components';
 import { Table } from './ts/types';
 
-export class StartingTableSelectModal extends React.Component<{onClose: React.MouseEventHandler, onTableSelectChange: Function, selectedTableIndex: number}, {cachedSelectedIndex?: number}> {
+import * as ComponentTypes from './ts/components';
+
+export class StartingTableSelectModal extends React.Component<{onClose: Function, onTableSelectChange: Function, selectedTableIndex: number}, {cachedSelectedIndex?: number}> {
     constructor(props) {
         super(props);
         this.state = {
             cachedSelectedIndex: -1
         }
     }
+
+    modalComponent: bootstrap.Modal = undefined;
 
     onTableSelectChange = (e) => {
         let tableIndex = parseInt(e.target.getAttribute("data-index"));
@@ -27,26 +30,48 @@ export class StartingTableSelectModal extends React.Component<{onClose: React.Mo
     
     onTableChangeConfirm = (e) => {
         this.props.onTableSelectChange(this.state.cachedSelectedIndex);
+        if (this.modalComponent) {
+            this.modalComponent.hide();
+        }
         this.props.onClose(e);
+    }
+
+    handleOnClose = () => {
+        this.props.onClose();
+    }
+
+    componentDidMount() {
+        const modalElement = document.getElementById("starting-table-select-modal")
+        this.modalComponent = new bootstrap.Modal(modalElement, {
+            keyboard: false
+        });
+        this.modalComponent.show();
+
+        modalElement.addEventListener('shown.bs.modal', function () {
+            document.getElementById("starting-table-select-input").focus()
+        });
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            this.props.onClose();
+        })
     }
     
     render() {
         return (
-            <div className="modal d-block" role="dialog" id="starting-table-select-modal">
-                <div className="modal-dialog" role="document">
+            <div className="modal fade d-block" role="dialog" id="starting-table-select-modal">
+                <div className="modal-dialog modal-dialog-centered" role="document">
                     <div className="modal-content">
                     <div className="modal-header">
                         <h5 className="modal-title">Select starting table...</h5>
-                        <button type="button" className="close" aria-label="Close" onClick={this.props.onClose}>
+                        <button type="button" className="close" aria-label="Close" onClick={this.handleOnClose}>
                         <span aria-hidden="true"><i className="fas fa-times" /></span>
                         </button>
                     </div>
                     <div className="modal-body">
-                        <EntitySelector onTableSelectChange={this.onTableSelectChange} selectedTableIndex={this.props.selectedTableIndex} />
+                        <EntitySelector onTableSelectChange={this.onTableSelectChange} selectedTableIndex={this.props.selectedTableIndex} id="starting-table-select-input" />
                     </div>
                     <div className="modal-footer">
                         <button type="button" className="btn btn-primary" onClick={this.onTableChangeConfirm}>Confirm</button>
-                        <button type="button" className="btn btn-secondary" onClick={this.props.onClose}>Cancel</button>
+                        <button type="button" className="btn btn-secondary" onClick={this.handleOnClose}>Cancel</button>
                     </div>
                     </div>
                 </div>

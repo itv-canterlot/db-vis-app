@@ -38,6 +38,7 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
                         arrayRenderer={this.entityArrayRendererHandler}
                         innerVal={selectedEntity ? selectedEntity.tableName : ""}
                         listFilter={UIRenderers.entityArrayFilter}
+                        id={this.props.id}
                         />
 
                 </div>
