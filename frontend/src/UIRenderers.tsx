@@ -16,7 +16,7 @@ export const FKArrayRenderer = (item, index, onClickCallback, selectedIndex) => 
 
 export const entityArrayFilter = (list: Table[], text: string) => {
     return list.filter(en => {
-        return en.tableName.includes(text);
+        return en.tableName.toLowerCase().includes(text.toLowerCase());
     })
 }
 

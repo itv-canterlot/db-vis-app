@@ -1,5 +1,3 @@
-import { randomNormal } from 'd3-random';
-import { table } from 'node:console';
 import { Table, RelationNode, VISSCHEMATYPES, ForeignKey, PrimaryKey } from './ts/types';
 
 const getKeyPosFromPK = (pk: PrimaryKey) => pk.columns.map(key => key.colPos);
@@ -108,65 +106,6 @@ const tableHasPKAndFK = (table: Table) => {
 
     return fkHasLength;
 }
-
-// Not sure what to do with this
-// const getRelationByName = (searchObjective: RelationNode[], visitedNodes: RelationNode[], tableList: Table[], tableName: string) => {
-//     // Search in the existing relations list for the element
-//     let newSearchObjective: RelationNode[] = [];
-//     let existingRelation = undefined;
-//     for (let ri = 0; ri < searchObjective.length; ri++) {
-//         let rnode = searchObjective[ri];
-//         // If this node has been visited already, skip
-//         if (visitedNodes.some(vnode => vnode.parentEntity.relname === rnode.parentEntity.relname)) {
-//             continue;
-//         }
-
-//         // Check if this rnode is the one being searched for
-//         if (rnode.parentEntity.relname === tableName) {
-//             existingRelation = rnode;
-//             break;
-//         } else {
-//             // Look for children nodes
-//             if (rnode.childEntities.length === 0) {
-//                 continue;
-//             } else {
-//                 // Add new objectives for recursive search (?)
-//                 newSearchObjective.push(...rnode.childEntities);
-//                 visitedNodes.push(rnode);
-//             }
-//         }
-//     }
-
-//     if (existingRelation !== undefined) {
-//         return existingRelation;
-//     } else {
-//         if (newSearchObjective.length === 0) {
-//             // Search ended, return a new relation
-//             let thisTable = searchTableListByName(tableList, tableName);
-//             if (thisTable.isJunction) {
-//                 let newRelation: RelationNode = {
-//                     type: VISSCHEMATYPES.MANYMANY,
-//                     parentEntity: thisTable,
-//                     childEntities: thisTable.fk.map(key => getRelationByName(searchObjective, [], tableList, key.conname))
-//                 }
-//             } else if (thisTable.weakEntitiesIndices.length !== 0) {
-//                 let newRelation: RelationNode = {
-//                     type: VISSCHEMATYPES.WEAKENTITY,
-//                     parentEntity: thisTable,
-//                     childEntities: [] // TODO
-//                 }
-//             } else {
-//                 // Determine one-to-many or one-to-one?
-//                 let newRelation: RelationNode = {
-//                     type: VISSCHEMATYPES.ONEMANY,
-//                     parentEntity: thisTable,
-//                     childEntities: [] // TODO
-//                 }
-//             }
-//         }
-//         return getRelationByName(newSearchObjective, visitedNodes, tableList, tableName)
-//     }
-// }
 
 export const getRelationInListByName = (relationsList: RelationNode[], tableName: string) => {
     for (let i = 0; i < relationsList.length; i++) {

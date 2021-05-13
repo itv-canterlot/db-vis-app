@@ -1,5 +1,6 @@
 import { rollups } from 'd3-array';
 import * as React from 'react';
+import { convertCompilerOptionsFromJson } from 'typescript';
 import { SearchDropdownListProps, SidebarBubbleBlockProps } from './ts/components';
 class SearchDropdownList extends React.Component<SearchDropdownListProps, {showList?: boolean, filtering?: boolean, loaded?: boolean, keyword: string}> {
     inputRef: React.RefObject<HTMLInputElement>;
@@ -55,9 +56,6 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
                 return (
                     <div className={"dropdown-menu dropdown-custom-text-content" + (this.state.showList ? " d-block" : "")}>
                         {this.props.listFilter(this.props.dropdownList, this.state.keyword).map(this.props.arrayRenderer ? this.arrayRendererHandler : this.defaultArrayMapper)}
-                        {/* {this.props.listFilter(this.props.dropdownList, this.state.keyword).map(e => {
-                            return (<li>e</li>)
-                        })} */}
                     </div>
                 )
             } else {
@@ -95,60 +93,15 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
         inputNode.blur();
     }
     
-    onKeyDown = (e: React.KeyboardEvent) => {
-        // TODO: Ctrl
+    onKeyUp = (e: React.KeyboardEvent) => {
+        const inputNode = this.inputRef.current as HTMLInputElement;
+        this.setState({
+            keyword: inputNode.value
+        });
         if (e.key === "Escape") {
             e.preventDefault();
             this.blurInput();
-            return;
-        } else if (e.key === "Backspace") {
-            this.setState({
-                keyword: this.state.keyword.slice(0, this.state.keyword.length - 1)
-            })
-        } else if (e.key.length > 1) {
-            const inputNode = this.inputRef.current as HTMLInputElement;
-            this.setState({
-                keyword: inputNode.value
-            });
-            return;
-        } else {
-            const inputNode = this.inputRef.current as HTMLInputElement;
-            this.setState({
-                keyword: inputNode.value + e.key
-            });
-            return;
         }
-    }
-
-    handleListFilter = (text) => {
-        // Object.entries(filteredDropdown)
-        if (this.state.loaded) {
-            return;
-        }
-
-        this.setState({
-            loaded: false
-        }, () => {
-            let entireList;
-            
-            if (Array.isArray(this.props.dropdownList)) {
-                entireList = this.props.dropdownList;
-            } else {
-                entireList = Object.entries(this.props.dropdownList);
-            }
-            
-            let filteredDropdown;
-            if (this.props.listFilter) {
-                filteredDropdown = this.props.listFilter(entireList, text)
-            } else {
-                filteredDropdown = entireList;
-            }
-
-            this.setState({
-                loaded: true,
-            });
-        })
-
     }
 
     componentDidMount() {
@@ -167,8 +120,6 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
         this.setState({
             keyword: inputNode.value
         })
-
-        // this.handleListFilter(inputNode.value);
     }
 
     render() {
@@ -183,7 +134,8 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
                         onFocus={this.onInputFocus}
                         onBlur={this.onInputBlur}
                         ref={this.inputRef}
-                        onKeyDown={this.onKeyDown}
+                        // onKeyDown={this.onKeyDown}
+                        onKeyUp={this.onKeyUp}
                          />
                 </div>
                 <div>
