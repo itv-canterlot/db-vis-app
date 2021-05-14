@@ -75,6 +75,37 @@
                     "type": "COLOR"
                 }
             ]
+        }, {
+            "name": "Choropleth Maps",
+            "type": 0,
+            "keys": {
+                "minCount": 1,
+                "type": "GEOGRAPHICAL"
+            },
+            "mandatoryParameters": [
+                {
+                    "scalar": false,
+                    "type": "COLOR"
+                }
+            ]
+        }, {
+            "name": "Word Clouds",
+            "type": 0,
+            "keys": {
+                "minCount": 1,
+                "type": "LEXICAL"
+            },
+            "mandatoryParameters": [
+                {
+                    "scalar": true
+                }
+            ],
+            "optionalParameters": [
+                {
+                    "scalar": false,
+                    "type": "COLOR"
+                }
+            ]
         }
     ]
 }
