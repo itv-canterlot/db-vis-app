@@ -224,7 +224,7 @@ async function getTableMetatdata() {
         }
     });
 
-    tableObjects.forEach(table => {
+    let tablePkCountPromises = tableObjects.map(table => {
         const tableFks = table["fk"], tablePks = table["pk"], tableAtts = table["attr"], tableName = table["tableName"];
 
         table["attr"] = tableAtts.map(att => {
@@ -248,21 +248,6 @@ async function getTableMetatdata() {
             });
         }
 
-        if (tablePks && tablePks.length > 0) {
-            const pkCountQuery = totalCountByColumnGroup(tableName, tablePksColumns.map(col => col["colName"]));
-            singlePoolRequest(pkCountQuery).then(res => {
-                // table["pk"] = {
-                //     "keyName": tablePks[0]["constraint_name"],
-                //     "columns": tablePksColumns,
-                //     "keyCount": res[0]["count"]
-                // };
-            });
-            table["pk"] = {
-                "keyName": tablePks[0]["constraint_name"],
-                "columns": tablePksColumns,
-            };
-        }
-
         // Grouping FKs by their names, affixiating their ordinal positions in their respective tables
         let tableFksGrouped = groupBy(tableFks, "constraint_name");
         let tableFksProcessed = [];
@@ -276,7 +261,7 @@ async function getTableMetatdata() {
                     "pkColPos": findColumnPosByName(tableObjects.find(tt => tt["tableName"] === k["pk_table"])["attr"], k["pk_column"]),
                 };
             });
-
+    
             let newFkObject = {
                 "keyName": conName,
                 "pkTableName": pkTableName,
@@ -285,9 +270,34 @@ async function getTableMetatdata() {
             tableFksProcessed.push(newFkObject);
         }
         table["fk"] = tableFksProcessed;
+
+        if (tablePks && tablePks.length > 0) {
+            table["pk"] = {
+                "keyName": tablePks[0]["constraint_name"],
+                "columns": tablePksColumns,
+            };
+            const pkCountQuery = totalCountByColumnGroup(tableName, tablePksColumns.map(col => col["colName"]));
+            return singlePoolRequest(pkCountQuery).then(res => {
+                return res[0]["count"]
+            });
+        } else {
+            return new Promise((resolver, rejector) => {
+                resolver(null);
+                rejector(null);
+            });
+        }
     });
 
-    return tableObjects;
+    return Promise.all(tablePkCountPromises).then(res => {
+        res.forEach((count, idx) => {
+            if (count != null) {
+                tableObjects[idx]["pk"]["keyCount"] = parseInt(count);
+            }
+        })
+        return tableObjects;
+    });
+
+
 }
 
 async function getTableNames() {
