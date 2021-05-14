@@ -22,6 +22,7 @@ app.get('/tables', (_, webRes) => {
 });
 
 app.post('/table-dist-counts', (req, res) => {
+  console.debug("POST /table-dist-counts")
   let reqBody = req.body;
   pgconnect.getTableDistinctColumnCountByColumnName(reqBody["tableName"], reqBody["columnNames"]).then(tabRes => {
     res.send(tabRes);
@@ -30,9 +31,9 @@ app.post('/table-dist-counts', (req, res) => {
 
 app.post('/temp-data-table-name-fields', (req, res) => {
   console.debug("POST /temp-data-table-name-fields")
-  let fields = req.body["fields"];
+  let fields = req.body["columnNames"];
   let tableName = req.body["tableName"];
-  console.debug(`-- fields: ${fields}`);
+  console.debug(`-- columnNames: ${fields}`);
   console.debug(`-- tableName: ${tableName}`);
   if (!fields || !tableName) {
     return res.status(400).json("Input format error");

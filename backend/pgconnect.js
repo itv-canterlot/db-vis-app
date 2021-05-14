@@ -4,11 +4,12 @@ const fs = require("fs");
 const { exception } = require("console");
 
 // SQL boilerplates
-const dataSelectByTableNameAndFields = (tableName, fields) => `SELECT ${fields.join(" ")} FROM ${tableName};`;
+const dataSelectByTableNameAndFields = (tableName, fields) => `SELECT ${fields.join(", ")} FROM ${tableName};`;
 
 const dataSelectAllColumnsByTableName = (tablename) => `SELECT * FROM ${tableName};`;
 
-const dataColumnCounts = (tableName, fieldName) => `SELECT COUNT(${fieldName}) as count, COUNT(DISTINCT ${fieldName}) as distinct_count FROM ${tableName};`;
+const individualCountsByColumn = (tableName, fieldName) => `SELECT COUNT(${fieldName}) as count, COUNT(DISTINCT ${fieldName}) as distinct_count FROM ${tableName};`;
+const totalCountByColumnGroup = (tableName, fieldNames) => `SELECT COUNT(*) from (SELECT ${fieldNames.join(", ")} FROM ${tableName}) t;`;
 
 /* PostgreSQL oriented queries */
 const queryPgCatConstraints = 
@@ -224,7 +225,7 @@ async function getTableMetatdata() {
     });
 
     tableObjects.forEach(table => {
-        const tableFks = table["fk"], tablePks = table["pk"], tableAtts = table["attr"];
+        const tableFks = table["fk"], tablePks = table["pk"], tableAtts = table["attr"], tableName = table["tableName"];
 
         table["attr"] = tableAtts.map(att => {
             return {
@@ -248,10 +249,18 @@ async function getTableMetatdata() {
         }
 
         if (tablePks && tablePks.length > 0) {
+            const pkCountQuery = totalCountByColumnGroup(tableName, tablePksColumns.map(col => col["colName"]));
+            singlePoolRequest(pkCountQuery).then(res => {
+                // table["pk"] = {
+                //     "keyName": tablePks[0]["constraint_name"],
+                //     "columns": tablePksColumns,
+                //     "keyCount": res[0]["count"]
+                // };
+            });
             table["pk"] = {
                 "keyName": tablePks[0]["constraint_name"],
-                "columns": tablePksColumns
-            }
+                "columns": tablePksColumns,
+            };
         }
 
         // Grouping FKs by their names, affixiating their ordinal positions in their respective tables
@@ -291,9 +300,11 @@ async function getTableAttributes(tableName) {
 
 async function getDataByTableNameAndFields(tableName, fields) {
     try {
-        return await singlePoolRequest(dataSelectByTableNameAndFields(tableName, fields))
+        const query = dataSelectByTableNameAndFields(tableName, fields);
+        console.log(query);
+        return await singlePoolRequest(query);
     } catch (err) {
-        return err;
+        throw err;
     }
 }
 
@@ -309,7 +320,7 @@ async function getTableDistinctColumnCountByAllColumns(tableName) {
 
 async function getTableDistinctColumnCountByColumnName(tableName, columnNames) {
     try {
-        columnCountPromises = columnNames.map(val => singlePoolRequest(dataColumnCounts(tableName, val)));
+        columnCountPromises = columnNames.map(val => singlePoolRequest(individualCountsByColumn(tableName, val)));
         return Promise.all(columnCountPromises).then(columnRes => {
             columnRes = columnRes.map(val => val[0]);
             for (let i = 0; i < columnRes.length; i++) {
