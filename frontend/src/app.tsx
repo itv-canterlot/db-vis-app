@@ -63,7 +63,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     
                 }).then(maxDistCount => {
                     // TODO: colours not checked - need additional markup
-                    for (const schema of visSchema) {
+                    // TODO: list of schemas - use all of them
+                    for (const schema of visSchema[0]) {
                         if (schema.type === VISSCHEMATYPES.BASIC) {
                             // Count check
                             if (!(schema.keys.minCount <= maxDistCount)) continue;
@@ -241,11 +242,13 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
 // Code to run
 const readVisSchemaJSON = () => {
-    Connections.readVisSchemaJSON().then((res:VisSchema[]) => visSchema = res)
+    Connections.readVisSchemaJSON().then((res:VisSchema[][]) => {
+        visSchema = res
+    })
 }
 
 let appContNode = document.getElementById("app-cont");
 ReactDOM.render(<Application />, appContNode);
-let visSchema: VisSchema[];
+let visSchema: VisSchema[][];
 
 // TODO: refactor this to another file?

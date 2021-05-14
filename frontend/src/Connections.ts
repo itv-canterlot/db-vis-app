@@ -9,11 +9,11 @@ export const getAllTableMetadata = () => {
 
 // Loads schema files
 export async function readVisSchemaJSON() {
-    return fetch("./src/vis-encodings/simple-entity.json").then(res => {
-        return res.json();
-    }).then(res => {
-        return res["schema"];
-    });
+    return fetch('http://localhost:3000/vis-encodings')
+        .then(rawResponse => rawResponse.json())
+        .then(res => {
+            return res;
+        });
 }
 
 export async function getTableDistCounts(tableName:string, columnNames?:string[]) {

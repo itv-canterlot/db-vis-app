@@ -1,9 +1,14 @@
 const express = require('express');
+const fs = require('fs').promises;
+const path = require('path');
+const fetch = require('node-fetch')
 
 const app = express()
 const port = 3000
 const pgconnect = require('./pgconnect.js');
 app.use(express.json());
+
+const currentPath = path.resolve(__dirname);
 
 app.get('/', (req, res) => {
   res.send('Not implemented')
@@ -82,6 +87,20 @@ app.get('/table-attributes', (req, webRes) => {
     webRes.send(tabRes);
   });
 });
+
+app.get('/vis-encodings', (req, res) => {
+  console.debug("GET /vis-encodings");
+  const encodingPath = currentPath + "/vis-encodings/";
+
+  fs.readdir(encodingPath)
+    .then((files => {
+      return Promise.all(
+        files.map(f => fs.readFile(encodingPath + f, {encoding: 'utf8'})))
+    })).then(files => {
+      const ret = files.map(f => JSON.parse(f));
+      res.send(ret);
+    });
+})
 
 app.listen(port, () => {
   console.log(`Background app listening at http://localhost:${port}`)
