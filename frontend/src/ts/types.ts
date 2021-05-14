@@ -96,7 +96,7 @@ export type VisSchema = {
     optionalParameters?: []
 } | {
     name: string,
-    type: VISSCHEMATYPES.ONEMANY,
+    type: VISSCHEMATYPES.MANYMANY,
     keys: VisKey[],
     reflexive: boolean,
     mandatoryParameters?: VisParam[],

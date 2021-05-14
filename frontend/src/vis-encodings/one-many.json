@@ -1,0 +1,69 @@
+{
+    "schema": [
+        {
+            "name": "Tree Map",
+            "type": 2,
+            "keys": [
+                {
+                    "minCount": 1,
+                    "maxCount": 100
+                }, {
+                    "minCount": 1,
+                    "maxCount": 100
+                }
+            ],
+            "mandatoryParameters": [
+                {
+                    "scalar": true
+                }
+            ],
+            "optionalParameters": [
+                {
+                    "scalar": false,
+                    "type": "COLOR"
+                }
+            ]
+        }, {
+            "name": "Hierachy Tree",
+            "type": 2,
+            "keys": [
+                {
+                    "minCount": 1,
+                    "maxCount": 100
+                }, {
+                    "minCount": 1,
+                    "maxCount": 100
+                }
+            ],
+            "optionalParameters": [
+                {
+                    "scalar": false,
+                    "type": "COLOR"
+                }
+            ]
+        }, {
+            "name": "Circle Packing",
+            "type": 2,
+            "keys": [
+                {
+                    "minCount": 1,
+                    "maxCount": 100
+                }, {
+                    "minCount": 1,
+                    "maxCount": 100
+                }
+            ],
+            "mandatoryParameters": [
+                {
+                    "scalar": true
+                }
+            ],
+            "optionalParameters": [
+                {
+                    "scalar": false,
+                    "type": "COLOR"
+                }
+            ]
+        }
+    ]
+}
