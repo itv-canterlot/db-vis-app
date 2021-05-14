@@ -226,7 +226,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     onClose={this.onCloseShowStartingTableSelectModal} onTableSelectChange={this.onTableSelectChange} 
                     selectedTableIndex={this.state.selectedTableIndex}/> 
                 : null}
-                <div className="row g-0" id="app-wrapper">
+                <div className="row" id="app-wrapper">
                     <AppSidebar 
                         databaseLocation={this.state.databaseLocation}
                         onClickShowStartingTableSelectModal={this.onClickShowStartingTableSelectModal}

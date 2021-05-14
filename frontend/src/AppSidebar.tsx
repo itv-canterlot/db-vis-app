@@ -336,17 +336,21 @@ export class AppSidebar extends React.Component<ComponentTypes.AppSidebarProps, 
         );
         
         return (
-        <div className="col-4 col-lg-3 p-3" id="app-sidebar-cont">
-            <SidebarBubbleBlock 
-                headerElement={databaseAddressHeader} 
-                bodyElement={databaseAddressBody} 
-                isLoaded={this.state.isLoaded} />
-            <SidebarBubbleBlock 
-                headerElement={selectedTableBubbleHeader} 
-                bodyElement={selectedTableBubbleBody} 
-                isLoaded={this.state.isLoaded}
-                onClick={this.props.onClickShowStartingTableSelectModal} />
-            {this.props.selectedTableIndex >= 0 ? <TableCard selectedTableIndex={this.props.selectedTableIndex} /> : null}
+        <div className="col-4 col-lg-3" id="app-sidebar-cont">
+            <div className="row">
+                <div className="col g-0 p-3">
+                    <SidebarBubbleBlock 
+                        headerElement={databaseAddressHeader} 
+                        bodyElement={databaseAddressBody} 
+                        isLoaded={this.state.isLoaded} />
+                    <SidebarBubbleBlock 
+                        headerElement={selectedTableBubbleHeader} 
+                        bodyElement={selectedTableBubbleBody} 
+                        isLoaded={this.state.isLoaded}
+                        onClick={this.props.onClickShowStartingTableSelectModal} />
+                    {this.props.selectedTableIndex >= 0 ? <TableCard selectedTableIndex={this.props.selectedTableIndex} /> : null}
+                </div>
+            </div>
         </div>
         );
     }
