@@ -69,12 +69,6 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
                         <span className="badge bg-primary rounded-pill">{thisRels.childEntities.length}</span>
                     </div>
                     <ul className="list-group start-table-rel-list ml-auto mr-auto">
-                        {/* {fkRel.parentEntity.attr.map(att => (
-                            <li className="list-group-item ">
-                                {att.attname}
-                            
-                            </li>    
-                        ))} */}
                         {thisRels.childEntities.map(rel => {
                             console.log(rel);
                             return (
@@ -193,14 +187,7 @@ export class TableCard extends React.Component<{selectedTableIndex: number}, {sh
         }
 
         return (
-        <div className="card" style={{width: "100%"}}>
-            {/* <div className="card-header" style={{fontSize: "0.9rem"}}>
-                Selected Table
-            </div>
-
-            <div className="card-body">
-                <h5 className="card-text"><strong>{selectedTable.tableName}</strong></h5>
-            </div> */}
+        <div className="card w-100">
             <ul className="list-group list-group-flush">
                 {selectedTable.attr.map((el, idx) => {
                     let itemIsPrimaryKey = false, itemIsForeignKey = false;
