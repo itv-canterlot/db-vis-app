@@ -1,7 +1,7 @@
 import * as React from 'react';
 import ReactDOM = require('react-dom');
 
-import {Attribute, VisSchema, VISSCHEMATYPES} from './ts/types'
+import {Attribute, RelationNode, Table, VisSchema, VISSCHEMATYPES} from './ts/types'
 import { DBSchemaContext } from './DBSchemaContext';
 import { AppMainCont } from './AppMainCont';
 
@@ -45,13 +45,45 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         // TODO: use information_schema
     }
 
-    TEMPcheckVisualisationPossibility = () => {
+    matchTableWithRel(table: Table, rel: RelationNode, vs:VisSchema) {
+        if (!table.pk) return false; // Not suitable if there is no PK to use
+
+        switch (vs.type) {
+            case VISSCHEMATYPES.BASIC:
+                const keyMinCount = vs.keys.minCount,
+                    keyMaxCount = vs.keys.maxCount,
+                    tableKeyCount = table.pk.keyCount;
+                // Count checks
+                if (keyMaxCount) {
+                    if (tableKeyCount > keyMaxCount) return false;
+                }
+                if (tableKeyCount < keyMinCount) return false;
+
+                // this.keyConditionsCheck(...);
+
+                // Find groups of attributes that fit the count and type
+
+                // this.isKeyGeographical(table.pk);
+                // this.isKeyLexical(table.pk);
+                
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    getAllMatchableVisSchema = () => {
+        // Break if not all the components had been initiated
         if (this.state.relationsList === undefined) return;
         if (visSchema === undefined) return;
 
         // Check type of the relation
         let selectedEntity = this.state.allEntitiesList[this.state.selectedTableIndex];
-        // TODO: implement other vis types
+        let entityRel = SchemaParser.getRelationInListByName(this.state.relationsList, selectedEntity.tableName);
+        
+        visSchema.forEach(vs => {
+            this.matchTableWithRel(selectedEntity, entityRel, vs);
+        })
         
         // For demo: simple entity
         if ((!selectedEntity.hasOwnProperty("weakEntitiesIndices") || selectedEntity.weakEntitiesIndices.length === 0) && 
@@ -64,7 +96,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 }).then(maxDistCount => {
                     // TODO: colours not checked - need additional markup
                     // TODO: list of schemas - use all of them
-                    for (const schema of visSchema[0]) {
+                    for (const schema of visSchema) {
                         if (schema.type === VISSCHEMATYPES.BASIC) {
                             // Count check
                             if (!(schema.keys.minCount <= maxDistCount)) continue;
@@ -101,47 +133,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             selectedFKAttributeIndex: -1,
             load: true
         }, () => {
-            this.TEMPcheckVisualisationPossibility(); // TODO: major overhaul
+            this.getAllMatchableVisSchema(); // TODO: major overhaul
         });
-    }
-
-    onAttributeSelectChange = (e) => {
-        let attributeIndex = parseInt(e.target.getAttribute("data-index"));
-
-        if (attributeIndex < 0) return;
-
-        this.setState({
-            selectedAttributeIndex: attributeIndex
-        }, () => {
-            this.checkVisualisationPossibility();
-        });
-
-    }
-
-    onForeignKeySelectChange = (e) => {
-        let fkIndex = parseInt(e.target.getAttribute("data-index"));
-
-        if (fkIndex < 0) return;
-
-        this.setState({
-            selectedForeignKeyIndex: fkIndex
-        }, () => {
-            this.checkVisualisationPossibility();
-        });
-        
-    }
-
-    onFKAttributeSelectChange = (e) => {
-        let attributeIndex = parseInt(e.target.getAttribute("data-index"));
-
-        if (attributeIndex < 0) return;
-
-        this.setState({
-            selectedFKAttributeIndex: attributeIndex
-        }, () => {
-            this.checkVisualisationPossibility();
-        });
-        
     }
 
     getTableMetadata = () => {
@@ -243,12 +236,14 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 // Code to run
 const readVisSchemaJSON = () => {
     Connections.readVisSchemaJSON().then((res:VisSchema[][]) => {
-        visSchema = res
+        res.forEach(vses => {
+            vses["schema"].forEach(vs => visSchema.push(vs));
+        })
     })
 }
 
 let appContNode = document.getElementById("app-cont");
 ReactDOM.render(<Application />, appContNode);
-let visSchema: VisSchema[][];
+let visSchema: VisSchema[] = [];
 
 // TODO: refactor this to another file?

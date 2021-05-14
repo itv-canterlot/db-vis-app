@@ -32,24 +32,14 @@ export interface Key {
 }
 
 export interface PrimaryKey extends Key {
-    columns: PrimaryKeyColumn[]
+    columns: PrimaryKeyColumn[],
+    keyCount: number
  }
 
 export interface ForeignKey extends Key {
     pkTableName: string,
     columns: ForeignKeyColumn[]
 }
-
-// export interface Key {
-
-// }
-
-// export interface Key {
-//     conName: string,
-//     keyName: string,
-//     keyPos: number[],
-//     condef?: string
-// }
 
 export interface Attribute {
     attname: string,
@@ -104,7 +94,7 @@ export type VisSchema = {
 }
 
 export interface VisParam {
-    scalar: boolean,
+    scalar?: boolean,
     type?: VISPARAMTYPES
 }
 
