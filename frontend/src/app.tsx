@@ -215,14 +215,32 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         return (pk.columns.map(col => col.colPos).includes(idx));
     }
 
+    isRelationReflexive = (rel: RelationNode) => {
+        if (rel.type !== VISSCHEMATYPES.MANYMANY) return false;
+        // Reflexive: the "child nodes" of this junction table point to the same table
+        if (rel.childEntities.length < 2) return false;
+        let reflexCounter: {[id: string]: number} = {};
+
+        rel.childEntities.forEach(ent => {
+            if (ent.parentEntity.tableName in reflexCounter) {
+                reflexCounter[ent.parentEntity.tableName]++;
+            } else {
+                reflexCounter[ent.parentEntity.tableName] = 1;
+            }
+        });
+
+        return Object.values(reflexCounter).some(v => v >= 2);
+    }
+
     matchTableWithRel(table: Table, rel: RelationNode, vs:VisSchema) {
         if (!table.pk) return false; // Not suitable if there is no PK to use
 
+        if (!this.basicKeyConditionCheck(table, vs.localKey)) {
+            return false;
+        }
+
         switch (vs.type) {
             case VISSCHEMATYPES.BASIC:
-                if (!this.basicKeyConditionCheck(table, vs.localKey)) {
-                    return false;
-                }
                 // Find combinations of attributes that match the requirements
                 let allMatchableParameters: number[][] = [];
                 
@@ -235,28 +253,14 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
                 // Check if there is at least one match for each mandatory attributes
                 if (allMatchableParameters.length > 0 && allMatchableParameters.every(idxes => idxes.length > 0)) {
+                    // TODO: do optional param match here
                     return true;
                 } else {
                     return false;
                 }
             case VISSCHEMATYPES.MANYMANY:
                 if (rel.type === VISSCHEMATYPES.MANYMANY) {
-                    // TODO
-                    return false;
-                }
-                return false;
-            case VISSCHEMATYPES.WEAKENTITY:
-                if (rel.type === VISSCHEMATYPES.WEAKENTITY)  {
-                    if (!this.basicKeyConditionCheck(table, vs.localKey)) {
-                        return false;
-                    }
-                    // Check key count for the weak entity relation
-                    const thisTableKeyCount = table.pk.keyCount;
-                    if (thisTableKeyCount < vs.localKey.minCount) {
-                        return false;
-                    } else if (vs.localKey.maxCount && vs.localKey.maxCount < thisTableKeyCount) {
-                        return false;
-                    }
+                    if (vs.reflexive && !this.isRelationReflexive(rel)) return false; // Check reflexibility
 
                     // Get the indices on the weak entity table that can be used to match foreign tables
                     let thisTableValidAttIdx: number[] = this.getMatchingAttributesByParameter(table, vs.localKey);
@@ -283,6 +287,34 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
                     // // Some of the neighbour relation is a junction table - out to where
                 }
+            case VISSCHEMATYPES.WEAKENTITY:
+                if (rel.type === VISSCHEMATYPES.WEAKENTITY)  {
+                    // Get the indices on the weak entity table that can be used to match foreign tables
+                    let thisTableValidAttIdx: number[] = this.getMatchingAttributesByParameter(table, vs.localKey);
+                    let foreignTablesValidAttIdx: number[][] = [];
+                    if (thisTableValidAttIdx.length > 0) {
+                        // For each neighbour, for each attribute in each neighbour, check key count attribute properties
+                        for (let childRel of rel.childEntities) {
+                            const ft = childRel.parentEntity;
+                            if (!this.basicKeyConditionCheck(ft, vs.foreignKey)) continue;
+                            foreignTablesValidAttIdx.push(this.getMatchingAttributesByParameter(ft, vs.foreignKey));
+                        }
+                        if (foreignTablesValidAttIdx.length > 0 && foreignTablesValidAttIdx.every(idxes => idxes.length > 0)) {
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
+                    // const neighbourJunctionIndices = this.getNeighbourJunctionTableIdx(rel);
+                    // if (neighbourJunctionIndices.length === 0) return false;
+
+                    // // Some of the neighbour relation is a junction table - out to where
+                }
+            case VISSCHEMATYPES.ONEMANY:
                 return false;
             default:
                 return false;

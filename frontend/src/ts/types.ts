@@ -81,13 +81,15 @@ export type VisSchema = {
 } | {
     name: string,
     type: VISSCHEMATYPES.ONEMANY,
-    keys: VisKey[],
+    localKey: VisKey,
+    foreignKey: VisKey,
     mandatoryParameters?: VisParam[],
     optionalParameters?: VisParam[]
 } | {
     name: string,
     type: VISSCHEMATYPES.MANYMANY,
-    keys: VisKey[],
+    localKey: VisKey,
+    foreignKey: VisKey,
     reflexive: boolean,
     mandatoryParameters?: VisParam[],
     optionalParameters?: VisParam[]

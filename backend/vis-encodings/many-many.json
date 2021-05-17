@@ -3,15 +3,14 @@
         {
             "name": "Sankey",
             "type": 3,
-            "keys": [
-                {
-                    "minCount": 1,
-                    "maxCount": 20
-                }, {
-                    "minCount": 1,
-                    "maxCount": 20
-                }
-            ],
+            "localKey": {
+                "minCount": 1,
+                "maxCount": 20
+            },
+            "foreignKey": {
+                "minCount": 1,
+                "maxCount": 20
+            },
             "reflexive": false,
             "mandatoryParameters": [
                 {
@@ -27,15 +26,14 @@
         }, {
             "name": "Chord",
             "type": 3,
-            "keys": [
-                {
-                    "minCount": 1,
-                    "maxCount": 100
-                }, {
-                    "minCount": 1,
-                    "maxCount": 100
-                }
-            ],
+            "localKey": {
+                "minCount": 1,
+                "maxCount": 100
+            },
+            "foreignKey": {
+                "minCount": 1,
+                "maxCount": 100
+            },
             "reflexive": true,
             "mandatoryParameters": [
                 {

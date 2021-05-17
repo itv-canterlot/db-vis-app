@@ -172,18 +172,6 @@ export const preprocessEntities = (tableList: Table[]) => {
             // Check if this entity is a weak entity
             item.weakEntitiesIndices = getWeakEntityStatus(item);
         }
-        // let fkString = "";
-        // if (item.fk && item.fk.length > 0) {
-        //     item.fk.forEach(f => {
-        //         fkString += "\n  " + f.confname;
-        //     })
-        // }
-        
-        // console.log(
-        //     (item.weakEntitiesIndices && item.weakEntitiesIndices.length > 0 ? "*" : "") + 
-        //     (item.isJunction ? "°" : "") + 
-        //     item.relname + 
-        //     ((item.fk && item.fk.length > 0) ? (" -> " + fkString) : ""));
 
     });
 
