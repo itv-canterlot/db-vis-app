@@ -234,12 +234,19 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 }
 
                 // Check if there is at least one match for each mandatory attributes
-                if (!allMatchableParameters.every(idxes => idxes.length > 0)) {
+                if (allMatchableParameters.length > 0 && allMatchableParameters.every(idxes => idxes.length > 0)) {
+                    return true;
+                } else {
                     return false;
                 }
-                return true;
+            case VISSCHEMATYPES.MANYMANY:
+                if (rel.type === VISSCHEMATYPES.MANYMANY) {
+                    // TODO
+                    return false;
+                }
+                return false;
             case VISSCHEMATYPES.WEAKENTITY:
-                if (this.isThisTableJunction(rel)) {
+                if (rel.type === VISSCHEMATYPES.WEAKENTITY)  {
                     if (!this.basicKeyConditionCheck(table, vs.localKey)) {
                         return false;
                     }
@@ -258,22 +265,23 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                         // For each neighbour, for each attribute in each neighbour, check key count attribute properties
                         for (let childRel of rel.childEntities) {
                             const ft = childRel.parentEntity;
+                            if (!this.basicKeyConditionCheck(ft, vs.foreignKey)) continue;
                             foreignTablesValidAttIdx.push(this.getMatchingAttributesByParameter(ft, vs.foreignKey));
                         }
-
-                        if (!allMatchableParameters.every(idxes => idxes.length > 0)) {
-                            return false;
-                        } else {
+                        if (foreignTablesValidAttIdx.length > 0 && foreignTablesValidAttIdx.every(idxes => idxes.length > 0)) {
                             return true;
+                        } else {
+                            return false;
                         }
                     } else {
                         return false;
                     }
                 } else {
-                    const neighbourJunctionIndices = this.getNeighbourJunctionTableIdx(rel);
-                    if (neighbourJunctionIndices.length === 0) return false;
+                    return false;
+                    // const neighbourJunctionIndices = this.getNeighbourJunctionTableIdx(rel);
+                    // if (neighbourJunctionIndices.length === 0) return false;
 
-                    // Some of the neighbour relation is a junction table - out to where
+                    // // Some of the neighbour relation is a junction table - out to where
                 }
                 return false;
             default:

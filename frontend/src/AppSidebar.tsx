@@ -69,9 +69,9 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
                         <span className="badge bg-primary rounded-pill">{thisRels.childEntities.length}</span>
                     </div>
                     <ul className="list-group start-table-rel-list ml-auto mr-auto">
-                        {thisRels.childEntities.map(rel => {
+                        {thisRels.childEntities.map((rel, i) => {
                             return (
-                                <li className="list-group-item" key={rel.parentEntity.idx}>
+                                <li className="list-group-item" key={i}>
                                     <div>
                                         {rel.parentEntity.tableName}
                                     </div>
