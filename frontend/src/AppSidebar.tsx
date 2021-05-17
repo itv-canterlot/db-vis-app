@@ -70,7 +70,6 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
                     </div>
                     <ul className="list-group start-table-rel-list ml-auto mr-auto">
                         {thisRels.childEntities.map(rel => {
-                            console.log(rel);
                             return (
                                 <li className="list-group-item">
                                     <div>

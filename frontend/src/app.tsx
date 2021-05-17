@@ -1,7 +1,7 @@
 import * as React from 'react';
 import ReactDOM = require('react-dom');
 
-import {Attribute, RelationNode, Table, VisKey, VISPARAMTYPES, VisSchema, VISSCHEMATYPES} from './ts/types'
+import {Attribute, PrimaryKey, RelationNode, Table, VisKey, VisParam, VISPARAMTYPES, VisSchema, VISSCHEMATYPES} from './ts/types'
 import { DBSchemaContext } from './DBSchemaContext';
 import { AppMainCont } from './AppMainCont';
 
@@ -98,12 +98,12 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         return false;
     }
 
-    basicKeyConditionCheck = (table: Table, keys: VisKey) => {
+    basicKeyConditionCheck = (table: Table, key: VisKey) => {
         // Check if there *is* a key
         if (table.pk.columns.length < 1) return false;
 
-        const keyMinCount = keys.minCount,
-            keyMaxCount = keys.maxCount,
+        const keyMinCount = key.minCount,
+            keyMaxCount = key.maxCount,
             tableKeyCount = table.pk.keyCount;
         // Count checks
         if (keyMaxCount) {
@@ -113,23 +113,23 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         
 
         // Key type check
-        if (keys.type) {
+        if (key.type) {
             for (let pkCol of table.pk.columns) {
                 const thisAttr = table.attr[pkCol.colPos]
-                if (keys.type === VISPARAMTYPES.TEMPORAL) {
+                if (key.type === VISPARAMTYPES.TEMPORAL) {
                     if (!this.isAttributeTemporal(thisAttr)) {
                         return false;
                     }
-                } else if (keys.type === VISPARAMTYPES.LEXICAL) {
+                } else if (key.type === VISPARAMTYPES.LEXICAL) {
                     if (table.pk.columns.length > 1) return false;
                     if (!this.isAttributeLexical(thisAttr)) {
                         return false;
                     }
-                } else if (keys.type === VISPARAMTYPES.COLOR) {
+                } else if (key.type === VISPARAMTYPES.COLOR) {
                     // Assumption: there's only one key column for colour?
                     if (table.pk.columns.length > 1) return false;
                     if (!this.isAttributeLexical(thisAttr)) return false;
-                } else if (keys.type === VISPARAMTYPES.GEOGRAPHICAL) {
+                } else if (key.type === VISPARAMTYPES.GEOGRAPHICAL) {
                     if (!this.isAttributeGeographical(thisAttr)) {
                         return false;
                     }
@@ -140,8 +140,79 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         return true;
     }
 
-    weKeyConditionCheck = (table: Table, keys: VisKey) => {
-        
+    isThisTableJunction = (rel: RelationNode) => {
+        return rel.type === VISSCHEMATYPES.WEAKENTITY;
+    }
+
+    getNeighbourJunctionTableIdx = (rel: RelationNode) => {
+        let childJunctionTableIndices: number[] = [];
+            for (let i = 0; i < rel.childEntities.length; i++) {
+                let childNode = rel.childEntities[i];
+                if (childNode.type === VISSCHEMATYPES.WEAKENTITY) {
+                    childJunctionTableIndices.push(i);
+                }
+            }
+
+        return childJunctionTableIndices;
+    }
+    weKeyConditionCheck = (rel: RelationNode, keys: VisKey) => {
+        // Check if this entity is a weak entity
+        if (rel.type === VISSCHEMATYPES.WEAKENTITY) {
+            // TODO
+        } else {
+            // Check if any of the child rel nodes is a junction table
+            
+        }
+
+        return false;
+    }
+
+    doesAttributeMatchVisParamType = (attr: Attribute, param: VisParam) => {
+        if (param.type) {
+            if (param.type === VISPARAMTYPES.TEMPORAL) {
+                if (!this.isAttributeTemporal(attr)) {
+                    return false;
+                }
+            } else if (param.type === VISPARAMTYPES.LEXICAL) {
+                if (!this.isAttributeLexical(attr)) {
+                    return false;
+                }
+            } else if (param.type === VISPARAMTYPES.COLOR) {
+                if (!this.isAttributeLexical(attr)) {
+                    return false;
+                };
+            } else if (param.type === VISPARAMTYPES.GEOGRAPHICAL) {
+                if (!this.isAttributeGeographical(attr)) {
+                    return false;
+                }
+            }
+        } else if (param.scalar) {
+            if (!this.isAttributeScalar(attr)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    getMatchingAttributesByParameter = (table: Table, param: VisParam) => {
+        let paramMatchableIndices: number[] = [];
+        for (let i = 0; i < table.attr.length; i++) {
+            const thisAttr = table.attr[i];
+            // Skip pks(?)
+            if (this.isAttributeInPublicKey(i, table.pk)) continue;
+            // Check specific types first
+            if (!this.doesAttributeMatchVisParamType(thisAttr, param)) continue;
+
+            // Add this attribute to the list above
+            paramMatchableIndices.push(i);
+        }
+
+        return paramMatchableIndices;
+    }
+
+    isAttributeInPublicKey = (idx: number, pk: PrimaryKey) => {
+        return (pk.columns.map(col => col.colPos).includes(idx));
     }
 
     matchTableWithRel(table: Table, rel: RelationNode, vs:VisSchema) {
@@ -149,48 +220,16 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
         switch (vs.type) {
             case VISSCHEMATYPES.BASIC:
-                if (!this.basicKeyConditionCheck(table, vs.keys)) {
+                if (!this.basicKeyConditionCheck(table, vs.localKey)) {
                     return false;
                 }
-                
                 // Find combinations of attributes that match the requirements
                 let allMatchableParameters: number[][] = [];
                 
                 // For each attribute in vs, compare against each attr in table, add appropriate indices to list
                 for (let mp of vs.mandatoryParameters) {
-                    let thisConstMatchableIndices: number[] = [];
-                    for (let i = 0; i < table.attr.length; i++) {
-                        const thisAttr = table.attr[i];
-                        // Skip pks(?)
-                        if (table.pk.columns.map(col => col.colPos).includes(i)) continue;
-                        // Check specific types first
-                        if (mp.type) {
-                            if (mp.type === VISPARAMTYPES.TEMPORAL) {
-                                if (!this.isAttributeTemporal(thisAttr)) {
-                                    continue;
-                                }
-                            } else if (mp.type === VISPARAMTYPES.LEXICAL) {
-                                if (!this.isAttributeLexical(thisAttr)) {
-                                    continue;
-                                }
-                            } else if (mp.type === VISPARAMTYPES.COLOR) {
-                                if (!this.isAttributeLexical(thisAttr)) {
-                                    continue;
-                                };
-                            } else if (mp.type === VISPARAMTYPES.GEOGRAPHICAL) {
-                                if (!this.isAttributeGeographical(thisAttr)) {
-                                    continue;
-                                }
-                            }
-                        } else if (mp.scalar) {
-                            if (!this.isAttributeScalar(thisAttr)) {
-                                continue;
-                            }
-                        }
-
-                        // Add this attribute to the list above
-                        thisConstMatchableIndices.push(i);
-                    }
+                    let thisConstMatchableIndices: number[] = this.getMatchingAttributesByParameter(table, mp);
+                    
                     allMatchableParameters.push(thisConstMatchableIndices);
                 }
 
@@ -200,6 +239,42 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 }
                 return true;
             case VISSCHEMATYPES.WEAKENTITY:
+                if (this.isThisTableJunction(rel)) {
+                    if (!this.basicKeyConditionCheck(table, vs.localKey)) {
+                        return false;
+                    }
+                    // Check key count for the weak entity relation
+                    const thisTableKeyCount = table.pk.keyCount;
+                    if (thisTableKeyCount < vs.localKey.minCount) {
+                        return false;
+                    } else if (vs.localKey.maxCount && vs.localKey.maxCount < thisTableKeyCount) {
+                        return false;
+                    }
+
+                    // Get the indices on the weak entity table that can be used to match foreign tables
+                    let thisTableValidAttIdx: number[] = this.getMatchingAttributesByParameter(table, vs.localKey);
+                    let foreignTablesValidAttIdx: number[][] = [];
+                    if (thisTableValidAttIdx.length > 0) {
+                        // For each neighbour, for each attribute in each neighbour, check key count attribute properties
+                        for (let childRel of rel.childEntities) {
+                            const ft = childRel.parentEntity;
+                            foreignTablesValidAttIdx.push(this.getMatchingAttributesByParameter(ft, vs.foreignKey));
+                        }
+
+                        if (!allMatchableParameters.every(idxes => idxes.length > 0)) {
+                            return false;
+                        } else {
+                            return true;
+                        }
+                    } else {
+                        return false;
+                    }
+                } else {
+                    const neighbourJunctionIndices = this.getNeighbourJunctionTableIdx(rel);
+                    if (neighbourJunctionIndices.length === 0) return false;
+
+                    // Some of the neighbour relation is a junction table - out to where
+                }
                 return false;
             default:
                 return false;
@@ -234,9 +309,9 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     for (const schema of visSchema) {
                         if (schema.type === VISSCHEMATYPES.BASIC) {
                             // Count check
-                            if (!(schema.keys.minCount <= maxDistCount)) continue;
-                            if (schema.keys.maxCount !== undefined) {
-                                if (!(schema.keys.maxCount >= maxDistCount)) continue;
+                            if (!(schema.localKey.minCount <= maxDistCount)) continue;
+                            if (schema.localKey.maxCount !== undefined) {
+                                if (!(schema.localKey.maxCount >= maxDistCount)) continue;
                             }
                             
                             // Type check

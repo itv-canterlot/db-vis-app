@@ -67,13 +67,14 @@ export enum VISSCHEMATYPES {
 export type VisSchema = {
     name: string,
     type: VISSCHEMATYPES.BASIC,
-    keys: VisKey
+    localKey: VisKey,
     mandatoryParameters: VisParam[],
     optionalParameters?: VisParam[],
 } | {
     name: string,
     type: VISSCHEMATYPES.WEAKENTITY,
-    keys: VisKey[]
+    localKey: VisKey,
+    foreignKey: VisKey
     complete: boolean,
     mandatoryParameters: VisParam[],
     optionalParameters?: VisParam[],
@@ -82,14 +83,14 @@ export type VisSchema = {
     type: VISSCHEMATYPES.ONEMANY,
     keys: VisKey[],
     mandatoryParameters?: VisParam[],
-    optionalParameters?: []
+    optionalParameters?: VisParam[]
 } | {
     name: string,
     type: VISSCHEMATYPES.MANYMANY,
     keys: VisKey[],
     reflexive: boolean,
     mandatoryParameters?: VisParam[],
-    optionalParameters?: []
+    optionalParameters?: VisParam[]
 }
 
 export interface VisParam {

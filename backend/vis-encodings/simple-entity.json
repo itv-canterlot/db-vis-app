@@ -3,7 +3,7 @@
         {
             "name": "Bar Chart",
             "type": 0,
-            "keys": {
+            "localKey": {
                 "minCount": 1,
                 "maxCount": 100
             },
@@ -15,7 +15,7 @@
         }, {
             "name": "Calendar",
             "type": 0,
-            "keys": {
+            "localKey": {
                 "minCount": 1
             },
             "mandatoryParameters": [
@@ -33,7 +33,7 @@
         }, {
             "name": "Scatter Diagrams",
             "type": 0,
-            "keys": {
+            "localKey": {
                 "minCount": 1
             },
             "mandatoryParameters": [
@@ -54,7 +54,7 @@
         }, {
             "name": "Bubble Charts",
             "type": 0,
-            "keys": {
+            "localKey": {
                 "minCount": 1
             },
             "mandatoryParameters": [
@@ -78,7 +78,7 @@
         }, {
             "name": "Choropleth Maps",
             "type": 0,
-            "keys": {
+            "localKey": {
                 "minCount": 1,
                 "type": "GEOGRAPHICAL"
             },
@@ -91,7 +91,7 @@
         }, {
             "name": "Word Clouds",
             "type": 0,
-            "keys": {
+            "localKey": {
                 "minCount": 1,
                 "type": "LEXICAL"
             },
