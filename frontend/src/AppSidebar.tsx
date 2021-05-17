@@ -71,7 +71,7 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
                     <ul className="list-group start-table-rel-list ml-auto mr-auto">
                         {thisRels.childEntities.map(rel => {
                             return (
-                                <li className="list-group-item">
+                                <li className="list-group-item" key={rel.parentEntity.idx}>
                                     <div>
                                         {rel.parentEntity.tableName}
                                     </div>
@@ -98,7 +98,7 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
                         </div>
                         <ul className="list-group list-group-flush start-table-rel-list ml-auto mr-auto">
                             {thisTable.attr.map(att => (
-                                <li className="list-group-item pb-1">{att.attname}</li>    
+                                <li className="list-group-item pb-1" key={att.attnum}>{att.attname}</li>    
                             ))}
                         </ul>
                     </div>
