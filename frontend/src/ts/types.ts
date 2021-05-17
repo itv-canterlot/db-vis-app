@@ -46,11 +46,10 @@ export interface Attribute {
     attnum: number,
     typname: string,
     isNullable?: boolean,
-    // typcategory: string, // TODO: enum?
 }
 
 // Visualisation types
-export declare enum VISPARAMTYPES {
+export const enum VISPARAMTYPES {
     TEMPORAL = "TEMPORAL",
     GEOGRAPHICAL = "GEOGRAPHICAL",
     LEXICAL = "LEXICAL",
@@ -98,7 +97,7 @@ export interface VisParam {
     type?: VISPARAMTYPES
 }
 
-interface VisKey extends VisParam { 
+export interface VisKey extends VisParam { 
     minCount: number,
     maxCount?: number
 }

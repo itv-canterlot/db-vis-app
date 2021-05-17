@@ -1,7 +1,7 @@
 import * as React from 'react';
 import ReactDOM = require('react-dom');
 
-import {Attribute, RelationNode, Table, VisSchema, VISSCHEMATYPES} from './ts/types'
+import {Attribute, RelationNode, Table, VisKey, VISPARAMTYPES, VisSchema, VISSCHEMATYPES} from './ts/types'
 import { DBSchemaContext } from './DBSchemaContext';
 import { AppMainCont } from './AppMainCont';
 
@@ -11,6 +11,25 @@ import { AppSidebar, StartingTableSelectModal } from './AppSidebar';
 import * as ComponentTypes from './ts/components';
 import * as Connections from './Connections';
 import * as SchemaParser from './SchemaParser';
+
+const preciseNumDataTypes = [
+    "bit", "tinyint", "smallint", "int", "bigint", "decimal",
+    "money", "smallmoney", "integer", "numeric", "dec", "fixed"
+];
+
+const approxNumDataTypes = ["float", "real", "double precision", "double"];
+
+const dateAndTimeDataTypes = ["date", "time", "datetime2", "datetimeoffset", "smalldatetime", "datetime", "year", "timestamp"];
+
+const charDataTypes = [
+    "char", "varchar", "character varying", "text", "varchar(max)", "nchar", "nvchar", "ntext"
+];
+
+const binaryDataTypes = ["binary", "varbinary", "varbinary(max)", "image"];
+
+const otherScalarDataTypes = ["rowversion", "uniqueidentifier", "cursor", "table", "sql_variant"];
+
+const scalarDataTypes = [preciseNumDataTypes, approxNumDataTypes, otherScalarDataTypes];
 
 class Application extends React.Component<{}, ComponentTypes.ApplicationStates> {
     constructor(props) {
@@ -42,7 +61,87 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     }
 
     isAttributeScalar = (att: Attribute) => {
-        // TODO: use information_schema
+        const attTypName = att.typname;
+        for (let dts of scalarDataTypes) {
+            for (let dt of dts) {
+                if (dt.toLowerCase() === attTypName.toLowerCase()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    isAttributeTemporal = (att: Attribute) => {
+        for (let dt of dateAndTimeDataTypes) {
+            if (dt.toLowerCase() === att.typname.toLowerCase()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    isAttributeLexical = (att: Attribute) => {
+        // TODO
+        return false;
+    }
+
+    isAttributeColor = (att: Attribute) => {
+        // TODO
+        return false;
+    }
+
+    isAttributeGeographical = (att: Attribute) => {
+        // TODO
+        return false;
+    }
+
+    basicKeyConditionCheck = (table: Table, keys: VisKey) => {
+        // Check if there *is* a key
+        if (table.pk.columns.length < 1) return false;
+
+        const keyMinCount = keys.minCount,
+            keyMaxCount = keys.maxCount,
+            tableKeyCount = table.pk.keyCount;
+        // Count checks
+        if (keyMaxCount) {
+            if (tableKeyCount > keyMaxCount) return false;
+        }
+        if (tableKeyCount < keyMinCount) return false;
+        
+
+        // Key type check
+        if (keys.type) {
+            for (let pkCol of table.pk.columns) {
+                const thisAttr = table.attr[pkCol.colPos]
+                if (keys.type === VISPARAMTYPES.TEMPORAL) {
+                    if (!this.isAttributeTemporal(thisAttr)) {
+                        return false;
+                    }
+                } else if (keys.type === VISPARAMTYPES.LEXICAL) {
+                    if (table.pk.columns.length > 1) return false;
+                    if (!this.isAttributeLexical(thisAttr)) {
+                        return false;
+                    }
+                } else if (keys.type === VISPARAMTYPES.COLOR) {
+                    // Assumption: there's only one key column for colour?
+                    if (table.pk.columns.length > 1) return false;
+                    if (!this.isAttributeLexical(thisAttr)) return false;
+                } else if (keys.type === VISPARAMTYPES.GEOGRAPHICAL) {
+                    if (!this.isAttributeGeographical(thisAttr)) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    weKeyConditionCheck = (table: Table, keys: VisKey) => {
+        
     }
 
     matchTableWithRel(table: Table, rel: RelationNode, vs:VisSchema) {
@@ -50,23 +149,58 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
         switch (vs.type) {
             case VISSCHEMATYPES.BASIC:
-                const keyMinCount = vs.keys.minCount,
-                    keyMaxCount = vs.keys.maxCount,
-                    tableKeyCount = table.pk.keyCount;
-                // Count checks
-                if (keyMaxCount) {
-                    if (tableKeyCount > keyMaxCount) return false;
+                if (!this.basicKeyConditionCheck(table, vs.keys)) {
+                    return false;
                 }
-                if (tableKeyCount < keyMinCount) return false;
-
-                // this.keyConditionsCheck(...);
-
-                // Find groups of attributes that fit the count and type
-
-                // this.isKeyGeographical(table.pk);
-                // this.isKeyLexical(table.pk);
                 
+                // Find combinations of attributes that match the requirements
+                let allMatchableParameters: number[][] = [];
+                
+                // For each attribute in vs, compare against each attr in table, add appropriate indices to list
+                for (let mp of vs.mandatoryParameters) {
+                    let thisConstMatchableIndices: number[] = [];
+                    for (let i = 0; i < table.attr.length; i++) {
+                        const thisAttr = table.attr[i];
+                        // Skip pks(?)
+                        if (table.pk.columns.map(col => col.colPos).includes(i)) continue;
+                        // Check specific types first
+                        if (mp.type) {
+                            if (mp.type === VISPARAMTYPES.TEMPORAL) {
+                                if (!this.isAttributeTemporal(thisAttr)) {
+                                    continue;
+                                }
+                            } else if (mp.type === VISPARAMTYPES.LEXICAL) {
+                                if (!this.isAttributeLexical(thisAttr)) {
+                                    continue;
+                                }
+                            } else if (mp.type === VISPARAMTYPES.COLOR) {
+                                if (!this.isAttributeLexical(thisAttr)) {
+                                    continue;
+                                };
+                            } else if (mp.type === VISPARAMTYPES.GEOGRAPHICAL) {
+                                if (!this.isAttributeGeographical(thisAttr)) {
+                                    continue;
+                                }
+                            }
+                        } else if (mp.scalar) {
+                            if (!this.isAttributeScalar(thisAttr)) {
+                                continue;
+                            }
+                        }
+
+                        // Add this attribute to the list above
+                        thisConstMatchableIndices.push(i);
+                    }
+                    allMatchableParameters.push(thisConstMatchableIndices);
+                }
+
+                // Check if there is at least one match for each mandatory attributes
+                if (!allMatchableParameters.every(idxes => idxes.length > 0)) {
+                    return false;
+                }
                 return true;
+            case VISSCHEMATYPES.WEAKENTITY:
+                return false;
             default:
                 return false;
         }
@@ -82,7 +216,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         let entityRel = SchemaParser.getRelationInListByName(this.state.relationsList, selectedEntity.tableName);
         
         visSchema.forEach(vs => {
-            this.matchTableWithRel(selectedEntity, entityRel, vs);
+            const matchResult = this.matchTableWithRel(selectedEntity, entityRel, vs);
+            if (matchResult) console.log(vs);
         })
         
         // For demo: simple entity
@@ -161,48 +296,6 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 load: false
             });
         });
-    }
-
-    checkVisualisationPossibility = () => {
-        return;
-        // Check, based on state indexes, if it is possible to request data from the database
-        // -- 1 -- A first entity and one of its attributes have been selected
-        // if (this.state.selectedTableIndex >= 0 && this.state.selectedAttributeIndex >= 0) {
-        //     // -- 2 -- A second entity/attribute pair have been selected
-        //     if (this.state.selectedForeignKeyIndex >= 0 && this.state.selectedFKAttributeIndex >= 0) {
-        //         // TODO
-        //         return;
-        //     } else {
-        //         // Single attribute: bar chart (more to be implemented)
-        //         // Check attribute data type
-        //         let tableAttributes = this.state.allEntitiesList[this.state.selectedTableIndex].attr;
-        //         let attributeEntry = tableAttributes[this.state.selectedAttributeIndex];
-        //         let attributeTypeCat = attributeEntry.typcategory;
-        //         let tableIndex = this.state.selectedTableIndex;
-        //         if (attributeTypeCat === "N") {
-        //             // TODO: Fitting the new table list
-        //             // If it is a number, retrieve data from database
-        //             fetch("http://localhost:3000/temp-data-table-name-fields", {
-        //                 headers: {
-        //                     'Accept': 'application/json',
-        //                     'Content-Type': 'application/json'
-        //                 },
-        //                 method: "POST",
-        //                 body: JSON.stringify({
-        //                     "tableName": this.state.allEntitiesList[tableIndex].tableName,
-        //                     "fields": [
-        //                         attributeEntry.attname
-        //                     ]
-        //                 }),
-        //             }).then(rawResponse => rawResponse.json())
-        //             .then(data => {
-        //                 console.log(data);
-        //             })
-        //         }
-        //     }
-        // } else {
-        //     return;
-        // }
     }
 
     async componentDidMount() {
