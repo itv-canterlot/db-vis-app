@@ -95,6 +95,7 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
                     <div className="card">
                         <div className="card-body">
                             <h5 className="card-title">{thisTable.tableName}</h5>
+                            <h6 className="card-subtitle mb-2 text-muted">n_keys: {thisTable.pk ? thisTable.pk.keyCount : (<em>not available</em>)}</h6>
                         </div>
                         <ul className="list-group list-group-flush start-table-rel-list ml-auto mr-auto">
                             {thisTable.attr.map(att => (
