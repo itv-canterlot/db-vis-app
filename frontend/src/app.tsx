@@ -254,7 +254,19 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 // Check if there is at least one match for each mandatory attributes
                 if (allMatchableParameters.length > 0 && allMatchableParameters.every(idxes => idxes.length > 0)) {
                     // TODO: do optional param match here
-                    return true;
+                    let matchedParamIndices: {[type: string]: number[][]} = {};
+                    matchedParamIndices.mandatoryAttributes = allMatchableParameters;
+
+                    if (vs.optionalParameters) {
+                        let allMatchableOptionalParams: number[][] = [];
+                        for (let op of vs.optionalParameters) {
+                            let thisConstMatchableIndices = this.getMatchingAttributesByParameter(table, op);
+                            allMatchableOptionalParams.push(thisConstMatchableIndices);
+                        }
+
+                        matchedParamIndices.optionalAttributes = allMatchableOptionalParams;
+                    }
+                    return matchedParamIndices;
                 } else {
                     return false;
                 }
@@ -332,7 +344,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         
         visSchema.forEach(vs => {
             const matchResult = this.matchTableWithRel(selectedEntity, entityRel, vs);
-            if (matchResult) console.log(vs);
+            if (matchResult) console.log(matchResult);
         })
         
         // For demo: simple entity
