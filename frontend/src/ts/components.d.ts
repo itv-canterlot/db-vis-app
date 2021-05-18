@@ -58,11 +58,14 @@ export type ApplicationStates = {
     listLoaded?: boolean,
     databaseLocation?: string,
     showStartingTableSelectModal?: boolean,
+    showMatchedSchemasModal?: boolean,
+    visSchemaMatchStatus?: any[] // TODO: figure this out...
 }
 
 export type AppSidebarProps = {
     databaseLocation: string,
     onClickShowStartingTableSelectModal: React.MouseEventHandler,
+    onClickShowMatchedSchemasModal: React.MouseEventHandler,
     selectedTableIndex: number
 }
 

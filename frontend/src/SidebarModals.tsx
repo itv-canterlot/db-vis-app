@@ -4,7 +4,9 @@ import bootstrap = require('bootstrap');
 import { DBSchemaContextInterface, DBSchemaContext } from './DBSchemaContext';
 import { EntitySelector } from './EntitySelector';
 import { getRelationInListByName } from './SchemaParser';
-import { Table, RelationNode } from './ts/types';
+import { Table, RelationNode, VisSchema } from './ts/types';
+import * as SchemaParser from './SchemaParser';
+import { matchTableWithRel } from './VisSchemaMatcher';
 
 export class StartingTableSelectModal extends React.Component<{onClose: Function, onTableSelectChange: Function, selectedTableIndex: number}, {cachedSelectedIndex?: number, selectedForeignKeyIdx?: number}> {
     constructor(props) {
@@ -164,3 +166,74 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
     }
 }
 StartingTableSelectModal.contextType = DBSchemaContext;
+
+export class MatchedSchemasModal extends React.Component<{onClose: Function, selectedTableIndex: number, visSchema: VisSchema[]}, {}> {
+    constructor(props) {
+        super(props);
+        this.state = {
+        }
+    }
+
+    modalComponent: bootstrap.Modal = undefined;
+
+    onTableChangeConfirm = (e) => {
+        this.props.onClose(e);
+    }
+
+    handleOnClose = () => {
+        if (this.modalComponent) {
+            this.modalComponent.hide();
+        }
+        this.props.onClose();
+    }
+
+    getAllMatchableVisSchema = () => {
+        let dbSchemaContext: DBSchemaContextInterface = this.context;
+        let selectedEntity = dbSchemaContext.allEntitiesList[this.props.selectedTableIndex];
+        let entityRel = SchemaParser.getRelationInListByName(dbSchemaContext.relationsList, selectedEntity.tableName);
+        
+        this.props.visSchema.forEach(vs => {
+            const matchResult = matchTableWithRel(selectedEntity, entityRel, vs);
+            if (matchResult) console.log(matchResult);
+        })
+    }
+
+    componentDidMount() {
+        const modalElement = document.getElementById("starting-table-select-modal")
+        this.modalComponent = new bootstrap.Modal(modalElement, {
+            keyboard: false
+        });
+        // this.getAllMatchableVisSchema();
+        this.modalComponent.show();
+
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            this.props.onClose();
+        })
+    }
+    
+    render() {
+        return (
+            <div className="modal fade d-block" role="dialog" id="starting-table-select-modal">
+                <div className="modal-dialog modal-dialog-centered" role="document" style={{maxWidth: "80%"}}>
+                    <div className="modal-content">
+                    <div className="modal-header">
+                        <h5 className="modal-title">Select starting table...</h5>
+                        <button type="button" className="close" aria-label="Close" onClick={this.handleOnClose}>
+                        <span aria-hidden="true"><i className="fas fa-times" /></span>
+                        </button>
+                    </div>
+                    <div className="modal-body">
+                        TODO TODO TODO
+                    </div>
+                    <div className="modal-footer">
+                        <button type="button" className="btn btn-primary" onClick={this.onTableChangeConfirm}>Confirm</button>
+                        <button type="button" className="btn btn-secondary" onClick={this.handleOnClose}>Cancel</button>
+                    </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+}
+
+MatchedSchemasModal.contextType = DBSchemaContext;

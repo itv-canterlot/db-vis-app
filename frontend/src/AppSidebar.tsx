@@ -178,7 +178,7 @@ export class AppSidebar extends React.Component<ComponentTypes.AppSidebarProps, 
         const matchedSchemaHeader = (
             <div className="row">
                 <div className="col">
-                    <i className="fas fa-sitemap me-2" />Matched Schemas:
+                    <i className="fas fa-sitemap me-2" />Edit schema?
                 </div>
             </div>);
     
@@ -208,7 +208,8 @@ export class AppSidebar extends React.Component<ComponentTypes.AppSidebarProps, 
                     <SidebarBubbleBlock
                         headerElement={matchedSchemaHeader}
                         bodyElement={matchedSchemaBody}
-                        isLoaded={this.state.isLoaded} />
+                        isLoaded={this.state.isLoaded}
+                        onClick={this.props.onClickShowMatchedSchemasModal} />
                     {/* {this.props.selectedTableIndex >= 0 ? <TableCard selectedTableIndex={this.props.selectedTableIndex} /> : null} */}
                 </div>
             </div>

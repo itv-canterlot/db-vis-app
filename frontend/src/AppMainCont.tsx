@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
+import { VisSchema } from './ts/types';
 
 class SchemaExplorer extends React.Component<{expanded: boolean, selectedTableIndex: number}, {}> {
     constructor(props) {
@@ -25,9 +26,32 @@ class SchemaExplorer extends React.Component<{expanded: boolean, selectedTableIn
 }
 SchemaExplorer.contextType = DBSchemaContext;
 
-export class AppMainCont extends React.Component<{selectedTableIndex: number}, {}> {
+export class AppMainCont extends React.Component<{selectedTableIndex: number, visSchemaMatchStatus: any[]}, {}> {
     render() {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
+        const matchedSchemaCount = () => {
+            let matchCount = 0;
+            if (this.props.visSchemaMatchStatus && dbSchemaContext.visSchema) {
+                matchCount = this.props.visSchemaMatchStatus.reduce((acc, curr) => {
+                    if (curr) return acc + 1; else return acc;
+                }, 0);
+                return (<div>
+                    Matched schema count: {matchCount}
+                    <div>
+                        {this.props.visSchemaMatchStatus.map((e, i) => {
+                            if (e) {
+                                return <div key={i}>{dbSchemaContext.visSchema[i].name}</div>
+                            }
+                        })}
+                    </div>
+                </div>)
+            } else {
+                return (
+                <div>
+                    <em>No table selected...</em>
+                </div>);
+            }
+        }
         return (
             <div className="col-8 col-lg-9">
                 <div className="row">
@@ -39,7 +63,7 @@ export class AppMainCont extends React.Component<{selectedTableIndex: number}, {
                         </div>
                         <div className="row">
                             <div className="col">
-                                Placeholder 2
+                                {matchedSchemaCount()}
                             </div>
                         </div>
                         {/* {this.props.selectedTableIndex >= 0 ? <TableCard selectedTableIndex={this.props.selectedTableIndex} /> : null} */}

@@ -192,11 +192,20 @@ const isRelationReflexive = (rel: RelationNode) => {
     return Object.values(reflexCounter).some(v => v >= 2);
 }
 
+export const matchTableWithAllRels = (table: Table, rel: RelationNode, vss:VisSchema[]) => {
+    let out = [];
+    vss.forEach(vs => {
+        out.push(matchTableWithRel(table, rel, vs));
+    })
+
+    return out;
+}
+
 export const matchTableWithRel = (table: Table, rel: RelationNode, vs:VisSchema) => {
-    if (!table.pk) return false; // Not suitable if there is no PK to use
+    if (!table.pk) return undefined; // Not suitable if there is no PK to use
 
     if (!basicKeyConditionCheck(table, vs.localKey)) {
-        return false;
+        return undefined;
     }
 
     switch (vs.type) {
@@ -228,11 +237,11 @@ export const matchTableWithRel = (table: Table, rel: RelationNode, vs:VisSchema)
                 }
                 return matchedParamIndices;
             } else {
-                return false;
+                return undefined;
             }
         case VISSCHEMATYPES.MANYMANY:
             if (rel.type === VISSCHEMATYPES.MANYMANY) {
-                if (vs.reflexive && !isRelationReflexive(rel)) return false; // Check reflexibility
+                if (vs.reflexive && !isRelationReflexive(rel)) return undefined; // Check reflexibility
 
                 // Get the indices on the weak entity table that can be used to match foreign tables
                 let thisTableValidAttIdx: number[] = getMatchingAttributesByParameter(table, vs.localKey);
@@ -247,15 +256,15 @@ export const matchTableWithRel = (table: Table, rel: RelationNode, vs:VisSchema)
                     if (foreignTablesValidAttIdx.length > 0 && foreignTablesValidAttIdx.every(idxes => idxes.length > 0)) {
                         return true;
                     } else {
-                        return false;
+                        return undefined;
                     }
                 } else {
-                    return false;
+                    return undefined;
                 }
             } else {
-                return false;
+                return undefined;
                 // const neighbourJunctionIndices = getNeighbourJunctionTableIdx(rel);
-                // if (neighbourJunctionIndices.length === 0) return false;
+                // if (neighbourJunctionIndices.length === 0) return undefined;
 
                 // // Some of the neighbour relation is a junction table - out to where
             }
@@ -274,21 +283,21 @@ export const matchTableWithRel = (table: Table, rel: RelationNode, vs:VisSchema)
                     if (foreignTablesValidAttIdx.length > 0 && foreignTablesValidAttIdx.every(idxes => idxes.length > 0)) {
                         return true;
                     } else {
-                        return false;
+                        return undefined;
                     }
                 } else {
-                    return false;
+                    return undefined;
                 }
             } else {
-                return false;
+                return undefined;
                 // const neighbourJunctionIndices = getNeighbourJunctionTableIdx(rel);
-                // if (neighbourJunctionIndices.length === 0) return false;
+                // if (neighbourJunctionIndices.length === 0) return undefined;
 
                 // // Some of the neighbour relation is a junction table - out to where
             }
         case VISSCHEMATYPES.ONEMANY:
-            return false;
+            return undefined;
         default:
-            return false;
+            return undefined;
     }
 }

@@ -6,12 +6,14 @@ import { DBSchemaContext } from './DBSchemaContext';
 import { AppMainCont } from './AppMainCont';
 
 import { AppSidebar } from './AppSidebar';
-import { matchTableWithRel } from './VisSchemaMatcher'
+import { matchTableWithAllRels as getmatchTableWithAllVisSchemas, matchTableWithRel } from './VisSchemaMatcher'
 
 import * as ComponentTypes from './ts/components';
 import * as Connections from './Connections';
 import * as SchemaParser from './SchemaParser';
-import { StartingTableSelectModal } from './SidebarModals';
+import { MatchedSchemasModal, StartingTableSelectModal } from './SidebarModals';
+
+let visSchema: VisSchema[] = [];
 
 class Application extends React.Component<{}, ComponentTypes.ApplicationStates> {
     constructor(props) {
@@ -26,7 +28,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             load: false,
             listLoaded: false,
             databaseLocation: "http://localhost:5432", // Placeholder
-            showStartingTableSelectModal: false
+            showStartingTableSelectModal: false,
+            showMatchedSchemasModal: false
         };
     }
 
@@ -36,9 +39,24 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         });
     }
 
+    onClickShowMatchedSchemasModal = () => {
+        if (this.state.selectedTableIndex < 0) {
+            return;
+        }
+        this.setState({
+            showMatchedSchemasModal: true
+        });
+    }
+
     onCloseShowStartingTableSelectModal = () => {
         this.setState({
             showStartingTableSelectModal: false
+        });
+    }
+
+    onCloseShowMatchedSchemasModal = () => {
+        this.setState({
+            showMatchedSchemasModal: false
         });
     }
 
@@ -50,11 +68,11 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         // Check type of the relation
         let selectedEntity = this.state.allEntitiesList[this.state.selectedTableIndex];
         let entityRel = SchemaParser.getRelationInListByName(this.state.relationsList, selectedEntity.tableName);
-        
-        visSchema.forEach(vs => {
-            const matchResult = matchTableWithRel(selectedEntity, entityRel, vs);
-            if (matchResult) console.log(matchResult);
-        })
+
+        const matchStatusForAllSchema = getmatchTableWithAllVisSchemas(selectedEntity, entityRel, visSchema);
+        this.setState({
+            visSchemaMatchStatus: matchStatusForAllSchema
+        });
         
         // For demo: simple entity
         // if ((!selectedEntity.hasOwnProperty("weakEntitiesIndices") || selectedEntity.weakEntitiesIndices.length === 0) && 
@@ -104,7 +122,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             selectedFKAttributeIndex: -1,
             load: true
         }, () => {
-            this.getAllMatchableVisSchema(); // TODO: major overhaul
+            this.getAllMatchableVisSchema();
         });
     }
 
@@ -142,7 +160,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
     render() {
         return (
-            <DBSchemaContext.Provider value={{allEntitiesList: this.state.allEntitiesList, relationsList: this.state.relationsList}}>
+            <DBSchemaContext.Provider value={{allEntitiesList: this.state.allEntitiesList, relationsList: this.state.relationsList, visSchema: visSchema}}>
                 {this.state.showStartingTableSelectModal ? 
                 <StartingTableSelectModal 
                     onClose={this.onCloseShowStartingTableSelectModal} onTableSelectChange={this.onTableSelectChange} 
@@ -152,9 +170,11 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     <AppSidebar 
                         databaseLocation={this.state.databaseLocation}
                         onClickShowStartingTableSelectModal={this.onClickShowStartingTableSelectModal}
+                        onClickShowMatchedSchemasModal={this.onClickShowMatchedSchemasModal}
                         selectedTableIndex={this.state.selectedTableIndex} />
                     <AppMainCont
-                        selectedTableIndex={this.state.selectedTableIndex} />
+                        selectedTableIndex={this.state.selectedTableIndex}
+                        visSchemaMatchStatus={this.state.visSchemaMatchStatus} />
                 </div>
             </DBSchemaContext.Provider>
 
@@ -173,6 +193,5 @@ const readVisSchemaJSON = () => {
 
 let appContNode = document.getElementById("app-cont");
 ReactDOM.render(<Application />, appContNode);
-let visSchema: VisSchema[] = [];
 
 // TODO: refactor this to another file?
