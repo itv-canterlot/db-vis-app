@@ -31,16 +31,39 @@ export class AppMainCont extends React.Component<{selectedTableIndex: number, vi
         const dbSchemaContext: DBSchemaContextInterface = this.context;
         const matchedSchemaCount = () => {
             let matchCount = 0;
+            let thisTable = dbSchemaContext.allEntitiesList[this.props.selectedTableIndex];
             if (this.props.visSchemaMatchStatus && dbSchemaContext.visSchema) {
+                console.log(this.props.visSchemaMatchStatus);
                 matchCount = this.props.visSchemaMatchStatus.reduce((acc, curr) => {
                     if (curr) return acc + 1; else return acc;
                 }, 0);
                 return (<div>
                     Matched schema count: {matchCount}
                     <div>
-                        {this.props.visSchemaMatchStatus.map((e, i) => {
-                            if (e) {
-                                return <div key={i}>{dbSchemaContext.visSchema[i].name}</div>
+                        {this.props.visSchemaMatchStatus.map((schemaStatus, schemaIndex) => {
+                            if (schemaStatus) {
+                                return (
+                                <div key={schemaIndex}>
+                                    <div>{dbSchemaContext.visSchema[schemaIndex].name}</div>
+                                    <div>
+                                        {schemaStatus.mandatoryAttributes.map((maMatchedAttributes, maIndex) => {
+                                            return (
+                                            <div key={maIndex}>
+                                                <div>Attribute {maIndex}:</div>
+                                                <div>
+                                                    {maMatchedAttributes.map((maAttributeLocation, maLocIndex) => {
+                                                        return (
+                                                        <div key={maLocIndex}>
+                                                            {thisTable.attr[maAttributeLocation].attname}
+                                                        </div>)
+                                                    })}
+                                                </div>
+                                                <br />
+                                            </div>)
+                                        })}
+                                    </div>
+                                    <br />
+                                </div>)
                             }
                         })}
                     </div>
