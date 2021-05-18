@@ -56,7 +56,7 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
         }
 
         let foreignKeyParing;
-        if (thisRels && thisRels.childEntities.length !== 0){
+        if (thisRels && thisRels.childEntities.length !== 0) {
             let chosenIndex = this.state.selectedForeignKeyIdx;
             if (this.state.selectedForeignKeyIdx > thisRels.childEntities.length) {
                 chosenIndex = 0;
@@ -87,6 +87,62 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
         } else {
             foreignKeyParing = null
         }
+
+        const manyToManyTip = () => {
+            if (thisTable.isJunction) {
+                return (
+                <div className="me-1 text-muted dropdown-tip bg-tip-junc d-flex tip-fontsize" style={{"flexDirection": "column"}}>
+                    <div>
+                        <i className="fas fa-compress-alt me-1 pe-none" />Junction table between: 
+                    </div>
+                    <div className="d-flex">
+                        {thisRels.childEntities.map((ce, i) => {
+                            const ceName = ce.parentEntity.tableName;
+                            if (thisRels.childEntities.length === 1) {
+                                return <strong key={i}>{ceName}</strong>;
+                            } else {
+                                const ceLength = thisRels.childEntities.length;
+                                if (i === ceLength - 1) {
+                                    return <strong key={i}>{ceName}</strong>;
+                                } else {
+                                    return <div key={i}><strong>{ceName}</strong>{", "}</div>
+                                }
+                            }
+                            })}
+                    </div>
+                </div>
+                )
+            }
+        }
+
+        const weakEntityTip = () => {
+            if (thisTable.weakEntitiesIndices && thisTable.weakEntitiesIndices.length > 0) {
+                return (
+                <div className="me-1 text-muted dropdown-tip bg-tip-weak-link d-flex tip-fontsize" style={{"flexDirection": "column"}}>
+                    <div>
+                        <i className="fas fa-asterisk me-1 pe-none" />Weak entity of: 
+                    </div>
+                    <div className="d-flex">
+                        {thisRels.childEntities.map((ce, i) => {
+                            const ceName = ce.parentEntity.tableName;
+                            if (thisRels.childEntities.length === 1) {
+                                return <strong key={i}>{ceName}</strong>;
+                            } else {
+                                const ceLength = thisRels.childEntities.length;
+                                if (i === ceLength - 1) {
+                                    return <strong key={i}>{ceName}</strong>;
+                                } else {
+                                    return <div key={i}><strong>{ceName}</strong>{", "}</div>
+                                }
+                            }
+                        })}
+                    </div>
+                </div>
+                )
+            } else {
+                return null;
+            }
+        }
         
         return (
             <div className="row justify-content-md-center mt-4 mb-3">
@@ -95,6 +151,10 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
                         <div className="card-body">
                             <h5 className="card-title">{thisTable.tableName}</h5>
                             <h6 className="card-subtitle mb-2 text-muted">n_keys: {thisTable.pk ? thisTable.pk.keyCount : (<em>not available</em>)}</h6>
+                            <div className="card-text">
+                                {manyToManyTip()}
+                                {weakEntityTip()}
+                            </div>
                         </div>
                         <ul className="list-group list-group-flush start-table-rel-list ml-auto mr-auto">
                             {thisTable.attr.map(att => (
