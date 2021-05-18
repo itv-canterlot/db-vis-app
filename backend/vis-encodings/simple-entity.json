@@ -38,11 +38,9 @@
             },
             "mandatoryParameters": [
                 {
-                    "scalar": true,
-                    "type": "TEMPORAL"
+                    "scalar": true
                 }, {
-                    "scalar": true,
-                    "type": "TEMPORAL"
+                    "scalar": true
                 }
             ],
             "optionalParameters": [
@@ -59,14 +57,11 @@
             },
             "mandatoryParameters": [
                 {
-                    "scalar": true,
-                    "type": "TEMPORAL"
+                    "scalar": true
                 }, {
-                    "scalar": true,
-                    "type": "TEMPORAL"
+                    "scalar": true
                 }, {
-                    "scalar": true,
-                    "type": "TEMPORAL"
+                    "scalar": true
                 }
             ],
             "optionalParameters": [
