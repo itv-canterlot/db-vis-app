@@ -17,10 +17,7 @@ export class Visualiser extends React.Component<{selectedTableIndex: number}, {l
         }
         let dbContext: DBSchemaContextInterface = this.context;
         if (dbContext.allEntitiesList !== undefined && dbContext.allEntitiesList.length !== 0) {
-            renderScatterPlot(dbContext.allEntitiesList[0], dbContext.allEntitiesList[0], 6, 7);
-            this.setState({
-                load: true
-            });
+            renderVisualisation("");
         }
     }
 
@@ -31,6 +28,36 @@ export class Visualiser extends React.Component<{selectedTableIndex: number}, {l
     }
 }
 Visualiser.contextType = DBSchemaContext;
+
+function d3BaseBlockTemplateFunction() {
+    // set the dimensions and margins of the graph
+    var margin = {top: 10, right: 30, bottom: 30, left: 60},
+    width = 460 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom;
+
+    // append the svg object to the body of the page
+    var svg = d3.select("#vis-cont")
+    .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",
+        "translate(" + margin.left + "," + margin.top + ")");
+
+    return svg;
+}
+
+
+// let d3BaseBlockTemplate = d3BaseBlockTemplateFunction.toString()
+// d3BaseBlockTemplate = d3BaseBlockTemplate.substring(
+//     0, d3BaseBlockTemplate.lastIndexOf("}")
+// );
+
+const renderVisualisation = (visSpecificCode: string) => {
+    let svg = d3BaseBlockTemplateFunction();
+    // let visCode = d3BaseBlockTemplate + visSpecificCode + "\n}";
+    // console.log(visCode);
+}
 
 // Some visualisation rendering methods
 const renderScatterPlot = (e1: Table, e2: Table, a1Index: number, a2Index: number) => {
