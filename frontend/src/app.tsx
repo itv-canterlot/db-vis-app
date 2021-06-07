@@ -105,25 +105,36 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
     // Called when R1 is changed
     onTableSelectChange = (e) => {
-        let tableIndex = -1;
-
-        if (e instanceof Object) {
-            tableIndex = parseInt(e.target.getAttribute("data-index"));
-        } else {
-            tableIndex = e;
-        }
-
-        if (tableIndex < 0) return;
-
         this.setState({
-            selectedTableIndex: tableIndex,
-            selectedAttributeIndex: -1,
-            selectedForeignKeyIndex: -1,
-            selectedFKAttributeIndex: -1,
             load: true
         }, () => {
-            this.getAllMatchableVisSchema();
-        });
+            let tableIndex = -1;
+    
+            if (e instanceof Object) {
+                tableIndex = parseInt(e.target.getAttribute("data-index"));
+            } else {
+                tableIndex = e;
+            }
+    
+            if (tableIndex < 0) {
+                this.setState({
+                    load: true
+                });
+                return;
+            };
+    
+            this.setState({
+                selectedTableIndex: tableIndex,
+                selectedAttributeIndex: -1,
+                selectedForeignKeyIndex: -1,
+                selectedFKAttributeIndex: -1,
+            }, () => {
+                this.getAllMatchableVisSchema();
+                this.setState({
+                    load: false
+                });
+            });
+        })
     }
 
     getTableMetadata = () => {
@@ -174,7 +185,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                         selectedTableIndex={this.state.selectedTableIndex} />
                     <AppMainCont
                         selectedTableIndex={this.state.selectedTableIndex}
-                        visSchemaMatchStatus={this.state.visSchemaMatchStatus} />
+                        visSchemaMatchStatus={this.state.visSchemaMatchStatus}
+                        load={this.state.load} />
                 </div>
             </DBSchemaContext.Provider>
 

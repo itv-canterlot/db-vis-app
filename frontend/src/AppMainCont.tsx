@@ -26,14 +26,16 @@ class SchemaExplorer extends React.Component<{expanded: boolean, selectedTableIn
 }
 SchemaExplorer.contextType = DBSchemaContext;
 
-export class AppMainCont extends React.Component<{selectedTableIndex: number, visSchemaMatchStatus: any[]}, {}> {
+export class AppMainCont extends React.Component<{selectedTableIndex: number, visSchemaMatchStatus: any[], load: boolean}, {}> {
     render() {
+        if (this.props.load) {
+            return (<div>Loading...</div>);
+        }
         const dbSchemaContext: DBSchemaContextInterface = this.context;
         const matchedSchemaCount = () => {
             let matchCount = 0;
             let thisTable = dbSchemaContext.allEntitiesList[this.props.selectedTableIndex];
             if (this.props.visSchemaMatchStatus && dbSchemaContext.visSchema) {
-                console.log(this.props.visSchemaMatchStatus);
                 matchCount = this.props.visSchemaMatchStatus.reduce((acc, curr) => {
                     if (curr) return acc + 1; else return acc;
                 }, 0);
