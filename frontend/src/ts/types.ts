@@ -70,6 +70,7 @@ export type VisSchema = {
     localKey: VisKey,
     mandatoryParameters: VisParam[],
     optionalParameters?: VisParam[],
+    template?: string
 } | {
     name: string,
     type: VISSCHEMATYPES.WEAKENTITY,
@@ -78,6 +79,7 @@ export type VisSchema = {
     complete: boolean,
     mandatoryParameters: VisParam[],
     optionalParameters?: VisParam[],
+    template?: string
 } | {
     name: string,
     type: VISSCHEMATYPES.ONEMANY,
@@ -85,6 +87,7 @@ export type VisSchema = {
     foreignKey: VisKey,
     mandatoryParameters?: VisParam[],
     optionalParameters?: VisParam[]
+    template?: string
 } | {
     name: string,
     type: VISSCHEMATYPES.MANYMANY,
@@ -92,7 +95,8 @@ export type VisSchema = {
     foreignKey: VisKey,
     reflexive: boolean,
     mandatoryParameters?: VisParam[],
-    optionalParameters?: VisParam[]
+    optionalParameters?: VisParam[],
+    template?: string
 }
 
 export interface VisParam {
@@ -121,4 +125,12 @@ export type RelationNode = {
     parentEntity: Table,
     childEntities: RelationNode[],
     index?: number
+}
+
+export type VisTemplateBuilder = {
+    width: number,
+    height: number,
+    svg: any,
+    data: any,
+    args?: object
 }

@@ -34,6 +34,24 @@ export async function getTableDistCounts(tableName:string, columnNames?:string[]
     });
 }
 
+export async function getDataFromSingleTableByName(tableName:string, columnNames?:string[]) {
+    const rawResponse = fetch("http://localhost:3000/data-single-table-name-fields", {
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        method: "POST",
+        body: JSON.stringify({
+            "tableName": tableName,
+            "columnNames": columnNames === undefined ? [] : columnNames
+        }),  
+    });
+
+    return rawResponse.then(val => {
+        return val.json();
+    });
+}
+
 async function getAttributeContentFromDatabase(tableIndex) {
     const rawResponse = fetch("http://localhost:3000/table-attributes", {
         headers: {

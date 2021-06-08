@@ -22,9 +22,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         this.state = {
             allEntitiesList: [],
             selectedTableIndex: -1,
-            selectedAttributeIndex: -1,
-            selectedForeignKeyIndex: -1,
-            selectedFKAttributeIndex: -1,
+            rerender: true,
             load: false,
             listLoaded: false,
             databaseLocation: "http://localhost:5432", // Placeholder
@@ -73,40 +71,13 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         this.setState({
             visSchemaMatchStatus: matchStatusForAllSchema
         });
-        
-        // For demo: simple entity
-        // if ((!selectedEntity.hasOwnProperty("weakEntitiesIndices") || selectedEntity.weakEntitiesIndices.length === 0) && 
-        //     (!selectedEntity.hasOwnProperty("isJunction") || !selectedEntity.isJunction)) {
-        //     if (selectedEntity.pk) {
-        //         let pkAtts = selectedEntity.pk.columns.map(key => selectedEntity.attr[key.colPos].attname);
-        //         Connections.getTableDistCounts(selectedEntity.tableName, pkAtts).then(distCountRes => {
-        //             return Math.max(distCountRes.map(count => count.distinct_count));
-    
-        //         }).then(maxDistCount => {
-        //             // TODO: colours not checked - need additional markup
-        //             // TODO: list of schemas - use all of them
-        //             for (const schema of visSchema) {
-        //                 if (schema.type === VISSCHEMATYPES.BASIC) {
-        //                     // Count check
-        //                     if (!(schema.localKey.minCount <= maxDistCount)) continue;
-        //                     if (schema.localKey.maxCount !== undefined) {
-        //                         if (!(schema.localKey.maxCount >= maxDistCount)) continue;
-        //                     }
-                            
-        //                     // Type check
-        //                     // console.log(schema);
-        //                 }
-        //                 // For each schema, compare
-        //             }
-        //         });
-        //     }
-        // }
     }
 
     // Called when R1 is changed
     onTableSelectChange = (e) => {
         this.setState({
-            load: true
+            load: true,
+            rerender: false
         }, () => {
             let tableIndex = -1;
     
@@ -122,12 +93,12 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 });
                 return;
             };
+
+            const tableIndexChanged = this.state.selectedTableIndex !== tableIndex
     
             this.setState({
                 selectedTableIndex: tableIndex,
-                selectedAttributeIndex: -1,
-                selectedForeignKeyIndex: -1,
-                selectedFKAttributeIndex: -1,
+                rerender: tableIndexChanged
             }, () => {
                 this.getAllMatchableVisSchema();
                 this.setState({
@@ -186,7 +157,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     <AppMainCont
                         selectedTableIndex={this.state.selectedTableIndex}
                         visSchemaMatchStatus={this.state.visSchemaMatchStatus}
-                        load={this.state.load} />
+                        load={this.state.load}
+                        rerender={this.state.rerender} />
                 </div>
             </DBSchemaContext.Provider>
 
