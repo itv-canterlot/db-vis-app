@@ -98,10 +98,22 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         });
     }
 
-    onSelectedAttributeIndicesChange = (newIndices: number[][]) => {
+    onSelectedAttributeIndicesChange = (e: React.BaseSyntheticEvent) => {
+        const target = e.target;
+        const isMandatoryIdx = target.getAttribute("data-mandatory") === "true" ? 0 : 1;
+        const patternAttIdx = parseInt(target.getAttribute("data-pattern-att-idx"));
+        const listIdx = parseInt(target.getAttribute("data-list-idx"));
+        let newAttIndices = JSON.parse(JSON.stringify(this.state.selectedAttributesIndices));
+        newAttIndices[isMandatoryIdx][patternAttIdx] = listIdx;
+        
         this.setState({
-            selectedAttributesIndices: newIndices
-        })
+            selectedAttributesIndices: newAttIndices,
+            rerender: true
+        }, () => {
+            this.setState({
+                rerender: false
+            })
+        });
     }
 
     // Called when R1 is changed
@@ -133,7 +145,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             }, () => {
                 this.getAllMatchableVisSchemaPatterns();
                 this.setState({
-                    load: false
+                    load: false,
+                    // rerender: false
                 });
             });
         })
@@ -195,10 +208,12 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                         selectedTableIndex={this.state.selectedTableIndex} />
                     <AppMainCont
                         selectedTableIndex={this.state.selectedTableIndex}
+                        selectedAttributesIndices={this.state.selectedAttributesIndices}
                         visSchemaMatchStatus={this.state.visSchemaMatchStatus}
                         load={this.state.load}
                         rerender={this.state.rerender}
                         onVisPatternIndexChange={this.onVisPatternIndexChange}
+                        onSelectedAttributeIndicesChange={this.onSelectedAttributeIndicesChange}
                          />
                 </div>
             </DBSchemaContext.Provider>

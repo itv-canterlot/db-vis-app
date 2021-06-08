@@ -10,9 +10,6 @@ import { VisualiserProps, VisualiserStates } from './ts/components';
 export class Visualiser extends React.Component<VisualiserProps, VisualiserStates> {
     constructor(props) {
         super(props);
-        this.state = {
-            load: false,
-        };
     }
 
     visualisationHandler = () => {
@@ -24,7 +21,6 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
         const patternMatchStatus = this.props.visSchemaMatchStatus[selectedPattern];
         const selectedPatternTemplateCode = dbContext.visSchema[selectedPattern].template
         if (!patternMatchStatus) return;
-        console.log(dbContext.selectedPatternIndex)
         // TODO: deal with multiple tables
 
         // Map matched attributes to their names
@@ -36,30 +32,55 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
         // TODO: other attributes
 
         const args = {
-            xname: matchedAttributeNames[0][dbContext.selectedAttributesIndices[0][0]],
-            yname: matchedAttributeNames[1][dbContext.selectedAttributesIndices[0][1]]
+            xname: matchedAttributeNames[0][this.props.selectedAttributesIndices[0][0]],
+            yname: matchedAttributeNames[1][this.props.selectedAttributesIndices[0][1]]
         };
 
         getDataFromSingleTableByName(thisTable.tableName, [args.xname, args.yname]).then(data => {
             // Separate out data points with null
-            renderVisualisation(selectedPatternTemplateCode, data, args)
+            renderVisualisation(selectedPatternTemplateCode, data, args);
+            this.setState({
+                renderedAttributesIndices: this.props.selectedAttributesIndices,
+                renderedTableIndex: this.props.selectedTableIndex
+            })
         });
+    }
+
+    componentDidMount() {
+        let dbContext: DBSchemaContextInterface = this.context;
+        if (dbContext.allEntitiesList !== undefined && dbContext.allEntitiesList.length !== 0) {
+            if (this.props.selectedTableIndex < 0) return;
+
+            this.visualisationHandler();
+        }
     }
     
     componentDidUpdate() {
-        if (this.state.load) {
-            return;
-        }
-        this.setState({
-            load: true,
-        }, () => {
-            let dbContext: DBSchemaContextInterface = this.context;
-            if (dbContext.allEntitiesList !== undefined && dbContext.allEntitiesList.length !== 0) {
-                if (this.props.selectedTableIndex < 0) return;
-    
-                this.visualisationHandler();
+        let dbContext: DBSchemaContextInterface = this.context;
+        if (this.props.selectedTableIndex === this.state.renderedTableIndex) {
+            let allAttributeSetMatched = true;
+            for (let x = 0; x < this.props.selectedAttributesIndices.length; x++) {
+                const newAttSet = this.props.selectedAttributesIndices[x];
+                const oldAttSet = this.state.renderedAttributesIndices[x];
+
+                if (newAttSet.length === oldAttSet.length) {
+                    for (let y = 0; y < newAttSet.length; y++) {
+                        if (newAttSet[y] !== oldAttSet[y]) {
+                            allAttributeSetMatched = false;
+                            break;
+                        }
+                    }
+                } else allAttributeSetMatched = false;
             }
-        })
+
+            if (!allAttributeSetMatched) {
+                if (dbContext.allEntitiesList !== undefined && dbContext.allEntitiesList.length !== 0) {
+                    if (this.props.selectedTableIndex < 0) return;
+        
+                    this.visualisationHandler();
+                }
+            }
+        }   
     }
 
     render() {

@@ -14,7 +14,6 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
         if (selectedIndex === this.props.selectedTableIndex) return;
 
         this.props.onVisPatternIndexChange(selectedIndex);
-        // this.props.onVisPatternIndexChange
     }
 
     getMatchCount = (visStatus) => visStatus.reduce(
@@ -69,7 +68,16 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
                         // Inner map: for each matched attribute for each mandatory parameter
                         const thisAttribute = thisTable.attr[attIndex]
                         return (
-                            <li key={listIndex}><a className={"dropdown-item small" + (listIndex === mandatorySelectedAttributesIndices[idx] ? " active" : "")} href="#">{thisAttribute.attname}</a></li>
+                            <li key={listIndex}>
+                                <a className={"dropdown-item small" + (listIndex === mandatorySelectedAttributesIndices[idx] ? " active" : "")} 
+                                    href="#"
+                                    data-mandatory="true"
+                                    data-pattern-att-idx={idx}
+                                    data-list-idx={listIndex}
+                                    onClick={this.props.onSelectedAttributeIndicesChange}>
+                                    {thisAttribute.attname}
+                                </a>
+                            </li>
                         )
                     });
                     // This bit was brutally confusing
@@ -124,6 +132,10 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
 SchemaExplorer.contextType = DBSchemaContext;
 
 export class AppMainCont extends React.Component<AppMainContProps, AppMainContStates> {
+    constructor(props) {
+        super(props);
+    }
+
     render() {
         if (this.props.load) {
             return (<div>Loading...</div>);
@@ -139,15 +151,21 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
                                     expanded={true} 
                                     selectedTableIndex={this.props.selectedTableIndex} 
                                     visSchemaMatchStatus={this.props.visSchemaMatchStatus}
-                                    onVisPatternIndexChange={this.props.onVisPatternIndexChange} />
+                                    onVisPatternIndexChange={this.props.onVisPatternIndexChange}
+                                    onSelectedAttributeIndicesChange={this.props.onSelectedAttributeIndicesChange} />
                             </div>
                         </div>
                         <div className="row">
                             <div className="col">
-                                <Visualiser 
+                                {
+                                    this.props.selectedTableIndex >= 0 ? 
+                                    <Visualiser 
                                     selectedTableIndex={this.props.selectedTableIndex}
+                                    selectedAttributesIndices={this.props.selectedAttributesIndices}
                                     visSchemaMatchStatus={this.props.visSchemaMatchStatus}
                                     rerender={this.props.rerender} />
+                                    : null
+                                }
                             </div>
                         </div>
                     </div>

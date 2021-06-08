@@ -1,3 +1,4 @@
+import React = require('react')
 import {PrimaryKey, ForeignKey, Table, Attribute, RelationNode, MatchedParamIndicesType} from './types'
 
 /** UIElements.tsx **/
@@ -81,27 +82,34 @@ export type SchemaExplorerProps = {
     expanded: boolean, 
     selectedTableIndex: number,
     visSchemaMatchStatus?: MatchedParamIndicesType[],
-    onVisPatternIndexChange: Function
+    onVisPatternIndexChange: Function,
+    onSelectedAttributeIndicesChange: React.MouseEventHandler
 }
 
 export type AppMainContProps = {
     selectedTableIndex: number,
+    selectedAttributesIndices: number[][],
     visSchemaMatchStatus: any[],
     load: boolean,
     rerender: boolean,
-    onVisPatternIndexChange: Function
+    onVisPatternIndexChange: Function,
+    onSelectedAttributeIndicesChange: React.MouseEventHandler
 }
 
 export type AppMainContStates = {
+    stateChanged?: boolean
 }
 
 /* Visualiser.tsx */
 export type VisualiserProps = {
-    selectedTableIndex: number, 
+    selectedTableIndex: number,
+    selectedAttributesIndices: number[][],
     visSchemaMatchStatus: any[],
     rerender: boolean
 }
 
 export type VisualiserStates = {
-    load?: boolean
+    load?: boolean,
+    renderedTableIndex?: number,
+    renderedAttributesIndices?: number[][]
 }
