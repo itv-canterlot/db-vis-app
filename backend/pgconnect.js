@@ -4,7 +4,7 @@ const fs = require("fs");
 const { exception } = require("console");
 
 // SQL boilerplates
-const dataSelectByTableNameAndFields = (tableName, fields) => `SELECT ${fields.join(", ")} FROM ${tableName};`;
+const dataSelectByTableNameAndFields = (tableName, fields) => `SELECT ${fields.length === 0 ? "*" : fields.join(", ")} FROM ${tableName};`;
 
 const dataSelectAllColumnsByTableName = (tablename) => `SELECT * FROM ${tableName};`;
 
@@ -311,7 +311,6 @@ async function getTableAttributes(tableName) {
 async function getDataByTableNameAndFields(tableName, fields) {
     try {
         const query = dataSelectByTableNameAndFields(tableName, fields);
-        console.log(query);
         return await singlePoolRequest(query);
     } catch (err) {
         throw err;

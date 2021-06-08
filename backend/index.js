@@ -29,8 +29,8 @@ app.post('/table-dist-counts', (req, res) => {
   });
 });
 
-app.post('/temp-data-table-name-fields', (req, res) => {
-  console.debug("POST /temp-data-table-name-fields")
+app.post('/data-single-table-name-fields', (req, res) => {
+  console.debug("POST /data-single-table-name-fields")
   let fields = req.body["columnNames"];
   let tableName = req.body["tableName"];
   console.debug(`-- columnNames: ${fields}`);
