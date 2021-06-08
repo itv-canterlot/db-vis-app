@@ -1,4 +1,4 @@
-import {Attribute, PrimaryKey, RelationNode, Table, VisKey, VisParam, VISPARAMTYPES, VisSchema, VISSCHEMATYPES} from "./ts/types";
+import {Attribute, PrimaryKey, RelationNode, Table, VisKey, VisParam, VISPARAMTYPES, VisSchema, VISSCHEMATYPES, MatchedParamIndicesType} from "./ts/types";
 
 const preciseNumDataTypes = [
     "bit", "tinyint", "smallint", "int", "bigint", "decimal",
@@ -223,8 +223,7 @@ export const matchTableWithRel = (table: Table, rel: RelationNode, vs:VisSchema)
             // Check if there is at least one match for each mandatory attributes
             if (allMatchableParameters.length > 0 && allMatchableParameters.every(idxes => idxes.length > 0)) {
                 // TODO: do optional param match here
-                let matchedParamIndices: {[type: string]: number[][]} = {};
-                matchedParamIndices.mandatoryAttributes = allMatchableParameters;
+                let matchedParamIndices: MatchedParamIndicesType = {mandatoryAttributes: allMatchableParameters};
 
                 if (vs.optionalParameters) {
                     let allMatchableOptionalParams: number[][] = [];

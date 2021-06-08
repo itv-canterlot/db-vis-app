@@ -5,12 +5,14 @@ export interface DBSchemaContextInterface {
     allEntitiesList: Table[],
     relationsList: RelationNode[],
     visSchema: VisSchema[],
-    selectedPatternIndex: number
+    selectedPatternIndex: number,
+    selectedAttributesIndices: number[][]
 }
 
 export const DBSchemaContext = React.createContext<DBSchemaContextInterface>({
     allEntitiesList: [],
     relationsList: [],
     visSchema: [],
-    selectedPatternIndex: -1
+    selectedPatternIndex: -1,
+    selectedAttributesIndices: [[], []]
 });

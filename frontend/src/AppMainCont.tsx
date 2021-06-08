@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
-import { AppMainContProps, SchemaExplorerProps } from './ts/components';
+import { AppMainContProps, AppMainContStates, SchemaExplorerProps } from './ts/components';
 import { Visualiser } from './Visualiser';
 
 class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
@@ -47,6 +47,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
 
     render() {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
+        const thisTable = dbSchemaContext.allEntitiesList[this.props.selectedTableIndex];
         const patternIndex = dbSchemaContext.selectedPatternIndex;
         const thisPattern = dbSchemaContext.visSchema[patternIndex];
         if (this.props.selectedTableIndex < 0) {
@@ -58,19 +59,60 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
                 </div>
             )
         } else {
-            return (
-                <div className="d-flex justify-content-between align-items-center">
-                    <div>
-                        {dbSchemaContext.allEntitiesList[this.props.selectedTableIndex].tableName}
-                    </div>
-                    <div className="dropdown">
-                        <a className="btn btn-primary dropdown-toggle" href="#" role="button" id="matched-schema-list-dropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            {thisPattern ? thisPattern.name : "Select Pattern..."}
-                        </a>
+            const thisPatternMatchStatus = this.props.visSchemaMatchStatus[patternIndex];
+            const mandatoryAttributeDropdownGroup = () => {
+                if (!thisPatternMatchStatus || !thisPatternMatchStatus.mandatoryAttributes) return null;
+                return thisPatternMatchStatus.mandatoryAttributes.map((attMatchStatus, idx) => {
+                    // Outer map: for each mandatory parameter in the pattern
+                    const thisAttributeDropdownItemList = attMatchStatus.map((attIndex, listIndex) => {
+                        // Inner map: for each matched attribute for each mandatory parameter
+                        const thisAttribute = thisTable.attr[attIndex]
+                        return (
+                            <li key={listIndex}><a className="dropdown-item small" href="#">{thisAttribute.attname}</a></li>
+                        )
+                    });
 
-                        <ul className="dropdown-menu" id="matched-schema-list-dropdown-list" aria-labelledby="matched-schema-list-dropdown">
-                            {this.matchedSchemaDropdownItems()}
-                        </ul>
+                    return (
+                        <div className="btn-group ms-2" key={idx}>
+                            <button className="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                ma{idx}
+                            </button>
+                            <ul className="dropdown-menu">
+                                {thisAttributeDropdownItemList}
+                            </ul>
+                        </div>
+                    );
+                });
+            }
+
+            return (
+                <div>
+                    <div className="d-flex justify-content-between align-items-center">
+                        <div>
+                            {dbSchemaContext.allEntitiesList[this.props.selectedTableIndex].tableName}
+                        </div>
+                        <div className="dropdown">
+                            <a className="btn btn-primary dropdown-toggle" href="#" role="button" id="matched-schema-list-dropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                {thisPattern ? thisPattern.name : "Select Pattern..."}
+                            </a>
+
+                            <ul className="dropdown-menu" id="matched-schema-list-dropdown-list" aria-labelledby="matched-schema-list-dropdown">
+                                {this.matchedSchemaDropdownItems()}
+                            </ul>
+                        </div>
+                    </div>
+                    <div className="mt-2">
+                        <div className="row">
+                            <div className="col">
+                                Mandatory attributes:
+                                {mandatoryAttributeDropdownGroup()}
+                            </div>
+                        </div>
+                        <div className="row">
+                        <div className="col">
+                                Optional attributes:
+                            </div>
+                        </div>
                     </div>
                 </div>
             );
@@ -79,7 +121,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
 }
 SchemaExplorer.contextType = DBSchemaContext;
 
-export class AppMainCont extends React.Component<AppMainContProps, {}> {
+export class AppMainCont extends React.Component<AppMainContProps, AppMainContStates> {
     render() {
         if (this.props.load) {
             return (<div>Loading...</div>);
@@ -100,7 +142,10 @@ export class AppMainCont extends React.Component<AppMainContProps, {}> {
                         </div>
                         <div className="row">
                             <div className="col">
-                                <Visualiser selectedTableIndex={this.props.selectedTableIndex} visSchemaMatchStatus={this.props.visSchemaMatchStatus} selectedPattern={null} rerender={this.props.rerender} />
+                                <Visualiser 
+                                    selectedTableIndex={this.props.selectedTableIndex}
+                                    visSchemaMatchStatus={this.props.visSchemaMatchStatus}
+                                    rerender={this.props.rerender} />
                             </div>
                         </div>
                     </div>

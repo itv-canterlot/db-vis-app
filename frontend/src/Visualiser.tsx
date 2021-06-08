@@ -20,10 +20,11 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
 
         let dbContext: DBSchemaContextInterface = this.context;
         const thisTable = dbContext.allEntitiesList[this.props.selectedTableIndex];
-        const selectedPattern = 7; // TODO: temp
+        const selectedPattern = dbContext.selectedPatternIndex;
         const patternMatchStatus = this.props.visSchemaMatchStatus[selectedPattern];
         const selectedPatternTemplateCode = dbContext.visSchema[selectedPattern].template
         if (!patternMatchStatus) return;
+        console.log(dbContext.selectedPatternIndex)
         // TODO: deal with multiple tables
 
         // Map matched attributes to their names
@@ -32,16 +33,15 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                 return indAttr.map(attId => thisTable.attr[attId].attname);
             });
 
-        // TODO: Data hard-coded
-        const tempFirstAttribute = matchedAttributeNames[0][0];
-        const tempSecondAttribute = matchedAttributeNames[1][1];
+        // TODO: other attributes
 
         const args = {
-            xname: tempFirstAttribute,
-            yname: tempSecondAttribute
+            xname: matchedAttributeNames[0][dbContext.selectedAttributesIndices[0][0]],
+            yname: matchedAttributeNames[1][dbContext.selectedAttributesIndices[0][1]]
         };
-        
-        getDataFromSingleTableByName(thisTable.tableName, [tempFirstAttribute, tempSecondAttribute]).then(data => {
+
+        getDataFromSingleTableByName(thisTable.tableName, [args.xname, args.yname]).then(data => {
+            // Separate out data points with null
             renderVisualisation(selectedPatternTemplateCode, data, args)
         });
     }

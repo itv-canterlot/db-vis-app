@@ -142,3 +142,8 @@ type marginObject = {
     top?: number,
     bottom?: number
 }
+
+export type MatchedParamIndicesType = {
+    mandatoryAttributes: number[][],
+    optionalAttributes?: number[][]
+}

@@ -1,4 +1,4 @@
-import {PrimaryKey, ForeignKey, Table, Attribute, RelationNode} from './types'
+import {PrimaryKey, ForeignKey, Table, Attribute, RelationNode, MatchedParamIndicesType} from './types'
 
 /** UIElements.tsx **/
 export type SearchDropdownListProps = {
@@ -52,6 +52,7 @@ export type ApplicationStates = {
     relationsList?: RelationNode[],
     selectedTableIndex?: number,
     selectedPatternIndex?: number,
+    selectedAttributesIndices?: number[][], // TODO: expand if needed
     rerender?: boolean,
     load?: boolean,
     listLoaded?: boolean,
@@ -79,7 +80,7 @@ export type SidebarBubbleBlockProps = {
 export type SchemaExplorerProps = {
     expanded: boolean, 
     selectedTableIndex: number,
-    visSchemaMatchStatus?: any[],
+    visSchemaMatchStatus?: MatchedParamIndicesType[],
     onVisPatternIndexChange: Function
 }
 
@@ -91,11 +92,13 @@ export type AppMainContProps = {
     onVisPatternIndexChange: Function
 }
 
+export type AppMainContStates = {
+}
+
 /* Visualiser.tsx */
 export type VisualiserProps = {
     selectedTableIndex: number, 
     visSchemaMatchStatus: any[],
-    selectedPattern: number,
     rerender: boolean
 }
 

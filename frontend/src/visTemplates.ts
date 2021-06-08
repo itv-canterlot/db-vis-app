@@ -12,10 +12,29 @@ function renderPlot(parameters: VisTemplateBuilder) {
     const width = parameters.width,
         height = parameters.height,
         svg = parameters.svg,
-        data = parameters.data,
         margin = parameters.margin,
         xname = parameters.args["xname"],
-        yname = parameters.args["yname"]
+        yname = parameters.args["yname"];
+        // rawData = parameters.data;
+        
+    // let data = [];
+    let data = parameters.data
+    let nullPoints = [];
+    // Separate out null data points
+    let nullFilterIndex = data.length - 1;
+
+    while (nullFilterIndex >= 0) {
+        const d = data[nullFilterIndex];
+        const hasNull = d[xname] === undefined || d[xname] === null || d[yname] === undefined || d[yname] === null;
+        if (hasNull) {
+            nullPoints.push(d);
+            data.splice(nullFilterIndex, 1)
+        } else {
+            // data.push(d);
+        }
+        nullFilterIndex--;
+    }
+
 
     // Floating point values for the data points - for statistical use only, not for plotting
     const xfloat = data

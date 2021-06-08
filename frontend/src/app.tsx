@@ -1,7 +1,7 @@
 import * as React from 'react';
 import ReactDOM = require('react-dom');
 
-import { VisSchema } from './ts/types'
+import { MatchedParamIndicesType, VisSchema } from './ts/types'
 import { DBSchemaContext } from './DBSchemaContext';
 import { AppMainCont } from './AppMainCont';
 
@@ -23,6 +23,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             allEntitiesList: [],
             selectedTableIndex: -1,
             selectedPatternIndex: -1,
+            selectedAttributesIndices: [[], []],
             rerender: true,
             load: false,
             listLoaded: false,
@@ -69,10 +70,25 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         let entityRel = SchemaParser.getRelationInListByName(this.state.relationsList, selectedEntity.tableName);
 
         const matchStatusForAllSchema = getmatchTableWithAllVisSchemas(selectedEntity, entityRel, visSchema);
-        const firstValidPattern = matchStatusForAllSchema.findIndex(v => typeof(v) !== "undefined" && v !== null);
+        const firstValidPatternIndex = matchStatusForAllSchema.findIndex(v => typeof(v) !== "undefined" && v !== null);
+        const firstValidPatternMatchStatus: MatchedParamIndicesType = matchStatusForAllSchema.find(v => typeof(v) !== "undefined" && v !== null);
+        const mandatoryParamInitIndices = firstValidPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {
+            return Math.floor(Math.random() * mandMatch.length);
+        });
+        const optionalParamInitIndices = firstValidPatternMatchStatus.optionalAttributes.map((mandMatch, idx) => {
+            return Math.floor(Math.random() * mandMatch.length);
+        });
+        // TODO: make sure the picked indices are not duplicates of each other
+        // for (let i = 0; i < firstValidPatternMatchStatus.mandatoryAttributes.length; i++) {
+        //     for (let j = 0; j < firstValidPatternMatchStatus.mandatoryAttributes[i].length; j++) {
+                
+        //     }
+        // }
+        console.log(firstValidPatternMatchStatus)
         this.setState({
             visSchemaMatchStatus: matchStatusForAllSchema,
-            selectedPatternIndex: firstValidPattern ? firstValidPattern : -1
+            selectedPatternIndex: firstValidPatternIndex ? firstValidPatternIndex : -1,
+            selectedAttributesIndices: [mandatoryParamInitIndices, optionalParamInitIndices]
         });
     }
 
@@ -80,6 +96,12 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         this.setState({
             selectedPatternIndex: newIndex
         });
+    }
+
+    onSelectedAttributeIndicesChange = (newIndices: number[][]) => {
+        this.setState({
+            selectedAttributesIndices: newIndices
+        })
     }
 
     // Called when R1 is changed
@@ -154,7 +176,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             allEntitiesList: this.state.allEntitiesList, 
             relationsList: this.state.relationsList, 
             visSchema: visSchema,
-            selectedPatternIndex: this.state.selectedPatternIndex
+            selectedPatternIndex: this.state.selectedPatternIndex,
+            selectedAttributesIndices: this.state.selectedAttributesIndices
         };
 
         return (
