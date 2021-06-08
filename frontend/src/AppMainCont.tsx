@@ -19,8 +19,8 @@ class SchemaExplorer extends React.Component<{expanded: boolean, selectedTableIn
                 if (status) {
                     const matchedSchema = dbSchemaContext.visSchema[idx];
                     return (
-                        <li>
-                            <a className="dropdown-item" href="#" key={idx}>
+                        <li key={idx}>
+                            <a className="dropdown-item" href="#">
                                 {matchedSchema.name}
                             </a>
                         </li>

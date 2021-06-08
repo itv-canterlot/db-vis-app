@@ -130,7 +130,15 @@ export type RelationNode = {
 export type VisTemplateBuilder = {
     width: number,
     height: number,
+    margin?: marginObject,
     svg: any,
     data: any,
     args?: object
+}
+
+type marginObject = {
+    left?: number,
+    right?: number,
+    top?: number,
+    bottom?: number
 }

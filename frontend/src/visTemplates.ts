@@ -13,14 +13,24 @@ function renderPlot(parameters: VisTemplateBuilder) {
         height = parameters.height,
         svg = parameters.svg,
         data = parameters.data,
+        margin = parameters.margin,
         xname = parameters.args["xname"],
         yname = parameters.args["yname"]
 
+    // Floating point values for the data points - for statistical use only, not for plotting
+    const xfloat = data
+        .map(d => parseFloat(d[xname]))
+        .filter(d => !isNaN(d));
+
+    const yfloat = data
+        .map(d => parseFloat(d[yname]))
+        .filter(d => !isNaN(d))
+
     // Find out the range of each data dimension
-    const xmax = Math.max(...data.map(d => parseFloat(d[xname]))),
-        xmin = Math.min(...data.map(d => parseFloat(d[xname]))),
-        ymax = Math.max(...data.map(d => parseFloat(d[yname]))),
-        ymin = Math.min(...data.map(d => parseFloat(d[yname])))
+    const xmax = Math.max(...xfloat),
+        xmin = Math.min(...xfloat),
+        ymax = Math.max(...yfloat),
+        ymin = Math.min(...yfloat)
     const scaleExtensionRatio = 0.15;
 
     const limitExtensionFunction = (llim: number, hlim: number, scale: number) => {
@@ -43,6 +53,21 @@ function renderPlot(parameters: VisTemplateBuilder) {
     .range([ height, 0]);
     svg.append("g")
     .call(d3.axisLeft(y));
+
+    // Add X axis label:
+    svg.append("text")
+    .attr("text-anchor", "end")
+    .attr("x", width/2 + margin.left)
+    .attr("y", height + margin.top + 20)
+    .text(xname);
+
+    // Y axis label:
+    svg.append("text")
+    .attr("text-anchor", "end")
+    .attr("transform", "rotate(-90)")
+    .attr("y", - margin.left + 20)
+    .attr("x", - margin.top - height/2 + 20)
+    .text(yname)
 
     // Add dots
     svg.append('g')

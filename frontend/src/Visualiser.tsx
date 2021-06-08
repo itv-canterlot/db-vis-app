@@ -90,6 +90,7 @@ const renderVisualisation = (visSpecificCode: string, data: object[], args: obje
     const builder: VisTemplateBuilder = {
         width: width,
         height: height,
+        margin: margin,
         svg: svg,
         data: data,
         args: args
