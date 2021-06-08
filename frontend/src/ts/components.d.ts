@@ -51,6 +51,7 @@ export type ApplicationStates = {
     allEntitiesList?: Table[],
     relationsList?: RelationNode[],
     selectedTableIndex?: number,
+    selectedPatternIndex?: number,
     rerender?: boolean,
     load?: boolean,
     listLoaded?: boolean,
@@ -72,4 +73,32 @@ export type SidebarBubbleBlockProps = {
     bodyElement: JSX.Element,
     isLoaded: boolean,
     onClick?: React.MouseEventHandler
+}
+
+/* AppMainCont.tsx */
+export type SchemaExplorerProps = {
+    expanded: boolean, 
+    selectedTableIndex: number,
+    visSchemaMatchStatus?: any[],
+    onVisPatternIndexChange: Function
+}
+
+export type AppMainContProps = {
+    selectedTableIndex: number,
+    visSchemaMatchStatus: any[],
+    load: boolean,
+    rerender: boolean,
+    onVisPatternIndexChange: Function
+}
+
+/* Visualiser.tsx */
+export type VisualiserProps = {
+    selectedTableIndex: number, 
+    visSchemaMatchStatus: any[],
+    selectedPattern: number,
+    rerender: boolean
+}
+
+export type VisualiserStates = {
+    load?: boolean
 }

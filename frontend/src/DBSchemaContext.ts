@@ -4,11 +4,13 @@ import { RelationNode, Table, VisSchema } from './ts/types';
 export interface DBSchemaContextInterface {
     allEntitiesList: Table[],
     relationsList: RelationNode[],
-    visSchema: VisSchema[]
+    visSchema: VisSchema[],
+    selectedPatternIndex: number
 }
 
 export const DBSchemaContext = React.createContext<DBSchemaContextInterface>({
     allEntitiesList: [],
     relationsList: [],
-    visSchema: []
+    visSchema: [],
+    selectedPatternIndex: -1
 });

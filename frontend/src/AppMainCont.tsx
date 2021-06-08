@@ -1,10 +1,20 @@
 import * as React from 'react';
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
+import { AppMainContProps, SchemaExplorerProps } from './ts/components';
 import { Visualiser } from './Visualiser';
 
-class SchemaExplorer extends React.Component<{expanded: boolean, selectedTableIndex: number, visSchemaMatchStatus?: any[]}, {}> {
+class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
     constructor(props) {
         super(props);
+    }
+
+    onPatternSelectionDropdownClick = (e: React.BaseSyntheticEvent) => {
+        const selectedIndex = parseInt(e.target.getAttribute("data-index"));
+        if (!selectedIndex) return;
+        if (selectedIndex === this.props.selectedTableIndex) return;
+
+        this.props.onVisPatternIndexChange(selectedIndex);
+        // this.props.onVisPatternIndexChange
     }
 
     getMatchCount = (visStatus) => visStatus.reduce(
@@ -18,9 +28,12 @@ class SchemaExplorer extends React.Component<{expanded: boolean, selectedTableIn
             return this.props.visSchemaMatchStatus.map((status, idx) => {
                 if (status) {
                     const matchedSchema = dbSchemaContext.visSchema[idx];
+                    let classList = "dropdown-item";
+                    if (dbSchemaContext.selectedPatternIndex === idx) classList += " active"
+
                     return (
                         <li key={idx}>
-                            <a className="dropdown-item" href="#">
+                            <a className={classList} href="#" data-index={idx} onClick={this.onPatternSelectionDropdownClick}>
                                 {matchedSchema.name}
                             </a>
                         </li>
@@ -34,6 +47,8 @@ class SchemaExplorer extends React.Component<{expanded: boolean, selectedTableIn
 
     render() {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
+        const patternIndex = dbSchemaContext.selectedPatternIndex;
+        const thisPattern = dbSchemaContext.visSchema[patternIndex];
         if (this.props.selectedTableIndex < 0) {
             return (
                 <div className="d-flex justify-content-center">
@@ -49,8 +64,8 @@ class SchemaExplorer extends React.Component<{expanded: boolean, selectedTableIn
                         {dbSchemaContext.allEntitiesList[this.props.selectedTableIndex].tableName}
                     </div>
                     <div className="dropdown">
-                        <a className="btn btn-secondary dropdown-toggle" href="#" role="button" id="matched-schema-list-dropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            Dropdown link
+                        <a className="btn btn-primary dropdown-toggle" href="#" role="button" id="matched-schema-list-dropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            {thisPattern ? thisPattern.name : "Select Pattern..."}
                         </a>
 
                         <ul className="dropdown-menu" id="matched-schema-list-dropdown-list" aria-labelledby="matched-schema-list-dropdown">
@@ -64,7 +79,7 @@ class SchemaExplorer extends React.Component<{expanded: boolean, selectedTableIn
 }
 SchemaExplorer.contextType = DBSchemaContext;
 
-export class AppMainCont extends React.Component<{selectedTableIndex: number, visSchemaMatchStatus: any[], load: boolean, rerender: boolean}, {}> {
+export class AppMainCont extends React.Component<AppMainContProps, {}> {
     render() {
         if (this.props.load) {
             return (<div>Loading...</div>);
@@ -76,7 +91,11 @@ export class AppMainCont extends React.Component<{selectedTableIndex: number, vi
                     <div className="col">
                         <div className="row py-2" style={{borderBottom: "2px solid black"}}>
                             <div className="col">
-                                <SchemaExplorer expanded={true} selectedTableIndex={this.props.selectedTableIndex} visSchemaMatchStatus={this.props.visSchemaMatchStatus} />
+                                <SchemaExplorer 
+                                    expanded={true} 
+                                    selectedTableIndex={this.props.selectedTableIndex} 
+                                    visSchemaMatchStatus={this.props.visSchemaMatchStatus}
+                                    onVisPatternIndexChange={this.props.onVisPatternIndexChange} />
                             </div>
                         </div>
                         <div className="row">

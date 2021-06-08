@@ -1,12 +1,13 @@
 import * as React from 'react';
 import * as d3 from 'd3';
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext'
-import { Table, VisTemplateBuilder } from './ts/types'
+import { VisTemplateBuilder } from './ts/types'
 import { getDataFromSingleTableByName } from './Connections'
 
 import visTemplates from './visTemplates';
+import { VisualiserProps, VisualiserStates } from './ts/components';
 
-export class Visualiser extends React.Component<{selectedTableIndex: number, visSchemaMatchStatus: any[], selectedPattern: number, rerender: boolean}, {load?: boolean}> {
+export class Visualiser extends React.Component<VisualiserProps, VisualiserStates> {
     constructor(props) {
         super(props);
         this.state = {
