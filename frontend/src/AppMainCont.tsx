@@ -62,20 +62,22 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
             const thisPatternMatchStatus = this.props.visSchemaMatchStatus[patternIndex];
             const mandatoryAttributeDropdownGroup = () => {
                 if (!thisPatternMatchStatus || !thisPatternMatchStatus.mandatoryAttributes) return null;
+                const mandatorySelectedAttributesIndices = dbSchemaContext.selectedAttributesIndices[0];
                 return thisPatternMatchStatus.mandatoryAttributes.map((attMatchStatus, idx) => {
                     // Outer map: for each mandatory parameter in the pattern
                     const thisAttributeDropdownItemList = attMatchStatus.map((attIndex, listIndex) => {
                         // Inner map: for each matched attribute for each mandatory parameter
                         const thisAttribute = thisTable.attr[attIndex]
                         return (
-                            <li key={listIndex}><a className="dropdown-item small" href="#">{thisAttribute.attname}</a></li>
+                            <li key={listIndex}><a className={"dropdown-item small" + (listIndex === mandatorySelectedAttributesIndices[idx] ? " active" : "")} href="#">{thisAttribute.attname}</a></li>
                         )
                     });
+                    // This bit was brutally confusing
 
                     return (
                         <div className="btn-group ms-2" key={idx}>
                             <button className="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                ma{idx}
+                                ma{idx}: {thisTable.attr[thisPatternMatchStatus.mandatoryAttributes[idx][mandatorySelectedAttributesIndices[idx]]].attname}
                             </button>
                             <ul className="dropdown-menu">
                                 {thisAttributeDropdownItemList}
