@@ -96,9 +96,20 @@ app.get('/vis-encodings', (req, res) => {
   fs.readdir(encodingPath)
     .then((files => {
       return Promise.all(
-        files.map(f => fs.readFile(encodingPath + f, {encoding: 'utf8'})))
+        files.map(f => {
+          return fs.lstat(encodingPath + f).then(stat => {
+            if (stat.isFile()) {
+              if (!f.endsWith(".json")) return null;
+              return fs.readFile(encodingPath + f, {encoding: 'utf8'})
+            } else {
+              return null;
+            }
+          })
+        }))
     })).then(files => {
-      const ret = files.map(f => JSON.parse(f));
+      const ret = files
+        .filter(f => f != null)
+        .map(f => JSON.parse(f));
       res.send(ret);
     });
 })

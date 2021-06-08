@@ -48,7 +48,8 @@
                     "scalar": false,
                     "type": "COLOR"
                 }
-            ]
+            ],
+            "template": "scatter"
         }, {
             "name": "Bubble Charts",
             "type": 0,
