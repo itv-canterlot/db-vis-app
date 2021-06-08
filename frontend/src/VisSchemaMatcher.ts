@@ -172,7 +172,7 @@ const getMatchingAttributesByParameter = (table: Table, param: VisParam) => {
 }
 
 const isAttributeInPublicKey = (idx: number, pk: PrimaryKey) => {
-    return (pk.columns.map(col => col.colPos).includes(idx));
+    return (pk.columns.map(col => col.colPos).includes(idx + 1));
 }
 
 const isRelationReflexive = (rel: RelationNode) => {
