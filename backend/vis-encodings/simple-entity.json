@@ -70,7 +70,8 @@
                     "scalar": false,
                     "type": "COLOR"
                 }
-            ]
+            ],
+            "template": "bubble"
         }, {
             "name": "Choropleth Maps",
             "type": 0,

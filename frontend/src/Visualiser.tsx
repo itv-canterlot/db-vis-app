@@ -24,19 +24,22 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
         // TODO: deal with multiple tables
 
         // Map matched attributes to their names
-        const matchedAttributeNames = patternMatchStatus["mandatoryAttributes"]
+        const matchedMandatoryAttributeNames = patternMatchStatus["mandatoryAttributes"]
             .map(indAttr => {
                 return indAttr.map(attId => thisTable.attr[attId].attname);
             });
 
+        const userSelectedMandatoryAttributeIndices = this.props.selectedAttributesIndices[0];
+        const args = matchedMandatoryAttributeNames.map((v, i) => v[userSelectedMandatoryAttributeIndices[i]]);
+
         // TODO: other attributes
 
-        const args = {
-            xname: matchedAttributeNames[0][this.props.selectedAttributesIndices[0][0]],
-            yname: matchedAttributeNames[1][this.props.selectedAttributesIndices[0][1]]
-        };
+        // const args = {
+        //     xname: matchedMandatoryAttributeNames[0][this.props.selectedAttributesIndices[0][0]],
+        //     yname: matchedMandatoryAttributeNames[1][this.props.selectedAttributesIndices[0][1]]
+        // };
 
-        getDataFromSingleTableByName(thisTable.tableName, [args.xname, args.yname]).then(data => {
+        getDataFromSingleTableByName(thisTable.tableName, args).then(data => {
             // Separate out data points with null
             renderVisualisation(selectedPatternTemplateCode, data, args);
             this.setState({
@@ -115,7 +118,6 @@ const renderVisualisation = (visSpecificCode: string, data: object[], args: obje
             .attr("transform",
                 "translate(" + margin.left + "," + margin.top + ")")
     }
-    console.log(svg);
 
     const builder: VisTemplateBuilder = {
         width: width,

@@ -81,11 +81,12 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
                         )
                     });
                     // This bit was brutally confusing
+                    const thisAttrPatternStatus = thisPatternMatchStatus.mandatoryAttributes[idx];
 
                     return (
                         <div className="btn-group ms-2" key={idx}>
                             <button className="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                ma{idx}: {thisTable.attr[thisPatternMatchStatus.mandatoryAttributes[idx][mandatorySelectedAttributesIndices[idx]]].attname}
+                                ma{idx}: {thisTable.attr[thisAttrPatternStatus[mandatorySelectedAttributesIndices[idx]]].attname}
                             </button>
                             <ul className="dropdown-menu">
                                 {thisAttributeDropdownItemList}
@@ -141,6 +142,8 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
             return (<div>Loading...</div>);
         }
         const dbSchemaContext: DBSchemaContextInterface = this.context;
+        console.log(this.props.visSchemaMatchStatus)
+        console.log(this.props.selectedAttributesIndices)
         return (
             <div className="col-8 col-lg-9">
                 <div className="row">

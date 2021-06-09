@@ -75,9 +75,15 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         const mandatoryParamInitIndices = firstValidPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {
             return Math.floor(Math.random() * mandMatch.length);
         });
-        const optionalParamInitIndices = firstValidPatternMatchStatus.optionalAttributes.map((mandMatch, idx) => {
-            return Math.floor(Math.random() * mandMatch.length);
-        });
+        let optionalParamInitIndices;
+        if (firstValidPatternMatchStatus.hasOwnProperty("optionalAttributes")) {
+            optionalParamInitIndices = firstValidPatternMatchStatus.optionalAttributes.map((mandMatch, idx) => {
+                return Math.floor(Math.random() * mandMatch.length);
+            });
+        } else {
+            optionalParamInitIndices = [];
+        }
+        
         // TODO: make sure the picked indices are not duplicates of each other
         // for (let i = 0; i < firstValidPatternMatchStatus.mandatoryAttributes.length; i++) {
         //     for (let j = 0; j < firstValidPatternMatchStatus.mandatoryAttributes[i].length; j++) {
@@ -93,8 +99,24 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     }
 
     onVisPatternIndexChange = (newIndex: number) => {
+        const newPatternMatchStatus: MatchedParamIndicesType = 
+            this.state.visSchemaMatchStatus[newIndex];
+
+        const mandatoryParamInitIndices = newPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {
+            return Math.floor(Math.random() * mandMatch.length);
+        });
+        const optionalParamInitIndices = newPatternMatchStatus.optionalAttributes.map((mandMatch, idx) => {
+            return Math.floor(Math.random() * mandMatch.length);
+        });
+
         this.setState({
-            selectedPatternIndex: newIndex
+            selectedPatternIndex: newIndex,
+            selectedAttributesIndices: [mandatoryParamInitIndices, optionalParamInitIndices],
+            rerender: true
+        }, () => {
+            this.setState({
+                rerender: false
+            });
         });
     }
 
