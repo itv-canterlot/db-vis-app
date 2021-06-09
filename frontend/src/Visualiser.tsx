@@ -101,13 +101,21 @@ const renderVisualisation = (visSpecificCode: string, data: object[], args: obje
     height = 400 - margin.top - margin.bottom;
 
     // append the svg object to the body of the page
-    var svg = d3.select("#vis-cont")
-    .append("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-    .append("g")
-    .attr("transform",
-        "translate(" + margin.left + "," + margin.top + ")");
+    let svg = d3.select("#vis-cont")
+        .select("svg > g");
+    if (!svg.empty()) {
+        console.log("Non-empty")
+        svg.selectAll("*").remove();
+    } else {
+        console.log("Empty")
+        svg = d3.select("#vis-cont").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform",
+                "translate(" + margin.left + "," + margin.top + ")")
+    }
+    console.log(svg);
 
     const builder: VisTemplateBuilder = {
         width: width,
