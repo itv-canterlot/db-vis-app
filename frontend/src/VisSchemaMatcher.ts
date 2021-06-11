@@ -1,3 +1,4 @@
+import * as SchemaParser from "./SchemaParser";
 import {Attribute, PrimaryKey, RelationNode, Table, VisKey, VisParam, VISPARAMTYPES, VisSchema, VISSCHEMATYPES, MatchedParamIndicesType} from "./ts/types";
 import * as TypeConstants from "./TypeConstants";
 
@@ -106,7 +107,7 @@ const getMatchingAttributesByParameter = (table: Table, param: VisParam) => {
     for (let i = 0; i < table.attr.length; i++) {
         const thisAttr = table.attr[i];
         // Skip pks(?)
-        if (isAttributeInPublicKey(i, table.pk)) continue;
+        if (SchemaParser.isAttributeInPrimaryKey(i + 1, table.pk)) continue;
         // Check specific types first
         if (!doesAttributeMatchVisParamType(thisAttr, param)) continue;
 
@@ -117,9 +118,6 @@ const getMatchingAttributesByParameter = (table: Table, param: VisParam) => {
     return paramMatchableIndices;
 }
 
-const isAttributeInPublicKey = (idx: number, pk: PrimaryKey) => {
-    return (pk.columns.map(col => col.colPos).includes(idx + 1));
-}
 
 const isRelationReflexive = (rel: RelationNode) => {
     if (rel.type !== VISSCHEMATYPES.MANYMANY) return false;

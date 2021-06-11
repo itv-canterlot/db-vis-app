@@ -117,6 +117,15 @@ export const getRelationInListByName = (relationsList: RelationNode[], tableName
     return undefined;
 }
 
+export const isAttributeInPrimaryKey = (idx: number, pk: PrimaryKey) => {
+    return (pk.columns.map(col => col.colPos).includes(idx));
+}
+
+export const isAttributeInForeignKey = (idx: number, fk: ForeignKey) => {
+    return (fk.columns.map(col => col.fkColPos).includes(idx));
+}
+
+
 const constructRelation = (tableList: Table[]) => {
     let relationsList: RelationNode[] = [];
     tableList.forEach(item => {

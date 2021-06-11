@@ -147,14 +147,16 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
         }
 
         const tableAttributeList = () => {
-            return thisTable.attr.map(att => (
+            return thisTable.attr.map(att => {
+                return (
                 <li className="list-group-item pb-1 d-flex justify-content-between" key={att.attnum}>
                     <div>
                         {att.attname}
                     </div>
-                    {renderTypName(att)}
+                    {renderTips(thisTable, att)}
                 </li>
-            ))
+                );
+            });
         }
         
         return (
@@ -246,21 +248,47 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
 StartingTableSelectModal.contextType = DBSchemaContext;
 
 
-const renderTypName = (att: Attribute) => {
+const renderTips = (table: Table, att: Attribute) => {
+    let isAttributeInPrimaryKey, tablePrimaryKeyTip;
+        if (table.pk) {
+            isAttributeInPrimaryKey = SchemaParser.isAttributeInPrimaryKey(att.attnum, table.pk);
+        } else {
+            isAttributeInPrimaryKey = false;
+        }
+
+    if (isAttributeInPrimaryKey) {
+        tablePrimaryKeyTip = (
+            <div className="me-1 text-muted dropdown-tip bg-tip-pk d-inline-block">pk</div>
+        )
+    } else {
+        tablePrimaryKeyTip = null;
+    }
+
     if (TypeConstants.isAttributeScalar(att)) {
         return (
-            <div data-bs-toggle="tooltip" data-bs-placement="top" title={att.typname}>
-                <i className="fas fa-sort-numeric-down" />
-            </div>)
+            <div className="d-flex">
+                {tablePrimaryKeyTip}
+                <div data-bs-toggle="tooltip" data-bs-placement="top" title={att.typname}>
+                    <i className="fas fa-sort-numeric-down" />
+                </div>
+            </div>
+            )
     } else if (TypeConstants.isAttributeTemporal(att)) {
         return (
-            <div data-bs-toggle="tooltip" data-bs-placement="top" title={att.typname}>
-                <i className="fas fa-calendar" />
-            </div>)
+            <div className="d-flex">
+                {tablePrimaryKeyTip}
+                <div data-bs-toggle="tooltip" data-bs-placement="top" title={att.typname}>
+                    <i className="fas fa-calendar" />
+                </div>
+            </div>
+            )
     } else {
         return (
-            <div data-bs-toggle="tooltip" data-bs-placement="top" title={att.typname}>
-                <i className="fas fa-question" />
+            <div className="d-flex">
+                {tablePrimaryKeyTip}
+                <div data-bs-toggle="tooltip" data-bs-placement="top" title={att.typname}>
+                    <i className="fas fa-question" />
+                </div>
             </div>)
     }
 }
