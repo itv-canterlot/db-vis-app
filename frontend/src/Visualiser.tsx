@@ -34,11 +34,6 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
 
         // TODO: other attributes
 
-        // const args = {
-        //     xname: matchedMandatoryAttributeNames[0][this.props.selectedAttributesIndices[0][0]],
-        //     yname: matchedMandatoryAttributeNames[1][this.props.selectedAttributesIndices[0][1]]
-        // };
-
         getDataFromSingleTableByName(thisTable.tableName, args).then(data => {
             // Separate out data points with null
             renderVisualisation(selectedPatternTemplateCode, data, args);
@@ -60,30 +55,34 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
     
     componentDidUpdate() {
         let dbContext: DBSchemaContextInterface = this.context;
-        if (this.props.selectedTableIndex === this.state.renderedTableIndex) {
-            let allAttributeSetMatched = true;
-            for (let x = 0; x < this.props.selectedAttributesIndices.length; x++) {
-                const newAttSet = this.props.selectedAttributesIndices[x];
-                const oldAttSet = this.state.renderedAttributesIndices[x];
-
-                if (newAttSet.length === oldAttSet.length) {
-                    for (let y = 0; y < newAttSet.length; y++) {
-                        if (newAttSet[y] !== oldAttSet[y]) {
-                            allAttributeSetMatched = false;
-                            break;
+        if (this.state) {
+            if (this.props.selectedTableIndex === this.state.renderedTableIndex) {
+                let allAttributeSetMatched = true;
+                for (let x = 0; x < this.props.selectedAttributesIndices.length; x++) {
+                    const newAttSet = this.props.selectedAttributesIndices[x];
+                    const oldAttSet = this.state.renderedAttributesIndices[x];
+    
+                    if (newAttSet.length === oldAttSet.length) {
+                        for (let y = 0; y < newAttSet.length; y++) {
+                            if (newAttSet[y] !== oldAttSet[y]) {
+                                allAttributeSetMatched = false;
+                                break;
+                            }
                         }
+                    } else allAttributeSetMatched = false;
+                }
+    
+                if (!allAttributeSetMatched) {
+                    if (dbContext.allEntitiesList !== undefined && dbContext.allEntitiesList.length !== 0) {
+                        if (this.props.selectedTableIndex < 0) return;
+            
+                        this.visualisationHandler();
                     }
-                } else allAttributeSetMatched = false;
-            }
-
-            if (!allAttributeSetMatched) {
-                if (dbContext.allEntitiesList !== undefined && dbContext.allEntitiesList.length !== 0) {
-                    if (this.props.selectedTableIndex < 0) return;
-        
-                    this.visualisationHandler();
                 }
             }
-        }   
+        } else {
+            this.visualisationHandler();
+        }
     }
 
     render() {

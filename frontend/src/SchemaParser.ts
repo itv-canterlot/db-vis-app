@@ -128,25 +128,25 @@ export const isAttributeInForeignKey = (idx: number, fk: ForeignKey) => {
 
 const constructRelation = (tableList: Table[]) => {
     let relationsList: RelationNode[] = [];
-    tableList.forEach(item => {
+    tableList.forEach(table => {
         let newRelation: RelationNode;
-        if (item.isJunction) {
+        if (table.isJunction) {
             newRelation = {
                 type: VISSCHEMATYPES.MANYMANY,
-                parentEntity: item,
+                parentEntity: table,
                 childEntities: [],
             }
-        } else if (item.weakEntitiesIndices.length !== 0) {
+        } else if (table.weakEntitiesIndices.length !== 0) {
             newRelation = {
                 type: VISSCHEMATYPES.WEAKENTITY,
-                parentEntity: item,
+                parentEntity: table,
                 childEntities: []
             }
         } else {
             // Determine one-to-many or one-to-one?
             newRelation = {
                 type: VISSCHEMATYPES.ONEMANY,
-                parentEntity: item,
+                parentEntity: table,
                 childEntities: []
             }
         }

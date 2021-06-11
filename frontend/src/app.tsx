@@ -140,27 +140,28 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
     // Called when R1 is changed
     onTableSelectChange = (e) => {
+        let tableIndex = -1;
+        if (e instanceof Object) {
+            tableIndex = parseInt(e.target.getAttribute("data-index"));
+        } else {
+            tableIndex = e;
+        }
+
+        const tableIndexChanged = this.state.selectedTableIndex !== tableIndex
+
+        if (tableIndex < 0) {
+            this.setState({
+                load: true
+            });
+            return;
+        };
+
+        if (!tableIndexChanged) return;
+
         this.setState({
             load: true,
             rerender: false
-        }, () => {
-            let tableIndex = -1;
-    
-            if (e instanceof Object) {
-                tableIndex = parseInt(e.target.getAttribute("data-index"));
-            } else {
-                tableIndex = e;
-            }
-    
-            if (tableIndex < 0) {
-                this.setState({
-                    load: true
-                });
-                return;
-            };
-
-            const tableIndexChanged = this.state.selectedTableIndex !== tableIndex
-    
+        }, () => {    
             this.setState({
                 selectedTableIndex: tableIndex,
                 rerender: tableIndexChanged
