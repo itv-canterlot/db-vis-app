@@ -69,7 +69,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         let selectedEntity = this.state.allEntitiesList[this.state.selectedTableIndex];
         let entityRel = SchemaParser.getRelationsInListByName(this.state.relationsList, selectedEntity.tableName);
 
-        // TODO: only take the first relation
+        // TODO: fix case with no match
         const matchStatusForAllSchema = matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema);
         const firstValidPatternIndex = matchStatusForAllSchema.findIndex(v => typeof(v) !== "undefined" && v !== null);
         const firstValidPatternMatchStatus: MatchedParamIndicesType = matchStatusForAllSchema.find(v => typeof(v) !== "undefined" && v !== null);

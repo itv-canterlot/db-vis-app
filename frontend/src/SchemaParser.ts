@@ -17,7 +17,7 @@ const getKeyPosFromFK = (fk: ForeignKey) => fk.columns.map(key => key.fkColPos);
     if (!tableHasPKAndFK(table)) return [];
     const conkeyLength = table.pk.columns ? table.pk.columns.length : 0;
 
-    let subsetKeyIdx: number[] = []; // TODO: should I also pass this on?
+    let subsetKeyIdx: number[] = [];
     for (let i = 0; i < table.fk.length; i++) {
         let fkElem = table.fk[i];
         let fkKeys = getKeyPosFromFK(fkElem);
@@ -122,6 +122,10 @@ export const getRelationsInListByName = (relationsList: RelationNode[], tableNam
     })
 }
 
+export const isTableAtRootOfRel = (table: Table, rel: RelationNode) => {
+    return rel.parentEntity === table;
+}
+
 
 export const isAttributeInPrimaryKey = (idx: number, pk: PrimaryKey) => {
     return (pk.columns.map(col => col.colPos).includes(idx));
@@ -146,20 +150,21 @@ const constructManyManyRelation = (tableList: Table[], table: Table, fks: Foreig
     };
 }
 
-const constructWeakEntityRelation = (tableList: Table[], table: Table, weakEntitiesIndices: number[]) => {
-    const childRelations: ChildRelation[] = weakEntitiesIndices.map(wIndex => {
-        const thisFk = table.fk[wIndex];
+const constructWeakEntityRelation = (tableList: Table[], thisTable: Table, weakEntitiesIndices: number[]) => {
+    return weakEntitiesIndices.map(wIndex => {
+        const childRelations: ChildRelation[] = weakEntitiesIndices.map(wIndex => {
+            return {
+                table: thisTable,
+                fkIndex: wIndex
+            }
+        });
+        const thisFk = thisTable.fk[wIndex];
         return {
-            table: searchTableListByName(tableList, thisFk.pkTableName),
-            fkIndex: wIndex
+            type: VISSCHEMATYPES.WEAKENTITY,
+            parentEntity: searchTableListByName(tableList, thisFk.pkTableName),
+            childRelations: childRelations
         }
-    });
-
-    return {
-        type: VISSCHEMATYPES.WEAKENTITY,
-        parentEntity: table,
-        childRelations: childRelations
-    }
+    })
 }
 
 function constructOneManyRelation(tableList: Table[], table: Table, weakEntitiesIndices: number[]) {
@@ -188,7 +193,7 @@ export const preprocessEntities = (tableList: Table[]) => {
             if (weakEntitiesIndices.length > 0) {
                 // This table is a lesser member of a weak entity relationship
                 let thisRelation = constructWeakEntityRelation(tableList, thisTable, weakEntitiesIndices)
-                relationsList.push(thisRelation);
+                relationsList.push(...thisRelation);
             }
         }
 

@@ -7,7 +7,6 @@ import { getRelationsInListByName } from './SchemaParser';
 import { Table, RelationNode, VisSchema, Attribute, VISSCHEMATYPES } from './ts/types';
 import * as SchemaParser from './SchemaParser';
 import * as TypeConstants from './TypeConstants';
-import { matchTableWithAllVisPatterns } from './VisSchemaMatcher';
 
 
 export class StartingTableSelectModal extends React.Component<{onClose: Function, onTableSelectChange: Function, selectedTableIndex: number}, {cachedSelectedIndex?: number, selectedForeignKeyIdx?: number}> {
@@ -51,106 +50,163 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
     getTableRelationVis = () => {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
         let thisTable: Table = undefined;
-        let thisRels: RelationNode = undefined // TODO: this really should be a list
+        let thisRels: RelationNode[] = undefined
         if (this.state.cachedSelectedIndex >= 0) {
             thisTable = dbSchemaContext.allEntitiesList[this.state.cachedSelectedIndex];
-            thisRels = getRelationsInListByName(dbSchemaContext.relationsList, thisTable.tableName)[0]; // TODO: only using the first matched relation
+            thisRels = getRelationsInListByName(dbSchemaContext.relationsList, thisTable.tableName); // TODO: only using the first matched relation
         }
 
         const foreignRelationsElement = () => {
-            return thisRels.childRelations.map((rel, i) => {
-                return (
-                    <li className="list-group-item" key={i}>
-                        <div>
-                            {rel.table.tableName}
-                        </div>
-                        <div>
-                            {thisRels.type}
-                        </div>
-                </li>   
-                )
-            })
-        }
+            if (thisRels) {
+                return thisRels.map((rel, idx) => {
+                    const thisRelType = rel.type;
+                    const isTableAtRoot = SchemaParser.isTableAtRootOfRel(thisTable, rel);
 
-        let foreignKeyParing;
-        if (thisRels && thisRels.childRelations.length !== 0) {
-            let chosenIndex = this.state.selectedForeignKeyIdx;
-            if (this.state.selectedForeignKeyIdx > thisRels.childRelations.length) {
-                chosenIndex = 0;
-            }
-            const fkRel = thisRels.childRelations[chosenIndex]
-            foreignKeyParing = (
-            <div className="card">
-                    <div className="card-body d-flex justify-content-between align-items-center">
-                        <h5 className="card-title">Foreign relations</h5>
-                        <span className="badge bg-primary rounded-pill">{thisRels.childRelations.length}</span>
-                    </div>
-                    <ul className="list-group start-table-rel-list ml-auto mr-auto">
-                        {foreignRelationsElement}
-                    </ul>
-                </div>
-           );
-        } else {
-            foreignKeyParing = null
-        }
+                    let relationTypeTip, relationParentTip, foreignTableList;
 
-        const manyToManyTip = () => {
-            if (!thisRels) return null;
-            if (thisRels.type === VISSCHEMATYPES.MANYMANY) {
-                return (
-                <div className="me-1 text-muted dropdown-tip bg-tip-junc d-flex tip-fontsize" style={{"flexDirection": "column"}}>
-                    <div>
-                        <i className="fas fa-compress-alt me-1 pe-none" />Junction table between: 
-                    </div>
-                    <div className="d-flex">
-                        {thisRels.childRelations.map((ce, i) => {
-                            const ceName = ce.table.tableName;
-                            if (thisRels.childRelations.length === 1) {
-                                return <strong key={i}>{ceName}</strong>;
-                            } else {
-                                const ceLength = thisRels.childRelations.length;
-                                if (i === ceLength - 1) {
-                                    return <strong key={i}>{ceName}</strong>;
-                                } else {
-                                    return <div key={i}><strong>{ceName}</strong>{", "}</div>
-                                }
-                            }
-                            })}
-                    </div>
-                </div>
-                )
-            }
-        }
+                    // Tooltip for root status
+                    if (isTableAtRoot) {
+                        if (thisRelType === VISSCHEMATYPES.MANYMANY) {
+                            relationParentTip = (
+                                <div>Junction table</div>
+                            );
+                        } else if (thisRelType === VISSCHEMATYPES.WEAKENTITY) {
+                            relationParentTip = (
+                                <div>Parent</div>
+                            );
+                        }
+                    } else {
+                        console.log(rel)
+                        relationParentTip = (
+                            <div>Child (parent: {rel.parentEntity.tableName})</div>
+                        )
+                    }
 
-        const weakEntityTip = () => {
-            if (!thisRels) return null;
-            if (thisRels.type === VISSCHEMATYPES.WEAKENTITY) {
-                return (
-                <div className="me-1 text-muted dropdown-tip bg-tip-weak-link d-flex tip-fontsize" style={{"flexDirection": "column"}}>
-                    <div>
-                        <i className="fas fa-asterisk me-1 pe-none" />Weak entity of: 
-                    </div>
-                    <div className="d-flex">
-                        {thisRels.childRelations.map((ce, i) => {
-                            const ceName = ce.table.tableName;
-                            if (thisRels.childRelations.length === 1) {
-                                return <strong key={i}>{ceName}</strong>;
-                            } else {
-                                const ceLength = thisRels.childRelations.length;
-                                if (i === ceLength - 1) {
-                                    return <strong key={i}>{ceName}</strong>;
-                                } else {
-                                    return <div key={i}><strong>{ceName}</strong>{", "}</div>
-                                }
-                            }
-                        })}
-                    </div>
-                </div>
-                )
+                    // Tooltip for relation type
+                    switch (thisRelType) {
+                        case VISSCHEMATYPES.WEAKENTITY:
+                            relationTypeTip = (
+                                <div>
+                                    Weak entity
+                                </div>
+                            );
+                            break;
+                        case VISSCHEMATYPES.MANYMANY:
+                            relationTypeTip = (
+                                <div>
+                                    Many-to-many
+                                </div>
+                            );
+                            break;
+                        default:
+                            break;
+                    }
+
+                    // Listing related tables
+                    foreignTableList = rel.childRelations.map((childRel, childIdx) => {
+                        const childEntity = childRel.table;
+                        if (childEntity === thisTable) return null;
+                        return (
+                            <div key={childIdx}>
+                                <i className="fas fa-arrow-right" /> {childEntity.tableName} ({rel.parentEntity.fk[childRel.fkIndex].keyName})
+                            </div>);
+                    });
+                    
+                    const relationElement = (
+                        <li className="list-group-item" key={idx}>
+                            {relationTypeTip}
+                            {relationParentTip}
+                            {foreignTableList}
+                        </li>
+                    );
+
+                    return relationElement;
+
+                });
             } else {
-                return null;
+                return (
+                    <li className="list-group-item">
+                        <div>
+                            <em>No foreign relations</em>
+                        </div>
+                    </li>
+                )
             }
         }
+
+        let foreignKeyParing = null;
+
+        if (thisRels) {
+            foreignKeyParing = (
+                <div className="card">
+                        <div className="card-body d-flex justify-content-between align-items-center">
+                            <h5 className="card-title">Foreign relations</h5>
+                            <span className="badge bg-primary rounded-pill">{thisRels.length}</span>
+                        </div>
+                        <ul className="list-group start-table-rel-list ml-auto mr-auto">
+                            {foreignRelationsElement()}
+                        </ul>
+                    </div>
+               );
+        }
+
+        // const manyToManyTip = () => {
+        //     if (!thisRels) return null;
+        //     if (thisRels.type === VISSCHEMATYPES.MANYMANY) {
+        //         return (
+        //         <div className="me-1 text-muted dropdown-tip bg-tip-junc d-flex tip-fontsize" style={{"flexDirection": "column"}}>
+        //             <div>
+        //                 <i className="fas fa-compress-alt me-1 pe-none" />Junction table between: 
+        //             </div>
+        //             <div className="d-flex">
+        //                 {thisRels.childRelations.map((ce, i) => {
+        //                     const ceName = ce.table.tableName;
+        //                     if (thisRels.childRelations.length === 1) {
+        //                         return <strong key={i}>{ceName}</strong>;
+        //                     } else {
+        //                         const ceLength = thisRels.childRelations.length;
+        //                         if (i === ceLength - 1) {
+        //                             return <strong key={i}>{ceName}</strong>;
+        //                         } else {
+        //                             return <div key={i}><strong>{ceName}</strong>{", "}</div>
+        //                         }
+        //                     }
+        //                     })}
+        //             </div>
+        //         </div>
+        //         )
+        //     }
+        // }
+
+        // const weakEntityTip = () => {
+        //     if (!thisRels) return null;
+        //     if (thisRels.type === VISSCHEMATYPES.WEAKENTITY) {
+        //         return (
+        //         <div className="me-1 text-muted dropdown-tip bg-tip-weak-link d-flex tip-fontsize" style={{"flexDirection": "column"}}>
+        //             <div>
+        //                 <i className="fas fa-asterisk me-1 pe-none" />Weak entity of: 
+        //             </div>
+        //             <div className="d-flex">
+        //                 {thisRels.childRelations.map((ce, i) => {
+        //                     const ceName = ce.table.tableName;
+        //                     if (thisRels.childRelations.length === 1) {
+        //                         return <strong key={i}>{ceName}</strong>;
+        //                     } else {
+        //                         const ceLength = thisRels.childRelations.length;
+        //                         if (i === ceLength - 1) {
+        //                             return <strong key={i}>{ceName}</strong>;
+        //                         } else {
+        //                             return <div key={i}><strong>{ceName}</strong>{", "}</div>
+        //                         }
+        //                     }
+        //                 })}
+        //             </div>
+        //         </div>
+        //         )
+        //     } else {
+        //         return null;
+        //     }
+        // }
 
         const tableAttributeList = () => {
             return thisTable.attr.map(att => {
@@ -173,8 +229,8 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
                             <h5 className="card-title">{thisTable.tableName}</h5>
                             <h6 className="card-subtitle mb-2 text-muted">n_keys: {thisTable.pk ? thisTable.pk.keyCount : (<em>not available</em>)}</h6>
                             <div className="card-text">
-                                {manyToManyTip()}
-                                {weakEntityTip()}
+                                {/* {manyToManyTip()}
+                                {weakEntityTip()} */}
                             </div>
                         </div>
                         <ul className="list-group list-group-flush start-table-rel-list ml-auto mr-auto">
