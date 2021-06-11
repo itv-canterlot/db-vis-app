@@ -6,7 +6,7 @@ import { DBSchemaContext } from './DBSchemaContext';
 import { AppMainCont } from './AppMainCont';
 
 import { AppSidebar } from './AppSidebar';
-import { matchTableWithAllRels as getmatchTableWithAllVisSchemas, matchTableWithRel } from './VisSchemaMatcher'
+import { matchTableWithAllVisPatterns } from './VisSchemaMatcher'
 
 import * as ComponentTypes from './ts/components';
 import * as Connections from './Connections';
@@ -67,9 +67,10 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
         // Check type of the relation
         let selectedEntity = this.state.allEntitiesList[this.state.selectedTableIndex];
-        let entityRel = SchemaParser.getRelationInListByName(this.state.relationsList, selectedEntity.tableName);
+        let entityRel = SchemaParser.getRelationsInListByName(this.state.relationsList, selectedEntity.tableName);
 
-        const matchStatusForAllSchema = getmatchTableWithAllVisSchemas(selectedEntity, entityRel, visSchema);
+        // TODO: only take the first relation
+        const matchStatusForAllSchema = matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema);
         const firstValidPatternIndex = matchStatusForAllSchema.findIndex(v => typeof(v) !== "undefined" && v !== null);
         const firstValidPatternMatchStatus: MatchedParamIndicesType = matchStatusForAllSchema.find(v => typeof(v) !== "undefined" && v !== null);
         const mandatoryParamInitIndices = firstValidPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {

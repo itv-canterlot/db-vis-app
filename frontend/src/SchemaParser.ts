@@ -107,15 +107,21 @@ const tableHasPKAndFK = (table: Table) => {
     return fkHasLength;
 }
 
-export const getRelationInListByName = (relationsList: RelationNode[], tableName: string) => {
-    for (let i = 0; i < relationsList.length; i++) {
-        if (relationsList[i].parentEntity.tableName === tableName) {
-            return relationsList[i];
-        }
-    }
+export const getRelationsInListByName = (relationsList: RelationNode[], tableName: string) => {
+    return relationsList.filter(rel => {
+        // Relations where the parent entity matches tableName
+        const parentMatch = rel.parentEntity.tableName === tableName;
+        if (parentMatch) return true;
 
-    return undefined;
+        // Relations where the table is one of the child nodes
+        const childMatch = rel.childRelations.some(childRel => {
+            return childRel.table.tableName === tableName;
+        })
+
+        return childMatch;
+    })
 }
+
 
 export const isAttributeInPrimaryKey = (idx: number, pk: PrimaryKey) => {
     return (pk.columns.map(col => col.colPos).includes(idx));

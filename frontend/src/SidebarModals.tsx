@@ -3,11 +3,11 @@ import bootstrap = require('bootstrap');
 
 import { DBSchemaContextInterface, DBSchemaContext } from './DBSchemaContext';
 import { EntitySelector } from './EntitySelector';
-import { getRelationInListByName } from './SchemaParser';
+import { getRelationsInListByName } from './SchemaParser';
 import { Table, RelationNode, VisSchema, Attribute, VISSCHEMATYPES } from './ts/types';
 import * as SchemaParser from './SchemaParser';
 import * as TypeConstants from './TypeConstants';
-import { matchTableWithRel } from './VisSchemaMatcher';
+import { matchTableWithAllVisPatterns } from './VisSchemaMatcher';
 
 
 export class StartingTableSelectModal extends React.Component<{onClose: Function, onTableSelectChange: Function, selectedTableIndex: number}, {cachedSelectedIndex?: number, selectedForeignKeyIdx?: number}> {
@@ -54,7 +54,22 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
         let thisRels: RelationNode = undefined // TODO: this really should be a list
         if (this.state.cachedSelectedIndex >= 0) {
             thisTable = dbSchemaContext.allEntitiesList[this.state.cachedSelectedIndex];
-            thisRels = getRelationInListByName(dbSchemaContext.relationsList, thisTable.tableName);
+            thisRels = getRelationsInListByName(dbSchemaContext.relationsList, thisTable.tableName)[0]; // TODO: only using the first matched relation
+        }
+
+        const foreignRelationsElement = () => {
+            return thisRels.childRelations.map((rel, i) => {
+                return (
+                    <li className="list-group-item" key={i}>
+                        <div>
+                            {rel.table.tableName}
+                        </div>
+                        <div>
+                            {thisRels.type}
+                        </div>
+                </li>   
+                )
+            })
         }
 
         let foreignKeyParing;
@@ -67,22 +82,11 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
             foreignKeyParing = (
             <div className="card">
                     <div className="card-body d-flex justify-content-between align-items-center">
-                        <h5 className="card-title">Related tables</h5>
+                        <h5 className="card-title">Foreign relations</h5>
                         <span className="badge bg-primary rounded-pill">{thisRels.childRelations.length}</span>
                     </div>
                     <ul className="list-group start-table-rel-list ml-auto mr-auto">
-                        {thisRels.childRelations.map((rel, i) => {
-                            return (
-                                <li className="list-group-item" key={i}>
-                                    <div>
-                                        {rel.table.tableName}
-                                    </div>
-                                    <div>
-                                        {thisRels.type}
-                                    </div>
-                            </li>   
-                            )
-                        })}
+                        {foreignRelationsElement}
                     </ul>
                 </div>
            );
@@ -313,17 +317,6 @@ export class MatchedSchemasModal extends React.Component<{onClose: Function, sel
             this.modalComponent.hide();
         }
         this.props.onClose();
-    }
-
-    getAllMatchableVisSchema = () => {
-        let dbSchemaContext: DBSchemaContextInterface = this.context;
-        let selectedEntity = dbSchemaContext.allEntitiesList[this.props.selectedTableIndex];
-        let entityRel = SchemaParser.getRelationInListByName(dbSchemaContext.relationsList, selectedEntity.tableName);
-        
-        this.props.visSchema.forEach(vs => {
-            const matchResult = matchTableWithRel(selectedEntity, entityRel, vs);
-            if (matchResult) console.log(matchResult);
-        })
     }
 
     componentDidMount() {

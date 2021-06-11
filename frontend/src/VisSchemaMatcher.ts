@@ -137,16 +137,16 @@ const isRelationReflexive = (rel: RelationNode) => {
     return Object.values(reflexCounter).some(v => v >= 2);
 }
 
-export const matchTableWithAllRels = (table: Table, rel: RelationNode, vss:VisSchema[]) => {
+export const matchTableWithAllVisPatterns = (table: Table, rels: RelationNode[], vss:VisSchema[]) => {
     let out = [];
     vss.forEach(vs => {
-        out.push(matchTableWithRel(table, rel, vs));
+        out.push(matchTableWithVisPattern(table, rels, vs));
     })
 
     return out;
 }
 
-export const matchTableWithRel = (table: Table, rel: RelationNode, vs:VisSchema) => {
+const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSchema) => {
     if (!table.pk) return undefined; // Not suitable if there is no PK to use
 
     if (!basicKeyConditionCheck(table, vs.localKey)) {
@@ -183,66 +183,66 @@ export const matchTableWithRel = (table: Table, rel: RelationNode, vs:VisSchema)
             } else {
                 return undefined;
             }
-        case VISSCHEMATYPES.MANYMANY:
-            if (!rel) return;
-            if (rel.type === VISSCHEMATYPES.MANYMANY) {
-                if (vs.reflexive && !isRelationReflexive(rel)) return undefined; // Check reflexibility
+        // case VISSCHEMATYPES.MANYMANY:
+        //     if (!rels) return;
+        //     if (rel.type === VISSCHEMATYPES.MANYMANY) {
+        //         if (vs.reflexive && !isRelationReflexive(rel)) return undefined; // Check reflexibility
 
-                // Get the indices on the weak entity table that can be used to match foreign tables
-                let thisTableValidAttIdx: number[] = getMatchingAttributesByParameter(table, vs.localKey);
-                let foreignTablesValidAttIdx: number[][] = [];
-                if (thisTableValidAttIdx.length > 0) {
-                    // For each neighbour, for each attribute in each neighbour, check key count attribute properties
-                    for (let childRel of rel.childRelations) {
-                        const ft = childRel.table;
-                        if (!basicKeyConditionCheck(ft, vs.foreignKey)) continue;
-                        foreignTablesValidAttIdx.push(getMatchingAttributesByParameter(ft, vs.foreignKey));
-                    }
-                    if (foreignTablesValidAttIdx.length > 0 && foreignTablesValidAttIdx.every(idxes => idxes.length > 0)) {
-                        return true;
-                    } else {
-                        return undefined;
-                    }
-                } else {
-                    return undefined;
-                }
-            } else {
-                return undefined;
-                // const neighbourJunctionIndices = getNeighbourJunctionTableIdx(rel);
-                // if (neighbourJunctionIndices.length === 0) return undefined;
+        //         // Get the indices on the weak entity table that can be used to match foreign tables
+        //         let thisTableValidAttIdx: number[] = getMatchingAttributesByParameter(table, vs.localKey);
+        //         let foreignTablesValidAttIdx: number[][] = [];
+        //         if (thisTableValidAttIdx.length > 0) {
+        //             // For each neighbour, for each attribute in each neighbour, check key count attribute properties
+        //             for (let childRel of rel.childRelations) {
+        //                 const ft = childRel.table;
+        //                 if (!basicKeyConditionCheck(ft, vs.foreignKey)) continue;
+        //                 foreignTablesValidAttIdx.push(getMatchingAttributesByParameter(ft, vs.foreignKey));
+        //             }
+        //             if (foreignTablesValidAttIdx.length > 0 && foreignTablesValidAttIdx.every(idxes => idxes.length > 0)) {
+        //                 return true;
+        //             } else {
+        //                 return undefined;
+        //             }
+        //         } else {
+        //             return undefined;
+        //         }
+        //     } else {
+        //         return undefined;
+        //         // const neighbourJunctionIndices = getNeighbourJunctionTableIdx(rel);
+        //         // if (neighbourJunctionIndices.length === 0) return undefined;
 
-                // // Some of the neighbour relation is a junction table - out to where
-            }
-        case VISSCHEMATYPES.WEAKENTITY:
-            if (!rel) return;
-            if (rel.type === VISSCHEMATYPES.WEAKENTITY)  {
-                // Get the indices on the weak entity table that can be used to match foreign tables
-                let thisTableValidAttIdx: number[] = getMatchingAttributesByParameter(table, vs.localKey);
-                let foreignTablesValidAttIdx: number[][] = [];
-                if (thisTableValidAttIdx.length > 0) {
-                    // For each neighbour, for each attribute in each neighbour, check key count attribute properties
-                    for (let childRel of rel.childRelations) {
-                        const ft = childRel.table;
-                        if (!basicKeyConditionCheck(ft, vs.foreignKey)) continue;
-                        foreignTablesValidAttIdx.push(getMatchingAttributesByParameter(ft, vs.foreignKey));
-                    }
-                    if (foreignTablesValidAttIdx.length > 0 && foreignTablesValidAttIdx.every(idxes => idxes.length > 0)) {
-                        return true;
-                    } else {
-                        return undefined;
-                    }
-                } else {
-                    return undefined;
-                }
-            } else {
-                return undefined;
-                // const neighbourJunctionIndices = getNeighbourJunctionTableIdx(rel);
-                // if (neighbourJunctionIndices.length === 0) return undefined;
+        //         // // Some of the neighbour relation is a junction table - out to where
+        //     }
+        // case VISSCHEMATYPES.WEAKENTITY:
+        //     if (!rel) return;
+        //     if (rel.type === VISSCHEMATYPES.WEAKENTITY)  {
+        //         // Get the indices on the weak entity table that can be used to match foreign tables
+        //         let thisTableValidAttIdx: number[] = getMatchingAttributesByParameter(table, vs.localKey);
+        //         let foreignTablesValidAttIdx: number[][] = [];
+        //         if (thisTableValidAttIdx.length > 0) {
+        //             // For each neighbour, for each attribute in each neighbour, check key count attribute properties
+        //             for (let childRel of rel.childRelations) {
+        //                 const ft = childRel.table;
+        //                 if (!basicKeyConditionCheck(ft, vs.foreignKey)) continue;
+        //                 foreignTablesValidAttIdx.push(getMatchingAttributesByParameter(ft, vs.foreignKey));
+        //             }
+        //             if (foreignTablesValidAttIdx.length > 0 && foreignTablesValidAttIdx.every(idxes => idxes.length > 0)) {
+        //                 return true;
+        //             } else {
+        //                 return undefined;
+        //             }
+        //         } else {
+        //             return undefined;
+        //         }
+        //     } else {
+        //         return undefined;
+        //         // const neighbourJunctionIndices = getNeighbourJunctionTableIdx(rel);
+        //         // if (neighbourJunctionIndices.length === 0) return undefined;
 
-                // // Some of the neighbour relation is a junction table - out to where
-            }
-        case VISSCHEMATYPES.ONEMANY:
-            return undefined;
+        //         // // Some of the neighbour relation is a junction table - out to where
+        //     }
+        // case VISSCHEMATYPES.ONEMANY:
+        //     return undefined;
         default:
             return undefined;
     }
