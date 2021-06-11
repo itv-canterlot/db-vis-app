@@ -1,61 +1,7 @@
 import {Attribute, PrimaryKey, RelationNode, Table, VisKey, VisParam, VISPARAMTYPES, VisSchema, VISSCHEMATYPES, MatchedParamIndicesType} from "./ts/types";
+import * as TypeConstants from "./TypeConstants";
 
-const preciseNumDataTypes = [
-    "bit", "tinyint", "smallint", "int", "bigint", "decimal",
-    "money", "smallmoney", "integer", "numeric", "dec", "fixed"
-];
 
-const approxNumDataTypes = ["float", "real", "double precision", "double"];
-
-const dateAndTimeDataTypes = ["date", "time", "datetime2", "datetimeoffset", "smalldatetime", "datetime", "year", "timestamp"];
-
-const charDataTypes = [
-    "char", "varchar", "character varying", "text", "varchar(max)", "nchar", "nvchar", "ntext"
-];
-
-const binaryDataTypes = ["binary", "varbinary", "varbinary(max)", "image"];
-
-const otherScalarDataTypes = ["rowversion", "uniqueidentifier", "cursor", "table", "sql_variant"];
-
-const scalarDataTypes = [preciseNumDataTypes, approxNumDataTypes, otherScalarDataTypes];
-
-const isAttributeScalar = (att: Attribute) => {
-    const attTypName = att.typname;
-    for (let dts of scalarDataTypes) {
-        for (let dt of dts) {
-            if (dt.toLowerCase() === attTypName.toLowerCase()) {
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
-const isAttributeTemporal = (att: Attribute) => {
-    for (let dt of dateAndTimeDataTypes) {
-        if (dt.toLowerCase() === att.typname.toLowerCase()) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-const isAttributeLexical = (att: Attribute) => {
-    // TODO
-    return false;
-}
-
-const isAttributeColor = (att: Attribute) => {
-    // TODO
-    return false;
-}
-
-const isAttributeGeographical = (att: Attribute) => {
-    // TODO
-    return false;
-}
 
 const basicKeyConditionCheck = (table: Table, key: VisKey) => {
     // Check if there *is* a key
@@ -76,20 +22,20 @@ const basicKeyConditionCheck = (table: Table, key: VisKey) => {
         for (let pkCol of table.pk.columns) {
             const thisAttr = table.attr[pkCol.colPos]
             if (key.type === VISPARAMTYPES.TEMPORAL) {
-                if (!isAttributeTemporal(thisAttr)) {
+                if (!TypeConstants.isAttributeTemporal(thisAttr)) {
                     return false;
                 }
             } else if (key.type === VISPARAMTYPES.LEXICAL) {
                 if (table.pk.columns.length > 1) return false;
-                if (!isAttributeLexical(thisAttr)) {
+                if (!TypeConstants.isAttributeLexical(thisAttr)) {
                     return false;
                 }
             } else if (key.type === VISPARAMTYPES.COLOR) {
                 // Assumption: there's only one key column for colour?
                 if (table.pk.columns.length > 1) return false;
-                if (!isAttributeLexical(thisAttr)) return false;
+                if (!TypeConstants.isAttributeLexical(thisAttr)) return false;
             } else if (key.type === VISPARAMTYPES.GEOGRAPHICAL) {
-                if (!isAttributeGeographical(thisAttr)) {
+                if (!TypeConstants.isAttributeGeographical(thisAttr)) {
                     return false;
                 }
             }
@@ -130,24 +76,24 @@ const weKeyConditionCheck = (rel: RelationNode, keys: VisKey) => {
 const doesAttributeMatchVisParamType = (attr: Attribute, param: VisParam) => {
     if (param.type) {
         if (param.type === VISPARAMTYPES.TEMPORAL) {
-            if (!isAttributeTemporal(attr)) {
+            if (!TypeConstants.isAttributeTemporal(attr)) {
                 return false;
             }
         } else if (param.type === VISPARAMTYPES.LEXICAL) {
-            if (!isAttributeLexical(attr)) {
+            if (!TypeConstants.isAttributeLexical(attr)) {
                 return false;
             }
         } else if (param.type === VISPARAMTYPES.COLOR) {
-            if (!isAttributeLexical(attr)) {
+            if (!TypeConstants.isAttributeLexical(attr)) {
                 return false;
             };
         } else if (param.type === VISPARAMTYPES.GEOGRAPHICAL) {
-            if (!isAttributeGeographical(attr)) {
+            if (!TypeConstants.isAttributeGeographical(attr)) {
                 return false;
             }
         }
     } else if (param.scalar) {
-        if (!isAttributeScalar(attr)) {
+        if (!TypeConstants.isAttributeScalar(attr)) {
             return false;
         }
     }

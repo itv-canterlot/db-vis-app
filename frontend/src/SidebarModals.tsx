@@ -4,9 +4,11 @@ import bootstrap = require('bootstrap');
 import { DBSchemaContextInterface, DBSchemaContext } from './DBSchemaContext';
 import { EntitySelector } from './EntitySelector';
 import { getRelationInListByName } from './SchemaParser';
-import { Table, RelationNode, VisSchema } from './ts/types';
+import { Table, RelationNode, VisSchema, Attribute } from './ts/types';
 import * as SchemaParser from './SchemaParser';
+import * as TypeConstants from './TypeConstants';
 import { matchTableWithRel } from './VisSchemaMatcher';
+
 
 export class StartingTableSelectModal extends React.Component<{onClose: Function, onTableSelectChange: Function, selectedTableIndex: number}, {cachedSelectedIndex?: number, selectedForeignKeyIdx?: number}> {
     constructor(props) {
@@ -143,6 +145,17 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
                 return null;
             }
         }
+
+        const tableAttributeList = () => {
+            return thisTable.attr.map(att => (
+                <li className="list-group-item pb-1 d-flex justify-content-between" key={att.attnum}>
+                    <div>
+                        {att.attname}
+                    </div>
+                    {renderTypName(att)}
+                </li>
+            ))
+        }
         
         return (
             <div className="row justify-content-md-center mt-4 mb-3">
@@ -157,9 +170,7 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
                             </div>
                         </div>
                         <ul className="list-group list-group-flush start-table-rel-list ml-auto mr-auto">
-                            {thisTable.attr.map(att => (
-                                <li className="list-group-item pb-1" key={att.attnum}>{att.attname}</li>    
-                            ))}
+                            {tableAttributeList()}
                         </ul>
                     </div>
                 </div>
@@ -195,6 +206,13 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
             this.props.onClose();
         })
     }
+
+    componentDidUpdate() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    }
     
     render() {
         return (
@@ -226,6 +244,26 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
     }
 }
 StartingTableSelectModal.contextType = DBSchemaContext;
+
+
+const renderTypName = (att: Attribute) => {
+    if (TypeConstants.isAttributeScalar(att)) {
+        return (
+            <div data-bs-toggle="tooltip" data-bs-placement="top" title={att.typname}>
+                <i className="fas fa-sort-numeric-down" />
+            </div>)
+    } else if (TypeConstants.isAttributeTemporal(att)) {
+        return (
+            <div data-bs-toggle="tooltip" data-bs-placement="top" title={att.typname}>
+                <i className="fas fa-calendar" />
+            </div>)
+    } else {
+        return (
+            <div data-bs-toggle="tooltip" data-bs-placement="top" title={att.typname}>
+                <i className="fas fa-question" />
+            </div>)
+    }
+}
 
 export class MatchedSchemasModal extends React.Component<{onClose: Function, selectedTableIndex: number, visSchema: VisSchema[]}, {}> {
     constructor(props) {
