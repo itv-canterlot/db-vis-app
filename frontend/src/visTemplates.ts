@@ -9,6 +9,9 @@ export default function visTemplates(graphType, parameters) {
         case "bubble":
             renderBubblePlot(parameters);
             return;
+        case "bar":
+            // renderBarPlot(parameters);
+            return;
         default:
             return;
     }
@@ -21,12 +24,10 @@ function renderScatterPlot(parameters: VisTemplateBuilder) {
         margin = parameters.margin,
         xname = parameters.args[0],
         yname = parameters.args[1];
-        // rawData = parameters.data;
         
-    // let data = [];
+    // Separate out null data points
     let data = parameters.data
     let nullPoints = [];
-    // Separate out null data points
     let nullFilterIndex = data.length - 1;
 
     while (nullFilterIndex >= 0) {
@@ -35,8 +36,6 @@ function renderScatterPlot(parameters: VisTemplateBuilder) {
         if (hasNull) {
             nullPoints.push(d);
             data.splice(nullFilterIndex, 1)
-        } else {
-            // data.push(d);
         }
         nullFilterIndex--;
     }
@@ -114,12 +113,10 @@ function renderBubblePlot(parameters: VisTemplateBuilder) {
         xname = parameters.args[0],
         yname = parameters.args[1],
         zname = parameters.args[2];
-        // rawData = parameters.data;
         
-    // let data = [];
+    // Separate out null data points
     let data = parameters.data
     let nullPoints = [];
-    // Separate out null data points
     let nullFilterIndex = data.length - 1;
 
     while (nullFilterIndex >= 0) {
@@ -128,8 +125,6 @@ function renderBubblePlot(parameters: VisTemplateBuilder) {
         if (hasNull) {
             nullPoints.push(d);
             data.splice(nullFilterIndex, 1)
-        } else {
-            // data.push(d);
         }
         nullFilterIndex--;
     }
