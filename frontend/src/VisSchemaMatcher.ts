@@ -50,17 +50,17 @@ const isThisTableJunction = (rel: RelationNode) => {
     return rel.type === VISSCHEMATYPES.WEAKENTITY;
 }
 
-const getNeighbourJunctionTableIdx = (rel: RelationNode) => {
-    let childJunctionTableIndices: number[] = [];
-        for (let i = 0; i < rel.childEntities.length; i++) {
-            let childNode = rel.childEntities[i];
-            if (childNode.type === VISSCHEMATYPES.WEAKENTITY) {
-                childJunctionTableIndices.push(i);
-            }
-        }
+// const getNeighbourJunctionTableIdx = (rel: RelationNode) => {
+//     let childJunctionTableIndices: number[] = [];
+//         for (let i = 0; i < rel.childRelations.length; i++) {
+//             let childNode = rel.childRelations[i];
+//             if (childNode.type === VISSCHEMATYPES.WEAKENTITY) {
+//                 childJunctionTableIndices.push(i);
+//             }
+//         }
 
-    return childJunctionTableIndices;
-}
+//     return childJunctionTableIndices;
+// }
 
 const weKeyConditionCheck = (rel: RelationNode, keys: VisKey) => {
     // Check if this entity is a weak entity
@@ -122,14 +122,15 @@ const getMatchingAttributesByParameter = (table: Table, param: VisParam) => {
 const isRelationReflexive = (rel: RelationNode) => {
     if (rel.type !== VISSCHEMATYPES.MANYMANY) return false;
     // Reflexive: the "child nodes" of this junction table point to the same table
-    if (rel.childEntities.length < 2) return false;
+    if (rel.childRelations.length < 2) return false;
     let reflexCounter: {[id: string]: number} = {};
 
-    rel.childEntities.forEach(ent => {
-        if (ent.parentEntity.tableName in reflexCounter) {
-            reflexCounter[ent.parentEntity.tableName]++;
+    rel.childRelations.forEach(ent => {
+        let pkTableName = ent.table.tableName;
+        if (pkTableName in reflexCounter) {
+            reflexCounter[pkTableName]++;
         } else {
-            reflexCounter[ent.parentEntity.tableName] = 1;
+            reflexCounter[pkTableName] = 1;
         }
     });
 
@@ -183,6 +184,7 @@ export const matchTableWithRel = (table: Table, rel: RelationNode, vs:VisSchema)
                 return undefined;
             }
         case VISSCHEMATYPES.MANYMANY:
+            if (!rel) return;
             if (rel.type === VISSCHEMATYPES.MANYMANY) {
                 if (vs.reflexive && !isRelationReflexive(rel)) return undefined; // Check reflexibility
 
@@ -191,8 +193,8 @@ export const matchTableWithRel = (table: Table, rel: RelationNode, vs:VisSchema)
                 let foreignTablesValidAttIdx: number[][] = [];
                 if (thisTableValidAttIdx.length > 0) {
                     // For each neighbour, for each attribute in each neighbour, check key count attribute properties
-                    for (let childRel of rel.childEntities) {
-                        const ft = childRel.parentEntity;
+                    for (let childRel of rel.childRelations) {
+                        const ft = childRel.table;
                         if (!basicKeyConditionCheck(ft, vs.foreignKey)) continue;
                         foreignTablesValidAttIdx.push(getMatchingAttributesByParameter(ft, vs.foreignKey));
                     }
@@ -212,14 +214,15 @@ export const matchTableWithRel = (table: Table, rel: RelationNode, vs:VisSchema)
                 // // Some of the neighbour relation is a junction table - out to where
             }
         case VISSCHEMATYPES.WEAKENTITY:
+            if (!rel) return;
             if (rel.type === VISSCHEMATYPES.WEAKENTITY)  {
                 // Get the indices on the weak entity table that can be used to match foreign tables
                 let thisTableValidAttIdx: number[] = getMatchingAttributesByParameter(table, vs.localKey);
                 let foreignTablesValidAttIdx: number[][] = [];
                 if (thisTableValidAttIdx.length > 0) {
                     // For each neighbour, for each attribute in each neighbour, check key count attribute properties
-                    for (let childRel of rel.childEntities) {
-                        const ft = childRel.parentEntity;
+                    for (let childRel of rel.childRelations) {
+                        const ft = childRel.table;
                         if (!basicKeyConditionCheck(ft, vs.foreignKey)) continue;
                         foreignTablesValidAttIdx.push(getMatchingAttributesByParameter(ft, vs.foreignKey));
                     }

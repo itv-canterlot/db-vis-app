@@ -1,5 +1,6 @@
 import * as React from "react";
-import { Attribute, ForeignKey, PrimaryKey, Table } from "./ts/types";
+import { Attribute, ForeignKey, PrimaryKey, RelationNode, Table } from "./ts/types";
+import { getEntityJunctionRelations, getEntityWeakRelations } from './SchemaParser';
 
 
 export const FKArrayRenderer = (item, index, onClickCallback, selectedIndex) => { 
@@ -20,13 +21,14 @@ export const entityArrayFilter = (list: Table[], text: string) => {
     })
 }
 
-export const entityArrayRenderer = (item: Table, onClickCallback: React.MouseEventHandler<HTMLAnchorElement>, selectedIndex: number) => { 
+export const entityArrayRenderer = (item: Table, onClickCallback: React.MouseEventHandler<HTMLAnchorElement>, selectedIndex: number, relationsList: RelationNode[]) => { 
     let index = item.idx;
     let oid = item.oid;
-    let relname = item.tableName;
-    let relName = (name) => {
+    let tableName = item.tableName;
+    let relNameElement = (name: string) => {
         // Markers of the type of table
-        if (item.isJunction) {
+        const thisTableJunctionRels = getEntityJunctionRelations(item, relationsList)
+        if (thisTableJunctionRels.length > 0) {
             return (
                 <div>
                     <i className="fas fa-compress-alt me-1 pe-none" />{name}
@@ -38,32 +40,29 @@ export const entityArrayRenderer = (item: Table, onClickCallback: React.MouseEve
     }
 
     let weRels = () => {
-        if (item.weakEntitiesIndices != undefined) {
-            if (item.weakEntitiesIndices.length > 0) {
-                let visitedKeys = [];
-                return item.weakEntitiesIndices.map((weIndex:number, arrayIndex:number) => {
-                    if (visitedKeys.includes(item.fk[weIndex].pkTableName)) {
-                        return null;
-                    }
-                    visitedKeys.push(item.fk[weIndex].pkTableName);
-                    return (
-                    <div className="me-1 text-muted dropdown-tip bg-tip-weak-link d-flex align-items-center tip-fontsize" key={arrayIndex}>
-                        <i className="fas fa-asterisk me-1 pe-none fa-xs" /> <em>{item.fk[weIndex].pkTableName}</em>
-                    </div>)
-                })
-            } else {
-                return null;
-            }
+        const thisTableJunctionRels = getEntityWeakRelations(item, relationsList)
+        if (thisTableJunctionRels.length > 0) {
+            let visitedKeys = [];
+            return null;
+            // return item.weakEntitiesIndices.map((weIndex:number, arrayIndex:number) => {
+            //     if (visitedKeys.includes(item.fk[weIndex].pkTableName)) {
+            //         return null;
+            //     }
+            //     visitedKeys.push(item.fk[weIndex].pkTableName);
+            //     return (
+            //     <div className="me-1 text-muted dropdown-tip bg-tip-weak-link d-flex align-items-center tip-fontsize" key={arrayIndex}>
+            //         <i className="fas fa-asterisk me-1 pe-none fa-xs" /> <em>{item.fk[weIndex].pkTableName}</em>
+            //     </div>)
+            // })
         } else {
             return null;
         }
     }
     // Check this.props.state.selectedIndex
     return <a className={"dropdown-item pe-auto" + (index == selectedIndex ? " active" : "")} 
-        data-key={oid} data-index={index} data-content={relname} key={index} href="#" onMouseDown={onClickCallback}>
+        data-key={oid} data-index={index} data-content={tableName} key={index} href="#" onMouseDown={onClickCallback}>
             <div className="pe-none">
-                {relName(relname)}
-                {/* {relname} */}
+                {relNameElement(tableName)}
             </div>
             <div className="pe-none d-flex">
                 {weRels()}

@@ -4,10 +4,8 @@ export interface Table {
     tableName: string,
     pk?: PrimaryKey,
     fk?: ForeignKey[],
-    isJunction: boolean,
     attr: Attribute[],
     idx: number,
-    weakEntitiesIndices: number[]
 }
 
 interface ForeignKeyColumn extends KeyColumn {
@@ -110,21 +108,33 @@ export interface VisKey extends VisParam {
 }
 
 // Relation types
+// export type RelationNode = {
+//     type: VISSCHEMATYPES.ONEMANY,
+//     parentEntity: Table,
+//     childRelations: ChildRelation[],
+//     index?: number
+// } | {
+//     type: VISSCHEMATYPES.MANYMANY,
+//     parentEntity: Table,
+//     childRelations: ChildRelation[],
+//     index?: number
+// } | {
+//     type: VISSCHEMATYPES.WEAKENTITY,
+//     parentEntity: Table,
+//     childRelations: ChildRelation[],
+//     index?: number
+// }
+
 export type RelationNode = {
-    type: VISSCHEMATYPES.ONEMANY,
+    type: VISSCHEMATYPES,
     parentEntity: Table,
-    childEntities: RelationNode[],
+    childRelations: ChildRelation[],
     index?: number
-} | {
-    type: VISSCHEMATYPES.MANYMANY,
-    parentEntity: Table,
-    childEntities: RelationNode[],
-    index?: number
-} | {
-    type: VISSCHEMATYPES.WEAKENTITY,
-    parentEntity: Table,
-    childEntities: RelationNode[],
-    index?: number
+}
+
+export type ChildRelation = {
+    table: Table,
+    fkIndex: number
 }
 
 export type VisTemplateBuilder = {

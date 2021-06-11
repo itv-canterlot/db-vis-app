@@ -4,7 +4,7 @@ import bootstrap = require('bootstrap');
 import { DBSchemaContextInterface, DBSchemaContext } from './DBSchemaContext';
 import { EntitySelector } from './EntitySelector';
 import { getRelationInListByName } from './SchemaParser';
-import { Table, RelationNode, VisSchema, Attribute } from './ts/types';
+import { Table, RelationNode, VisSchema, Attribute, VISSCHEMATYPES } from './ts/types';
 import * as SchemaParser from './SchemaParser';
 import * as TypeConstants from './TypeConstants';
 import { matchTableWithRel } from './VisSchemaMatcher';
@@ -51,34 +51,34 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
     getTableRelationVis = () => {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
         let thisTable: Table = undefined;
-        let thisRels: RelationNode = undefined
+        let thisRels: RelationNode = undefined // TODO: this really should be a list
         if (this.state.cachedSelectedIndex >= 0) {
             thisTable = dbSchemaContext.allEntitiesList[this.state.cachedSelectedIndex];
             thisRels = getRelationInListByName(dbSchemaContext.relationsList, thisTable.tableName);
         }
 
         let foreignKeyParing;
-        if (thisRels && thisRels.childEntities.length !== 0) {
+        if (thisRels && thisRels.childRelations.length !== 0) {
             let chosenIndex = this.state.selectedForeignKeyIdx;
-            if (this.state.selectedForeignKeyIdx > thisRels.childEntities.length) {
+            if (this.state.selectedForeignKeyIdx > thisRels.childRelations.length) {
                 chosenIndex = 0;
             }
-            const fkRel = thisRels.childEntities[chosenIndex]
+            const fkRel = thisRels.childRelations[chosenIndex]
             foreignKeyParing = (
             <div className="card">
                     <div className="card-body d-flex justify-content-between align-items-center">
                         <h5 className="card-title">Related tables</h5>
-                        <span className="badge bg-primary rounded-pill">{thisRels.childEntities.length}</span>
+                        <span className="badge bg-primary rounded-pill">{thisRels.childRelations.length}</span>
                     </div>
                     <ul className="list-group start-table-rel-list ml-auto mr-auto">
-                        {thisRels.childEntities.map((rel, i) => {
+                        {thisRels.childRelations.map((rel, i) => {
                             return (
                                 <li className="list-group-item" key={i}>
                                     <div>
-                                        {rel.parentEntity.tableName}
+                                        {rel.table.tableName}
                                     </div>
                                     <div>
-                                        {rel.type}
+                                        {thisRels.type}
                                     </div>
                             </li>   
                             )
@@ -91,19 +91,20 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
         }
 
         const manyToManyTip = () => {
-            if (thisTable.isJunction) {
+            if (!thisRels) return null;
+            if (thisRels.type === VISSCHEMATYPES.MANYMANY) {
                 return (
                 <div className="me-1 text-muted dropdown-tip bg-tip-junc d-flex tip-fontsize" style={{"flexDirection": "column"}}>
                     <div>
                         <i className="fas fa-compress-alt me-1 pe-none" />Junction table between: 
                     </div>
                     <div className="d-flex">
-                        {thisRels.childEntities.map((ce, i) => {
-                            const ceName = ce.parentEntity.tableName;
-                            if (thisRels.childEntities.length === 1) {
+                        {thisRels.childRelations.map((ce, i) => {
+                            const ceName = ce.table.tableName;
+                            if (thisRels.childRelations.length === 1) {
                                 return <strong key={i}>{ceName}</strong>;
                             } else {
-                                const ceLength = thisRels.childEntities.length;
+                                const ceLength = thisRels.childRelations.length;
                                 if (i === ceLength - 1) {
                                     return <strong key={i}>{ceName}</strong>;
                                 } else {
@@ -118,19 +119,20 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
         }
 
         const weakEntityTip = () => {
-            if (thisTable.weakEntitiesIndices && thisTable.weakEntitiesIndices.length > 0) {
+            if (!thisRels) return null;
+            if (thisRels.type === VISSCHEMATYPES.WEAKENTITY) {
                 return (
                 <div className="me-1 text-muted dropdown-tip bg-tip-weak-link d-flex tip-fontsize" style={{"flexDirection": "column"}}>
                     <div>
                         <i className="fas fa-asterisk me-1 pe-none" />Weak entity of: 
                     </div>
                     <div className="d-flex">
-                        {thisRels.childEntities.map((ce, i) => {
-                            const ceName = ce.parentEntity.tableName;
-                            if (thisRels.childEntities.length === 1) {
+                        {thisRels.childRelations.map((ce, i) => {
+                            const ceName = ce.table.tableName;
+                            if (thisRels.childRelations.length === 1) {
                                 return <strong key={i}>{ceName}</strong>;
                             } else {
-                                const ceLength = thisRels.childEntities.length;
+                                const ceLength = thisRels.childRelations.length;
                                 if (i === ceLength - 1) {
                                     return <strong key={i}>{ceName}</strong>;
                                 } else {

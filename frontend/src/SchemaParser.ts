@@ -1,4 +1,4 @@
-import { Table, RelationNode, VISSCHEMATYPES, ForeignKey, PrimaryKey } from './ts/types';
+import { Table, RelationNode, VISSCHEMATYPES, ForeignKey, PrimaryKey, ChildRelation } from './ts/types';
 
 const getKeyPosFromPK = (pk: PrimaryKey) => pk.columns.map(key => key.colPos);
 const getKeyPosFromFK = (fk: ForeignKey) => fk.columns.map(key => key.fkColPos);
@@ -125,44 +125,39 @@ export const isAttributeInForeignKey = (idx: number, fk: ForeignKey) => {
     return (fk.columns.map(col => col.fkColPos).includes(idx));
 }
 
-
-const constructRelation = (tableList: Table[]) => {
-    let relationsList: RelationNode[] = [];
-    tableList.forEach(table => {
-        let newRelation: RelationNode;
-        if (table.isJunction) {
-            newRelation = {
-                type: VISSCHEMATYPES.MANYMANY,
-                parentEntity: table,
-                childEntities: [],
-            }
-        } else if (table.weakEntitiesIndices.length !== 0) {
-            newRelation = {
-                type: VISSCHEMATYPES.WEAKENTITY,
-                parentEntity: table,
-                childEntities: []
-            }
-        } else {
-            // Determine one-to-many or one-to-one?
-            newRelation = {
-                type: VISSCHEMATYPES.ONEMANY,
-                parentEntity: table,
-                childEntities: []
-            }
-        }
-        relationsList.push(newRelation);
+const constructManyManyRelation = (tableList: Table[], table: Table, fks: ForeignKey[]) => {
+    const childRelations: ChildRelation[] = fks.map(fk => {
+        return {
+            table: searchTableListByName(tableList, fk.pkTableName),
+            fkIndex: table.fk.indexOf(fk)
+        };
     });
-    // Fill in the child entities
 
-    relationsList.forEach((rel, idx) => {
-        rel["index"] = idx;
-        let relFks = rel.parentEntity.fk;
-        if (relFks.length !== 0) {
-            rel.childEntities = relFks.map(key => getRelationInListByName(relationsList, key.pkTableName));
+    return {
+        type: VISSCHEMATYPES.MANYMANY,
+        parentEntity: table,
+        childRelations: childRelations
+    };
+}
+
+const constructWeakEntityRelation = (tableList: Table[], table: Table, weakEntitiesIndices: number[]) => {
+    const childRelations: ChildRelation[] = weakEntitiesIndices.map(wIndex => {
+        const thisFk = table.fk[wIndex];
+        return {
+            table: searchTableListByName(tableList, thisFk.pkTableName),
+            fkIndex: wIndex
         }
     });
 
-    return relationsList;
+    return {
+        type: VISSCHEMATYPES.WEAKENTITY,
+        parentEntity: table,
+        childRelations: childRelations
+    }
+}
+
+function constructOneManyRelation(tableList: Table[], table: Table, weakEntitiesIndices: number[]) {
+    throw new Error('Function not implemented.');
 }
 
 /**
@@ -171,20 +166,29 @@ const constructRelation = (tableList: Table[]) => {
  * @returns Same list of tables after annotation.
  */
 export const preprocessEntities = (tableList: Table[]) => {
-    tableList.forEach((item: Table, index) => {
-        item.idx = index;
-        let junctionTableSearchResult: ForeignKey[] = getJunctionTableLinks(item);
+    let relationsList: RelationNode[] = [];
+
+    tableList.forEach((thisTable: Table, index) => {
+        thisTable.idx = index;
+        let junctionTableSearchResult: ForeignKey[] = getJunctionTableLinks(thisTable);
         if (junctionTableSearchResult.length >= 2) {
-            item.isJunction = true;
+            let thisRelation = constructManyManyRelation(tableList, thisTable, junctionTableSearchResult);
+            relationsList.push(thisRelation);
         }
         else {
             // Check if this entity is a weak entity
-            item.weakEntitiesIndices = getWeakEntityStatus(item);
+            // TODO: if there is anything else
+            let weakEntitiesIndices = getWeakEntityStatus(thisTable);
+            if (weakEntitiesIndices.length > 0) {
+                // This table is a lesser member of a weak entity relationship
+                let thisRelation = constructWeakEntityRelation(tableList, thisTable, weakEntitiesIndices)
+                relationsList.push(thisRelation);
+            }
         }
 
     });
 
-    let relationsList = constructRelation(tableList);
+    // let relationsList = constructRelation(tableList);
     
     return {
         tableList: tableList,
@@ -193,7 +197,7 @@ export const preprocessEntities = (tableList: Table[]) => {
 }
 
 // Some searcher helper function - might need in the future
-let searchTableListByOID = (tableList: Table[], oid: number) => {
+const searchTableListByOID = (tableList: Table[], oid: number) => {
     for (let i = 0; i < tableList.length; i++) {
         if (tableList[i].oid === oid) {
             return tableList[i];
@@ -202,11 +206,23 @@ let searchTableListByOID = (tableList: Table[], oid: number) => {
     return undefined;
 }
 
-let searchTableListByName = (tableList: Table[], searchString: string) => {
+const searchTableListByName = (tableList: Table[], searchString: string) => {
     for (let i = 0; i < tableList.length; i++) {
         if (tableList[i].tableName === searchString) {
             return tableList[i];
         }
     }
     return undefined;
+}
+
+export const getEntityJunctionRelations = (table: Table, relationsList: RelationNode[]) => {
+    return relationsList.filter(rel => {
+        return rel.type === VISSCHEMATYPES.MANYMANY && rel.parentEntity === table;
+    })
+}
+
+export const getEntityWeakRelations = (table: Table, relationsList: RelationNode[]) => {
+    return relationsList.filter(rel => {
+        return rel.type === VISSCHEMATYPES.MANYMANY && rel.parentEntity === table;
+    })
 }

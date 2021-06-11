@@ -21,13 +21,14 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
     }
 
     entityArrayRendererHandler = (item: Table, index: number, onClickCallback: React.MouseEventHandler<HTMLAnchorElement>) => {
-        return UIRenderers.entityArrayRenderer(item, onClickCallback, this.props.selectedTableIndex);
+        const dbContext: DBSchemaContextInterface = this.context;
+        return UIRenderers.entityArrayRenderer(item, onClickCallback, this.props.selectedTableIndex, dbContext.relationsList);
     }
 
     /* React components for entity selectors */
     entitiesListNode = () => {
         let selectedEntity = this.context.allEntitiesList[this.props.selectedTableIndex] as Table;
-        let selectedIsJunction = selectedEntity ? selectedEntity.isJunction : false;
+        // let selectedIsJunction = selectedEntity ? selectedEntity.isJunction : false;
         return (<div className="row">
             <div className="col">
                 <div className="row position-relative">
@@ -146,7 +147,7 @@ class MetadataGraph extends React.Component<{listLoaded: boolean, selectedTable:
         let relationsList = dbSchemaContext.relationsList;
         
         relationsList.forEach(rel => {
-            strings.push(rel.parentEntity.tableName + "->" + rel.childEntities.map(t => t.parentEntity.tableName).join());
+            strings.push(rel.parentEntity.tableName + "->" + rel.childRelations.map(t => t.table.tableName).join());
         })
 
         console.log(strings);
@@ -155,144 +156,144 @@ class MetadataGraph extends React.Component<{listLoaded: boolean, selectedTable:
     }
     
     renderSelectedTableMetaGraph = () => {
-        // Attempt 1: with d3.js
-        if (this.state.selectedTableIndex < 0) return;
-        const containerViewport = document.getElementById("meta-graph-cont");
-        let margin = {top: 10, right: 30, bottom: 30, left: 40},
-        maxWidth = containerViewport.clientWidth, maxHeight = 600,
-        width = maxWidth - margin.left - margin.right,
-        height = maxHeight - margin.top - margin.bottom;
+        // // Attempt 1: with d3.js
+        // if (this.state.selectedTableIndex < 0) return;
+        // const containerViewport = document.getElementById("meta-graph-cont");
+        // let margin = {top: 10, right: 30, bottom: 30, left: 40},
+        // maxWidth = containerViewport.clientWidth, maxHeight = 600,
+        // width = maxWidth - margin.left - margin.right,
+        // height = maxHeight - margin.top - margin.bottom;
 
-        let boxWidth = 10, boxHeight = 2; // in REM
-        let boxWidthText = boxWidth + "rem", boxHeightText = boxHeight + "rem";
+        // let boxWidth = 10, boxHeight = 2; // in REM
+        // let boxWidthText = boxWidth + "rem", boxHeightText = boxHeight + "rem";
 
-        var svg = d3.select("#meta-graph-cont")
-            .append("svg")
-                .attr("width", "100%")
-                .attr("height", maxHeight + "px")
-                // .attr("preserveAspectRatio", "none")
-                // .attr("viewBox", containerString)
-            .append("g")
-                .attr("transform",
-                    "translate(" + margin.left + "," + margin.top + ")");
+        // var svg = d3.select("#meta-graph-cont")
+        //     .append("svg")
+        //         .attr("width", "100%")
+        //         .attr("height", maxHeight + "px")
+        //         // .attr("preserveAspectRatio", "none")
+        //         // .attr("viewBox", containerString)
+        //     .append("g")
+        //         .attr("transform",
+        //             "translate(" + margin.left + "," + margin.top + ")");
         
-        let dbSchemaContext: DBSchemaContextInterface = this.context;
-        let linkedRelations = dbSchemaContext.relationsList[this.props.selectedTable]; // Pretty sure rel list is listed in order as well
-        let data = [linkedRelations].concat(linkedRelations.childEntities);
+        // let dbSchemaContext: DBSchemaContextInterface = this.context;
+        // let linkedRelations = dbSchemaContext.relationsList[this.props.selectedTable]; // Pretty sure rel list is listed in order as well
+        // let data = [linkedRelations].concat(linkedRelations.childRelations.map(rel));
         
-        let links = linkedRelations.childEntities.map(child => {
-            return {
-                "source": linkedRelations.index,
-                "target": child.index
-            };
-        });
+        // let links = linkedRelations.childRelations.map(child => {
+        //     return {
+        //         "source": linkedRelations.index,
+        //         "target": child.index
+        //     };
+        // });
 
-        console.log(data);
-        console.log(links);
+        // console.log(data);
+        // console.log(links);
 
-        const node = svg.selectAll("g")
-            .data(data)
-            .enter();
+        // const node = svg.selectAll("g")
+        //     .data(data)
+        //     .enter();
 
-        node.append("g")
-            .append("rect")
-            .attr("width", boxWidthText)
-            .attr("height", boxHeightText)
-            .attr("transform", (d, idx) => "translate (" + convertRemToPixels(idx * (boxWidth + 2)) + ", 0)");
+        // node.append("g")
+        //     .append("rect")
+        //     .attr("width", boxWidthText)
+        //     .attr("height", boxHeightText)
+        //     .attr("transform", (d, idx) => "translate (" + convertRemToPixels(idx * (boxWidth + 2)) + ", 0)");
         
-        svg.selectAll("g")
-            .append("text")
-            .text((d: RelationNode) => d.parentEntity.tableName)
-            .attr("transform", (d, idx) => {
-                const textX = convertRemToPixels(idx * (boxWidth + 2)) + 10;
-                const textY = convertRemToPixels(boxHeight / 2);
-                return `translate (${textX},${textY})`;
-            })
+        // svg.selectAll("g")
+        //     .append("text")
+        //     .text((d: RelationNode) => d.parentEntity.tableName)
+        //     .attr("transform", (d, idx) => {
+        //         const textX = convertRemToPixels(idx * (boxWidth + 2)) + 10;
+        //         const textY = convertRemToPixels(boxHeight / 2);
+        //         return `translate (${textX},${textY})`;
+        //     })
             
-        // Set status of parent node so CSS can do things with it
-        svg.selectAll("g").filter((d: RelationNode) => d.index === this.state.selectedTableIndex)
-            .attr("class", "parent-node");
+        // // Set status of parent node so CSS can do things with it
+        // svg.selectAll("g").filter((d: RelationNode) => d.index === this.state.selectedTableIndex)
+        //     .attr("class", "parent-node");
 
-        svg.selectAll("g").filter((d: RelationNode) => d.index !== this.state.selectedTableIndex)
-            .attr("class", "child-node");
+        // svg.selectAll("g").filter((d: RelationNode) => d.index !== this.state.selectedTableIndex)
+        //     .attr("class", "child-node");
         
     }
 
     renderMetaGraph() {
-        let margin = {top: 10, right: 30, bottom: 30, left: 40},
-        maxWidth = 400, maxHeight = 400,
-        width = maxWidth - margin.left - margin.right,
-        height = maxHeight - margin.top - margin.bottom;
+        // let margin = {top: 10, right: 30, bottom: 30, left: 40},
+        // maxWidth = 400, maxHeight = 400,
+        // width = maxWidth - margin.left - margin.right,
+        // height = maxHeight - margin.top - margin.bottom;
         
-        let dbSchemaContext: DBSchemaContextInterface = this.context;
-        let links = [];
-        console.log(dbSchemaContext.relationsList);
+        // let dbSchemaContext: DBSchemaContextInterface = this.context;
+        // let links = [];
+        // console.log(dbSchemaContext.relationsList);
 
-        dbSchemaContext.relationsList.forEach(rel => {
-            let thisId = rel.index;
-            let listOfLinks = rel.childEntities.map(child => {
-                return {
-                    "source": thisId,
-                    "target": child.index
-                }
-            });
-            links = links.concat(listOfLinks);
-        });
+        // dbSchemaContext.relationsList.forEach(rel => {
+        //     let thisId = rel.index;
+        //     let listOfLinks = rel.childRelations.map(child => {
+        //         return {
+        //             "source": thisId,
+        //             "target": child.index
+        //         }
+        //     });
+        //     links = links.concat(listOfLinks);
+        // });
         
-        const containerViewport = document.getElementById("meta-graph-cont");
-        let containerWidth = containerViewport.parentElement.parentElement.clientWidth,
-            containerHeight = 600;
+        // const containerViewport = document.getElementById("meta-graph-cont");
+        // let containerWidth = containerViewport.parentElement.parentElement.clientWidth,
+        //     containerHeight = 600;
 
-        let containerString = `0 0 ${containerWidth} ${containerHeight}`;
-        var svg = d3.select("#meta-graph-cont")
-            .append("svg")
-                .attr("width", "100%")
-                .attr("height", "600px")
-                // .attr("preserveAspectRatio", "none")
-                // .attr("viewBox", containerString)
-            .append("g")
-                .attr("transform",
-                    "translate(" + margin.left + "," + margin.top + ")");
+        // let containerString = `0 0 ${containerWidth} ${containerHeight}`;
+        // var svg = d3.select("#meta-graph-cont")
+        //     .append("svg")
+        //         .attr("width", "100%")
+        //         .attr("height", "600px")
+        //         // .attr("preserveAspectRatio", "none")
+        //         // .attr("viewBox", containerString)
+        //     .append("g")
+        //         .attr("transform",
+        //             "translate(" + margin.left + "," + margin.top + ")");
 
 
-        const simulation = d3.forceSimulation(dbSchemaContext.relationsList)
-            .force("link", d3.forceLink(links).id(d => d.index))
-            .force("charge", d3.forceManyBody())
-            .force("center", d3.forceCenter(containerViewport.clientWidth / 2, containerViewport.clientHeight / 2))
-            .force("collide", d3.forceCollide());;
+        // const simulation = d3.forceSimulation(dbSchemaContext.relationsList)
+        //     .force("link", d3.forceLink(links).id(d => d.index))
+        //     .force("charge", d3.forceManyBody())
+        //     .force("center", d3.forceCenter(containerViewport.clientWidth / 2, containerViewport.clientHeight / 2))
+        //     .force("collide", d3.forceCollide());;
 
             
-        const link = svg.append("g")
-            .attr("stroke", "#999")
-            .attr("stroke-opacity", 0.6)
-            .selectAll("line")
-            .data(links)
-            .join("line")
+        // const link = svg.append("g")
+        //     .attr("stroke", "#999")
+        //     .attr("stroke-opacity", 0.6)
+        //     .selectAll("line")
+        //     .data(links)
+        //     .join("line")
             
-        const node = svg.append("g")
-            .attr("stroke", "#fff")
-            .attr("stroke-width", 1.5)
-        .selectAll("rect")
-        .data(dbSchemaContext.relationsList)
-        .join("rect")
-            .attr("width", "5rem")
-            .attr("height", "2rem")
-            .attr("x", Math.random() * containerViewport.clientWidth)
-            .attr("y", Math.random() * containerViewport.clientHeight)
-            .attr("fill", "orange");
-        simulation.on("tick", () => {
-            link
-                .attr("x1", d => d.source.x)
-                .attr("y1", d => d.source.y)
-                .attr("x2", d => d.target.x)
-                .attr("y2", d => d.target.y);
+        // const node = svg.append("g")
+        //     .attr("stroke", "#fff")
+        //     .attr("stroke-width", 1.5)
+        // .selectAll("rect")
+        // .data(dbSchemaContext.relationsList)
+        // .join("rect")
+        //     .attr("width", "5rem")
+        //     .attr("height", "2rem")
+        //     .attr("x", Math.random() * containerViewport.clientWidth)
+        //     .attr("y", Math.random() * containerViewport.clientHeight)
+        //     .attr("fill", "orange");
+        // simulation.on("tick", () => {
+        //     link
+        //         .attr("x1", d => d.source.x)
+        //         .attr("y1", d => d.source.y)
+        //         .attr("x2", d => d.target.x)
+        //         .attr("y2", d => d.target.y);
         
-            node
-                .attr("x", d => d["x"])
-                .attr("y", d => d["y"]);
-            });
+        //     node
+        //         .attr("x", d => d["x"])
+        //         .attr("y", d => d["y"]);
+        //     });
 
-        return svg.node();
+        // return svg.node();
     }
 
     render() {
