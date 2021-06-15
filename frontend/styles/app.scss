@@ -14,7 +14,7 @@
     overflow-x: hidden;
 }
 
-.dropdown-tip {
+.type-tip {
     padding-top: .15rem;
     padding-bottom: .15rem;
     padding-left: .25rem;
@@ -39,8 +39,16 @@
     background-color: #f4e5e1;
 }
 
-.bg-tip-weak-link {
+.bg-tip-we {
     background-color: #fbeffb;
+}
+
+.bg-tip-subset {
+    background-color: #def7f7;
+}
+
+.bg-tip-normal-rel {
+    background-color: #ecede8;
 }
 
 .bg-tip-junc {
@@ -49,6 +57,18 @@
 
 .bg-tip-grey {
     background-color: #ccc;
+}
+
+.tip-parent {
+    background-color: #fe4a49;
+    color: white;
+    font-weight: bold;
+}
+
+.tip-child {
+    background-color: #fed766;
+    color: black;
+    font-weight: bold;
 }
 
 #meta-graph-cont g .parent-node rect {
@@ -94,6 +114,11 @@
     font-size: 0.9rem;
     max-height: 60vh;
     overflow-y: auto;
+}
+
+.foreign-relations-group-item {
+    user-select: none;
+    cursor: pointer;
 }
 
 .foreign-relations-group-item:hover {
