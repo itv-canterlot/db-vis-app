@@ -1,3 +1,5 @@
+@import "../node_modules/bootstrap";
+
 .att-table {
     text-align: center;
 }
@@ -90,4 +92,10 @@
 
 .start-table-rel-list {
     font-size: 0.9rem;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.foreign-relations-group-item:hover {
+    background-color: $gray-200;
 }

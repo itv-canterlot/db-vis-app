@@ -146,7 +146,7 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
                     }
                     
                     const relationElement = (
-                        <li className="list-group-item" key={idx}>
+                        <li className="list-group-item foreign-relations-group-item" key={idx}>
                             {relationTypeTip}
                             {relationParentTip}
                             {foreignTableList}

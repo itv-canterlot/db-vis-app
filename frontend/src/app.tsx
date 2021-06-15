@@ -13,6 +13,8 @@ import * as Connections from './Connections';
 import * as SchemaParser from './SchemaParser';
 import { StartingTableSelectModal } from './SidebarModals';
 
+import "../styles/app.scss"
+
 let visSchema: VisSchema[] = [];
 
 class Application extends React.Component<{}, ComponentTypes.ApplicationStates> {
