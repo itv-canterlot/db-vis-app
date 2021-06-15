@@ -64,22 +64,58 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
 
                     let relationTypeTip, relationParentTip, foreignTableList;
 
+                    // Listing related tables
+                    const getForeignTableList = (useParentFk: boolean) => rel.childRelations.map((childRel, childIdx) => {
+                        const childEntity = childRel.table;
+                        if (childEntity === thisTable) return null; // TODO: write something else here
+                        if (useParentFk) {
+                            return (
+                                <div key={childIdx}>
+                                    <i className="fas fa-arrow-right" /> {childEntity.tableName} ({rel.parentEntity.fk[childRel.fkIndex].keyName})
+                                </div>);
+                        } else {
+                            return (
+                                <div key={childIdx}>
+                                    <i className="fas fa-arrow-right" /> {childEntity.tableName} ({childEntity.fk[childRel.fkIndex].keyName})
+                                </div>);
+                        }
+                    });
+
                     // Tooltip for root status
                     if (isTableAtRoot) {
                         if (thisRelType === VISSCHEMATYPES.MANYMANY) {
                             relationParentTip = (
                                 <div>Junction table</div>
                             );
+                            foreignTableList = getForeignTableList(true);
                         } else if (thisRelType === VISSCHEMATYPES.WEAKENTITY) {
                             relationParentTip = (
                                 <div>Parent</div>
                             );
+                            foreignTableList = getForeignTableList(false);
+                        } else if (thisRelType === VISSCHEMATYPES.SUBSET) {
+                            relationParentTip = (
+                                <div>Superset</div>
+                            );
+                            foreignTableList = getForeignTableList(false);
                         }
                     } else {
-                        console.log(rel)
-                        relationParentTip = (
-                            <div>Child (parent: {rel.parentEntity.tableName})</div>
-                        )
+                        if (thisRelType === VISSCHEMATYPES.SUBSET) {
+                            relationParentTip = (
+                                <div>Subset (parent: {rel.parentEntity.tableName})</div>
+                            );
+                            foreignTableList = getForeignTableList(false);
+                        } else if (thisRelType === VISSCHEMATYPES.MANYMANY) {
+                            relationParentTip = (
+                                <div>Child (parent: {rel.parentEntity.tableName})</div>
+                            );
+                            foreignTableList = getForeignTableList(true);
+                        } else if (thisRelType === VISSCHEMATYPES.WEAKENTITY) {
+                            relationParentTip = (
+                                <div>Child (parent: {rel.parentEntity.tableName})</div>
+                            );
+                            foreignTableList = getForeignTableList(false);
+                        }
                     }
 
                     // Tooltip for relation type
@@ -98,19 +134,16 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
                                 </div>
                             );
                             break;
+                        case VISSCHEMATYPES.SUBSET:
+                            relationTypeTip = (
+                                <div>
+                                    Subset
+                                </div>
+                            );
+                            break;
                         default:
                             break;
                     }
-
-                    // Listing related tables
-                    foreignTableList = rel.childRelations.map((childRel, childIdx) => {
-                        const childEntity = childRel.table;
-                        if (childEntity === thisTable) return null;
-                        return (
-                            <div key={childIdx}>
-                                <i className="fas fa-arrow-right" /> {childEntity.tableName} ({rel.parentEntity.fk[childRel.fkIndex].keyName})
-                            </div>);
-                    });
                     
                     const relationElement = (
                         <li className="list-group-item" key={idx}>
@@ -149,64 +182,6 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
                     </div>
                );
         }
-
-        // const manyToManyTip = () => {
-        //     if (!thisRels) return null;
-        //     if (thisRels.type === VISSCHEMATYPES.MANYMANY) {
-        //         return (
-        //         <div className="me-1 text-muted dropdown-tip bg-tip-junc d-flex tip-fontsize" style={{"flexDirection": "column"}}>
-        //             <div>
-        //                 <i className="fas fa-compress-alt me-1 pe-none" />Junction table between: 
-        //             </div>
-        //             <div className="d-flex">
-        //                 {thisRels.childRelations.map((ce, i) => {
-        //                     const ceName = ce.table.tableName;
-        //                     if (thisRels.childRelations.length === 1) {
-        //                         return <strong key={i}>{ceName}</strong>;
-        //                     } else {
-        //                         const ceLength = thisRels.childRelations.length;
-        //                         if (i === ceLength - 1) {
-        //                             return <strong key={i}>{ceName}</strong>;
-        //                         } else {
-        //                             return <div key={i}><strong>{ceName}</strong>{", "}</div>
-        //                         }
-        //                     }
-        //                     })}
-        //             </div>
-        //         </div>
-        //         )
-        //     }
-        // }
-
-        // const weakEntityTip = () => {
-        //     if (!thisRels) return null;
-        //     if (thisRels.type === VISSCHEMATYPES.WEAKENTITY) {
-        //         return (
-        //         <div className="me-1 text-muted dropdown-tip bg-tip-weak-link d-flex tip-fontsize" style={{"flexDirection": "column"}}>
-        //             <div>
-        //                 <i className="fas fa-asterisk me-1 pe-none" />Weak entity of: 
-        //             </div>
-        //             <div className="d-flex">
-        //                 {thisRels.childRelations.map((ce, i) => {
-        //                     const ceName = ce.table.tableName;
-        //                     if (thisRels.childRelations.length === 1) {
-        //                         return <strong key={i}>{ceName}</strong>;
-        //                     } else {
-        //                         const ceLength = thisRels.childRelations.length;
-        //                         if (i === ceLength - 1) {
-        //                             return <strong key={i}>{ceName}</strong>;
-        //                         } else {
-        //                             return <div key={i}><strong>{ceName}</strong>{", "}</div>
-        //                         }
-        //                     }
-        //                 })}
-        //             </div>
-        //         </div>
-        //         )
-        //     } else {
-        //         return null;
-        //     }
-        // }
 
         const tableAttributeList = () => {
             return thisTable.attr.map(att => {
@@ -312,11 +287,11 @@ StartingTableSelectModal.contextType = DBSchemaContext;
 
 const renderTips = (table: Table, att: Attribute) => {
     let isAttributeInPrimaryKey, tablePrimaryKeyTip;
-        if (table.pk) {
-            isAttributeInPrimaryKey = SchemaParser.isAttributeInPrimaryKey(att.attnum, table.pk);
-        } else {
-            isAttributeInPrimaryKey = false;
-        }
+    if (table.pk) {
+        isAttributeInPrimaryKey = SchemaParser.isAttributeInPrimaryKey(att.attnum, table.pk);
+    } else {
+        isAttributeInPrimaryKey = false;
+    }
 
     if (isAttributeInPrimaryKey) {
         tablePrimaryKeyTip = (

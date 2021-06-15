@@ -82,6 +82,29 @@ const getJunctionTableLinks = (table: Table) => {
 }
 
 /**
+ * Find out if the entity is a subset of another table, by checking if its (candidate) key is also a foreign key
+ * @param table Table in question
+ * @returns Boolean indicating the property of the table.
+ */
+const getSubsetStatus = (table: Table) => {
+    const tablePk = table.pk,
+    tableFks = table.fk;
+
+    const fkColPosInTable = tableFks.map(fk => fk.columns.map(col => col.fkColPos));
+    const pkColPos = tablePk.columns.map(col => col.colPos);
+
+    for (let i = 0; i < fkColPosInTable.length; i++) {
+        const fk = fkColPosInTable[i];
+        const isSubset = JSON.stringify(fk.sort()) === JSON.stringify(pkColPos.sort());
+
+        // If is subset, return the key index
+        if (isSubset) return i;
+    }
+
+    return undefined;
+}
+
+/**
  * Helper function that returns true if a table contains at least one primary and one foreign key.
  * @param table Table in question
  * @returns Boolean indicating the existence of a primary and foreign key.
@@ -167,8 +190,84 @@ const constructWeakEntityRelation = (tableList: Table[], thisTable: Table, weakE
     })
 }
 
+const constructSubsetRelation = (tableList: Table[], parentTable: Table, subsets: Table[]) => {
+    const ChildRelations: ChildRelation[] = subsets.map(subset => {
+        return {
+            table: subset,
+            fkIndex: null
+        }
+    })
+}
+
 function constructOneManyRelation(tableList: Table[], table: Table, weakEntitiesIndices: number[]) {
     throw new Error('Function not implemented.');
+}
+
+const getRelationType = (allTables: Table[]) => {
+    let relationsList: RelationNode[] = [];
+    type SuperSetRelationType = {
+        table: Table, 
+        fkIndex: number, 
+        parentTableName: string
+    };
+    let tablesThatAreSubset: SuperSetRelationType[] = [];
+
+    allTables.forEach((table: Table) => {
+        // Check 1: the table must have primary key and at least one foreign key
+        if (!tableHasPKAndFK(table)) return [];
+        if (table.fk.length === 0) return [];
+    
+        // Check 2: is this table a junction table?
+        let junctionTableSearchResult: ForeignKey[] = getJunctionTableLinks(table);
+        if (junctionTableSearchResult.length >= 2) {
+            relationsList.push(constructManyManyRelation(allTables, table, junctionTableSearchResult));
+        }
+    
+        // Check 3: Optional multi-valued attribute (to be implemented)
+    
+        // Check 4: is the table the dependent part of a weak entity?
+        let weakEntitiesIndices = getWeakEntityStatus(table);
+        if (weakEntitiesIndices.length > 0) {
+            // This table is a lesser member of a weak entity relationship
+            relationsList.push(...constructWeakEntityRelation(allTables, table, weakEntitiesIndices));
+        }
+    
+        // Otherwise, this table is an ER identity
+        // Check 5: is the table a subset of another table?
+        const tableSubsetIndex = getSubsetStatus(table);
+        if (tableSubsetIndex !== undefined) {
+            tablesThatAreSubset.push({
+                table: table,
+                fkIndex: tableSubsetIndex,
+                parentTableName: table.fk[tableSubsetIndex].pkTableName
+            });
+        } else {
+            // TODO
+        }
+    });
+
+    // Construct subset-related relation nodes
+    const superSetTablesGroupByParentTableName: {[name: string]: SuperSetRelationType[]} = groupBy(tablesThatAreSubset, "parentTableName");
+    
+    for (let parentName in superSetTablesGroupByParentTableName) {
+        const subsets = superSetTablesGroupByParentTableName[parentName];
+        const childRelations: ChildRelation[] = 
+        subsets.map(subset => {
+            return {
+                    table: subset.table,
+                    fkIndex: subset.fkIndex
+                }
+            });
+            
+            relationsList.push({
+                type: VISSCHEMATYPES.SUBSET,
+                parentEntity: searchTableListByName(allTables, parentName),
+                childRelations: childRelations
+            })
+        }
+        
+    // console.log(relationsList);
+    return relationsList;
 }
 
 /**
@@ -177,29 +276,7 @@ function constructOneManyRelation(tableList: Table[], table: Table, weakEntities
  * @returns Same list of tables after annotation.
  */
 export const preprocessEntities = (tableList: Table[]) => {
-    let relationsList: RelationNode[] = [];
-
-    tableList.forEach((thisTable: Table, index) => {
-        thisTable.idx = index;
-        let junctionTableSearchResult: ForeignKey[] = getJunctionTableLinks(thisTable);
-        if (junctionTableSearchResult.length >= 2) {
-            let thisRelation = constructManyManyRelation(tableList, thisTable, junctionTableSearchResult);
-            relationsList.push(thisRelation);
-        }
-        else {
-            // Check if this entity is a weak entity
-            // TODO: if there is anything else
-            let weakEntitiesIndices = getWeakEntityStatus(thisTable);
-            if (weakEntitiesIndices.length > 0) {
-                // This table is a lesser member of a weak entity relationship
-                let thisRelation = constructWeakEntityRelation(tableList, thisTable, weakEntitiesIndices)
-                relationsList.push(...thisRelation);
-            }
-        }
-
-    });
-
-    // let relationsList = constructRelation(tableList);
+    const relationsList = getRelationType(tableList)
     
     return {
         tableList: tableList,
@@ -237,3 +314,10 @@ export const getEntityWeakRelations = (table: Table, relationsList: RelationNode
         return rel.type === VISSCHEMATYPES.MANYMANY && rel.parentEntity === table;
     })
 }
+
+const groupBy = function(xs, key) {
+    return xs.reduce(function(rv, x) {
+      (rv[x[key]] = rv[x[key]] || []).push(x);
+      return rv;
+    }, {});
+};

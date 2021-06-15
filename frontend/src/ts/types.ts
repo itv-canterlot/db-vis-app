@@ -59,7 +59,8 @@ export enum VISSCHEMATYPES {
     BASIC = 0,
     WEAKENTITY = 1,
     ONEMANY = 2,
-    MANYMANY = 3
+    MANYMANY = 3,
+    SUBSET = 4
 }
 
 export type VisSchema = {
@@ -108,23 +109,6 @@ export interface VisKey extends VisParam {
 }
 
 // Relation types
-// export type RelationNode = {
-//     type: VISSCHEMATYPES.ONEMANY,
-//     parentEntity: Table,
-//     childRelations: ChildRelation[],
-//     index?: number
-// } | {
-//     type: VISSCHEMATYPES.MANYMANY,
-//     parentEntity: Table,
-//     childRelations: ChildRelation[],
-//     index?: number
-// } | {
-//     type: VISSCHEMATYPES.WEAKENTITY,
-//     parentEntity: Table,
-//     childRelations: ChildRelation[],
-//     index?: number
-// }
-
 export type RelationNode = {
     type: VISSCHEMATYPES,
     parentEntity: Table,
