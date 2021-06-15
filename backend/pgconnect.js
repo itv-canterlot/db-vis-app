@@ -210,7 +210,7 @@ async function getTableMetatdata() {
     let attrs = await singlePoolRequest(queryTableAttributes());
 
 
-    let tableObjects = tableNamesRes.map(tn => {
+    let tableObjects = tableNamesRes.map((tn, idx) => {
         let tableName = tn["table_name"]
         let tablePks = attrMatchDename(tableName, pk, "table_name");
         let tableFks = attrMatchDename(tableName, fk, "fk_table");
@@ -221,6 +221,7 @@ async function getTableMetatdata() {
             pk: tablePks.length == 0 ? null : tablePks,
             fk: tableFks,
             attr: tableAtts,
+            idx: idx
         }
     });
 
