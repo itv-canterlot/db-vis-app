@@ -1,5 +1,5 @@
 import React = require('react')
-import {PrimaryKey, ForeignKey, Table, Attribute, RelationNode, MatchedParamIndicesType} from './types'
+import {PrimaryKey, ForeignKey, Table, Attribute, RelationNode, PatternMatchResult, PatternMatchAttribute} from './types'
 
 /** UIElements.tsx **/
 export type SearchDropdownListProps = {
@@ -53,14 +53,14 @@ export type ApplicationStates = {
     relationsList?: RelationNode[],
     selectedTableIndex?: number,
     selectedPatternIndex?: number,
-    selectedAttributesIndices?: number[][], // TODO: expand if needed
+    rendererSelectedAttributes?: PatternMatchAttribute[][], // TODO: expand if needed
     rerender?: boolean,
     load?: boolean,
     listLoaded?: boolean,
     databaseLocation?: string,
     showStartingTableSelectModal?: boolean,
     showMatchedSchemasModal?: boolean,
-    visSchemaMatchStatus?: any[] // TODO: figure this out...
+    visSchemaMatchStatus?: PatternMatchResult[]
 }
 
 export type AppSidebarProps = {
@@ -81,15 +81,14 @@ export type SidebarBubbleBlockProps = {
 export type SchemaExplorerProps = {
     expanded: boolean, 
     selectedTableIndex: number,
-    visSchemaMatchStatus?: MatchedParamIndicesType[],
+    selectedAttributesIndices: PatternMatchAttribute[][]
     onVisPatternIndexChange: Function,
     onSelectedAttributeIndicesChange: React.MouseEventHandler
 }
 
 export type AppMainContProps = {
     selectedTableIndex: number,
-    selectedAttributesIndices: number[][],
-    visSchemaMatchStatus: any[],
+    selectedAttributesIndices: PatternMatchAttribute[][],
     load: boolean,
     rerender: boolean,
     onVisPatternIndexChange: Function,
@@ -103,13 +102,12 @@ export type AppMainContStates = {
 /* Visualiser.tsx */
 export type VisualiserProps = {
     selectedTableIndex: number,
-    selectedAttributesIndices: number[][],
-    visSchemaMatchStatus: any[],
+    selectedAttributesIndices: PatternMatchAttribute[][],
     rerender: boolean
 }
 
 export type VisualiserStates = {
     load?: boolean,
     renderedTableIndex?: number,
-    renderedAttributesIndices?: number[][]
+    renderedAttributesIndices?: PatternMatchAttribute[][]
 }

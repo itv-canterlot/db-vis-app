@@ -1,5 +1,5 @@
 import * as SchemaParser from "./SchemaParser";
-import {Attribute, PrimaryKey, RelationNode, Table, VisKey, VisParam, VISPARAMTYPES, VisSchema, VISSCHEMATYPES, MatchedParamIndicesType} from "./ts/types";
+import {Attribute, PrimaryKey, RelationNode, Table, VisKey, VisParam, VISPARAMTYPES, VisSchema, VISSCHEMATYPES, PatternMatchResult, PatternMatchAttribute} from "./ts/types";
 import * as TypeConstants from "./TypeConstants";
 
 
@@ -103,7 +103,7 @@ const doesAttributeMatchVisParamType = (attr: Attribute, param: VisParam) => {
 }
 
 const getMatchingAttributesByParameter = (table: Table, param: VisParam) => {
-    let paramMatchableIndices: number[] = [];
+    let paramMatchableIndices: PatternMatchAttribute[] = [];
     for (let i = 0; i < table.attr.length; i++) {
         const thisAttr = table.attr[i];
         // Skip pks(?)
@@ -112,10 +112,39 @@ const getMatchingAttributesByParameter = (table: Table, param: VisParam) => {
         if (!doesAttributeMatchVisParamType(thisAttr, param)) continue;
 
         // Add this attribute to the list above
-        paramMatchableIndices.push(i);
+        paramMatchableIndices.push({
+            table: table,
+            attributeIndex: i
+        });
     }
 
     return paramMatchableIndices;
+}
+
+// For simple entity checks, consider the entire set of tables in the subset relation
+const getMatchAttributesFromSet = (rel: RelationNode, param: VisParam) => {
+    let matchResult: PatternMatchAttribute[] = [];
+    if (rel.type !== VISSCHEMATYPES.SUBSET) return;
+
+    const tablesInSet = getTablesWithinSet(rel);
+    tablesInSet.forEach(table => {
+        for (let i = 0; i < table.attr.length; i++) {
+            const thisAttr = table.attr[i];
+            // Skip pks(?)
+            if (SchemaParser.isAttributeInPrimaryKey(i + 1, table.pk)) continue;
+            // Check specific types first
+            if (!doesAttributeMatchVisParamType(thisAttr, param)) continue;
+    
+            // Add this attribute to the list above
+            matchResult.push({
+                table: table,
+                attributeIndex: i
+            });
+        }
+    
+    });
+
+    return matchResult;
 }
 
 
@@ -139,6 +168,8 @@ const isRelationReflexive = (rel: RelationNode) => {
 
 export const matchTableWithAllVisPatterns = (table: Table, rels: RelationNode[], vss:VisSchema[]) => {
     let out = [];
+    // If the table is in a set, treat the set as a big table
+    // getTablesWithinSet(rels, tablesWithinSet, relsWithoutSubset);
     vss.forEach(vs => {
         out.push(matchTableWithVisPattern(table, rels, vs));
     })
@@ -153,36 +184,44 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
         return undefined;
     }
 
+    let subsetRel = rels.find(rel => rel.type === VISSCHEMATYPES.SUBSET); // TODO: multiple subsets?
+
+    console.log(rels)
+    console.log(subsetRel)
+
     switch (vs.type) {
         case VISSCHEMATYPES.BASIC:
             // Find combinations of attributes that match the requirements
-            let allMatchableParameters: number[][] = [];
+            let thisPatternMatchResult: PatternMatchResult = {
+                vs: vs,
+                mandatoryAttributes: [],
+                optionalAttributes: []
+            };
             
             // For each attribute in vs, compare against each attr in table, add appropriate indices to list
             for (let mp of vs.mandatoryParameters) {
-                let thisConstMatchableIndices: number[] = getMatchingAttributesByParameter(table, mp);
-                
-                allMatchableParameters.push(thisConstMatchableIndices);
-            }
-
-            // Check if there is at least one match for each mandatory attributes
-            if (allMatchableParameters.length > 0 && allMatchableParameters.every(idxes => idxes.length > 0)) {
-                // TODO: do optional param match here
-                let matchedParamIndices: MatchedParamIndicesType = {mandatoryAttributes: allMatchableParameters};
-
-                if (vs.optionalParameters) {
-                    let allMatchableOptionalParams: number[][] = [];
-                    for (let op of vs.optionalParameters) {
-                        let thisConstMatchableIndices = getMatchingAttributesByParameter(table, op);
-                        allMatchableOptionalParams.push(thisConstMatchableIndices);
-                    }
-
-                    matchedParamIndices.optionalAttributes = allMatchableOptionalParams;
+                let thisConstMatchableIndices;
+                if (subsetRel) {
+                    thisConstMatchableIndices = getMatchAttributesFromSet(subsetRel, mp)
+                } else {
+                    thisConstMatchableIndices = getMatchingAttributesByParameter(table, mp);
                 }
-                return matchedParamIndices;
-            } else {
-                return undefined;
+                thisPatternMatchResult.mandatoryAttributes.push(thisConstMatchableIndices);
             }
+
+            if (vs.optionalParameters) {
+                for (let op of vs.optionalParameters) {
+                    let thisConstMatchableIndices;
+                    if (subsetRel) {
+                        thisConstMatchableIndices = getMatchAttributesFromSet(subsetRel, op)
+                    } else {
+                        thisConstMatchableIndices = getMatchingAttributesByParameter(table, op);
+                    }
+                    thisPatternMatchResult.optionalAttributes.push(thisConstMatchableIndices);
+                }
+            }
+            return thisPatternMatchResult;
+
         // case VISSCHEMATYPES.MANYMANY:
         //     if (!rels) return;
         //     if (rel.type === VISSCHEMATYPES.MANYMANY) {
@@ -244,6 +283,16 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
         // case VISSCHEMATYPES.ONEMANY:
         //     return undefined;
         default:
-            return undefined;
+            return undefined; // TODO
     }
+}
+
+const getTablesWithinSet = (rel: RelationNode) => {
+    let tablesWithinSet: Table[] = [];
+    if (rel.type === VISSCHEMATYPES.SUBSET) {
+        tablesWithinSet.push(rel.parentEntity);
+        tablesWithinSet.push(...rel.childRelations.map(childRel => childRel.table));
+    }
+
+    return tablesWithinSet;
 }

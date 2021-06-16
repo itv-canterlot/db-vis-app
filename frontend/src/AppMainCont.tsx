@@ -1,6 +1,8 @@
 import * as React from 'react';
+import { createIndexSignature } from 'typescript';
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { AppMainContProps, AppMainContStates, SchemaExplorerProps } from './ts/components';
+import { PatternMatchResult } from './ts/types';
 import { Visualiser } from './Visualiser';
 
 class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
@@ -23,10 +25,10 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
 
     matchedSchemaDropdownItems = () => {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
-        if (this.props.visSchemaMatchStatus) {
-            return this.props.visSchemaMatchStatus.map((status, idx) => {
+        if (dbSchemaContext.visSchemaMatchStatus) {
+            return dbSchemaContext.visSchemaMatchStatus.map((status, idx) => {
                 if (status) {
-                    const matchedSchema = dbSchemaContext.visSchema[idx];
+                    const matchedSchema = status.vs;
                     let classList = "dropdown-item";
                     if (dbSchemaContext.selectedPatternIndex === idx) classList += " active"
 
@@ -58,21 +60,21 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
                 </div>
             )
         } else {
-            const thisPatternMatchStatus = this.props.visSchemaMatchStatus[patternIndex];
+            const thisPatternMatchResult: PatternMatchResult = dbSchemaContext.visSchemaMatchStatus[patternIndex];
             const mandatoryAttributeDropdownGroup = () => {
-                if (!thisPatternMatchStatus || !thisPatternMatchStatus.mandatoryAttributes) return null;
-                const mandatorySelectedAttributesIndices = dbSchemaContext.selectedAttributesIndices[0];
-                return thisPatternMatchStatus.mandatoryAttributes.map((attMatchStatus, idx) => {
+                if (!thisPatternMatchResult || !thisPatternMatchResult.mandatoryAttributes) return null;
+                const mandatorySelectedAttributes = dbSchemaContext.selectedAttributesIndices[0];
+                return thisPatternMatchResult.mandatoryAttributes.map((attMatchStatus, mpIdx) => {
                     // Outer map: for each mandatory parameter in the pattern
-                    const thisAttributeDropdownItemList = attMatchStatus.map((attIndex, listIndex) => {
+                    const thisAttributeDropdownItemList = attMatchStatus.map((matchAttr, listIndex) => {
                         // Inner map: for each matched attribute for each mandatory parameter
-                        const thisAttribute = thisTable.attr[attIndex]
+                        const thisAttribute = thisTable.attr[matchAttr.attributeIndex]
                         return (
                             <li key={listIndex}>
-                                <a className={"dropdown-item small" + (listIndex === mandatorySelectedAttributesIndices[idx] ? " active" : "")} 
+                                <a className={"dropdown-item small" + (listIndex === mandatorySelectedAttributes[mpIdx].attributeIndex ? " active" : "")} 
                                     href="#"
                                     data-mandatory="true"
-                                    data-pattern-att-idx={idx}
+                                    data-pattern-att-idx={mpIdx}
                                     data-list-idx={listIndex}
                                     onClick={this.props.onSelectedAttributeIndicesChange}>
                                     {thisAttribute.attname}
@@ -80,13 +82,16 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
                             </li>
                         )
                     });
-                    // This bit was brutally confusing
-                    const thisAttrPatternStatus = thisPatternMatchStatus.mandatoryAttributes[idx];
+
+                    const selectedTable = this.props.selectedAttributesIndices[0][mpIdx].table;
+                    const selectedAttribute = selectedTable.attr[this.props.selectedAttributesIndices[0][mpIdx].attributeIndex]
+                    console.log(selectedAttribute)
 
                     return (
-                        <div className="btn-group ms-2" key={idx}>
+                        <div className="btn-group ms-2" key={mpIdx}>
                             <button className="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                ma{idx}: {thisTable.attr[thisAttrPatternStatus[mandatorySelectedAttributesIndices[idx]]].attname}
+                                {/* ma{idx}: {thisTable.attr[thisAttrPatternStatus[mandatorySelectedAttributesIndices[idx]]].attname} */}
+                                ma{mpIdx}: {selectedAttribute.attname}
                             </button>
                             <ul className="dropdown-menu">
                                 {thisAttributeDropdownItemList}
@@ -142,8 +147,6 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
             return (<div>Loading...</div>);
         }
         const dbSchemaContext: DBSchemaContextInterface = this.context;
-        console.log(this.props.visSchemaMatchStatus)
-        console.log(this.props.selectedAttributesIndices)
         return (
             <div className="col-8 col-lg-9">
                 <div className="row">
@@ -153,7 +156,7 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
                                 <SchemaExplorer 
                                     expanded={true} 
                                     selectedTableIndex={this.props.selectedTableIndex} 
-                                    visSchemaMatchStatus={this.props.visSchemaMatchStatus}
+                                    selectedAttributesIndices={this.props.selectedAttributesIndices}
                                     onVisPatternIndexChange={this.props.onVisPatternIndexChange}
                                     onSelectedAttributeIndicesChange={this.props.onSelectedAttributeIndicesChange} />
                             </div>
@@ -163,11 +166,10 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
                                 {
                                     this.props.selectedTableIndex >= 0 ? 
                                     <Visualiser 
-                                    selectedTableIndex={this.props.selectedTableIndex}
-                                    selectedAttributesIndices={this.props.selectedAttributesIndices}
-                                    visSchemaMatchStatus={this.props.visSchemaMatchStatus}
-                                    rerender={this.props.rerender} />
-                                    : null
+                                        selectedTableIndex={this.props.selectedTableIndex}
+                                        selectedAttributesIndices={this.props.selectedAttributesIndices}
+                                        rerender={this.props.rerender} />
+                                        : null
                                 }
                             </div>
                         </div>

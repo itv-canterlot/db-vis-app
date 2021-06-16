@@ -18,25 +18,23 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
         let dbContext: DBSchemaContextInterface = this.context;
         const thisTable = dbContext.allEntitiesList[this.props.selectedTableIndex];
         const selectedPattern = dbContext.selectedPatternIndex;
-        const patternMatchStatus = this.props.visSchemaMatchStatus[selectedPattern];
+        const patternMatchStatus = dbContext.visSchemaMatchStatus[selectedPattern];
         const selectedPatternTemplateCode = dbContext.visSchema[selectedPattern].template
         if (!patternMatchStatus) return;
         // TODO: deal with multiple tables
 
         // Map matched attributes to their names
-        const matchedMandatoryAttributeNames = patternMatchStatus["mandatoryAttributes"]
-            .map(indAttr => {
-                return indAttr.map(attId => thisTable.attr[attId].attname);
-            });
+        const matchedMandatoryAttributeNames = this.props.selectedAttributesIndices[0].map(matchAttr => matchAttr.table.attr[matchAttr.attributeIndex].attname)
 
         const userSelectedMandatoryAttributeIndices = this.props.selectedAttributesIndices[0];
-        const args = matchedMandatoryAttributeNames.map((v, i) => v[userSelectedMandatoryAttributeIndices[i]]);
+        // const args = matchedMandatoryAttributeNames.map((v, i) => v[userSelectedMandatoryAttributeIndices[i].attributeIndex]);
+        console.log(matchedMandatoryAttributeNames)
 
         // TODO: other attributes
 
-        getDataFromSingleTableByName(thisTable.tableName, args).then(data => {
+        getDataFromSingleTableByName(thisTable.tableName, matchedMandatoryAttributeNames).then(data => {
             // Separate out data points with null
-            renderVisualisation(selectedPatternTemplateCode, data, args);
+            renderVisualisation(selectedPatternTemplateCode, data, matchedMandatoryAttributeNames);
             this.setState({
                 renderedAttributesIndices: this.props.selectedAttributesIndices,
                 renderedTableIndex: this.props.selectedTableIndex
@@ -61,7 +59,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                 for (let x = 0; x < this.props.selectedAttributesIndices.length; x++) {
                     const newAttSet = this.props.selectedAttributesIndices[x];
                     const oldAttSet = this.state.renderedAttributesIndices[x];
-    
+                    
                     if (newAttSet.length === oldAttSet.length) {
                         for (let y = 0; y < newAttSet.length; y++) {
                             if (newAttSet[y] !== oldAttSet[y]) {

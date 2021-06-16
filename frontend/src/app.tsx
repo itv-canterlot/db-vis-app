@@ -1,7 +1,7 @@
 import * as React from 'react';
 import ReactDOM = require('react-dom');
 
-import { MatchedParamIndicesType, VisSchema } from './ts/types'
+import { PatternMatchAttribute, PatternMatchResult, VisSchema } from './ts/types'
 import { DBSchemaContext } from './DBSchemaContext';
 import { AppMainCont } from './AppMainCont';
 
@@ -25,7 +25,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             allEntitiesList: [],
             selectedTableIndex: -1,
             selectedPatternIndex: -1,
-            selectedAttributesIndices: [[], []],
+            rendererSelectedAttributes: [[], []],
             rerender: true,
             load: false,
             listLoaded: false,
@@ -62,6 +62,11 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         });
     }
 
+    isPatternMatchResultValid = (res: PatternMatchResult) => {
+        if (typeof(res) == "undefined" || res == null) return false;
+        return res.mandatoryAttributes.every(att => att.length > 0);
+    }
+
     getAllMatchableVisSchemaPatterns = () => {
         // Break if not all the components had been initiated
         if (this.state.relationsList === undefined) return;
@@ -72,49 +77,52 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         let entityRel = SchemaParser.getRelationsInListByName(this.state.relationsList, selectedEntity.tableName);
 
         // TODO: fix case with no match
-        const matchStatusForAllSchema = matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema);
-        const firstValidPatternIndex = matchStatusForAllSchema.findIndex(v => typeof(v) !== "undefined" && v !== null);
-        const firstValidPatternMatchStatus: MatchedParamIndicesType = matchStatusForAllSchema.find(v => typeof(v) !== "undefined" && v !== null);
+        const matchStatusForAllSchema: PatternMatchResult[] = matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema);
+        const firstValidPatternIndex = matchStatusForAllSchema.findIndex(res => this.isPatternMatchResultValid(res));
+        const firstValidPatternMatchStatus: PatternMatchResult = matchStatusForAllSchema[firstValidPatternIndex];
+
         const mandatoryParamInitIndices = firstValidPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {
             return Math.floor(Math.random() * mandMatch.length);
         });
-        let optionalParamInitIndices;
+        const mandatoryParamInitAtts = mandatoryParamInitIndices.map((attIdx, listIdx) => firstValidPatternMatchStatus.mandatoryAttributes[listIdx][attIdx])
+
+        let optionalParamInitIndices, optionalParamInitAtts;
         if (firstValidPatternMatchStatus.hasOwnProperty("optionalAttributes")) {
             optionalParamInitIndices = firstValidPatternMatchStatus.optionalAttributes.map((mandMatch, idx) => {
                 return Math.floor(Math.random() * mandMatch.length);
             });
+            optionalParamInitAtts = optionalParamInitIndices.map((attIdx, listIdx) => firstValidPatternMatchStatus.optionalAttributes[listIdx][attIdx])
         } else {
             optionalParamInitIndices = [];
         }
+
+        console.log(mandatoryParamInitAtts)
         
         // TODO: make sure the picked indices are not duplicates of each other
-        // for (let i = 0; i < firstValidPatternMatchStatus.mandatoryAttributes.length; i++) {
-        //     for (let j = 0; j < firstValidPatternMatchStatus.mandatoryAttributes[i].length; j++) {
-                
-        //     }
-        // }
-        console.log(firstValidPatternMatchStatus)
         this.setState({
             visSchemaMatchStatus: matchStatusForAllSchema,
             selectedPatternIndex: firstValidPatternIndex ? firstValidPatternIndex : -1,
-            selectedAttributesIndices: [mandatoryParamInitIndices, optionalParamInitIndices]
+            rendererSelectedAttributes: [mandatoryParamInitAtts, optionalParamInitAtts]
         });
     }
 
     onVisPatternIndexChange = (newIndex: number) => {
-        const newPatternMatchStatus: MatchedParamIndicesType = 
+        const newPatternMatchStatus: PatternMatchResult = 
             this.state.visSchemaMatchStatus[newIndex];
 
         const mandatoryParamInitIndices = newPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {
             return Math.floor(Math.random() * mandMatch.length);
         });
+        const mandatoryParamAttrs = mandatoryParamInitIndices.map((attIdx, listIdx) => newPatternMatchStatus.mandatoryAttributes[listIdx][attIdx])
+        
         const optionalParamInitIndices = newPatternMatchStatus.optionalAttributes.map((mandMatch, idx) => {
             return Math.floor(Math.random() * mandMatch.length);
         });
+        const optionalParamAttrs = mandatoryParamInitIndices.map((attIdx, listIdx) => newPatternMatchStatus.optionalAttributes[listIdx][attIdx])
 
         this.setState({
             selectedPatternIndex: newIndex,
-            selectedAttributesIndices: [mandatoryParamInitIndices, optionalParamInitIndices],
+            rendererSelectedAttributes: [mandatoryParamAttrs, optionalParamAttrs],
             rerender: true
         }, () => {
             this.setState({
@@ -125,14 +133,26 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
     onSelectedAttributeIndicesChange = (e: React.BaseSyntheticEvent) => {
         const target = e.target;
-        const isMandatoryIdx = target.getAttribute("data-mandatory") === "true" ? 0 : 1;
+        const isMandatory = target.getAttribute("data-mandatory") === "true";
+        const isMandatoryIdx = isMandatory ? 0 : 1;
         const patternAttIdx = parseInt(target.getAttribute("data-pattern-att-idx"));
         const listIdx = parseInt(target.getAttribute("data-list-idx"));
-        let newAttIndices = JSON.parse(JSON.stringify(this.state.selectedAttributesIndices));
-        newAttIndices[isMandatoryIdx][patternAttIdx] = listIdx;
+        const currentPatternMatchResult = this.state.visSchemaMatchStatus[this.state.selectedPatternIndex];
+        const newMatchAttr = currentPatternMatchResult.mandatoryAttributes[patternAttIdx][listIdx]
+
+        let newAttsObject = [], editedAtts = [];
+        this.state.rendererSelectedAttributes[isMandatoryIdx].forEach((matchAttr, idx) => {
+            if (idx === patternAttIdx) {
+                editedAtts.push(newMatchAttr);
+            } else {
+                editedAtts.push(matchAttr);
+            }
+        });
+        newAttsObject[isMandatoryIdx] = editedAtts;
+        newAttsObject[Math.abs(isMandatoryIdx - 1)] = this.state.rendererSelectedAttributes[Math.abs(isMandatoryIdx - 1)];
         
         this.setState({
-            selectedAttributesIndices: newAttIndices,
+            rendererSelectedAttributes: newAttsObject,
             rerender: true
         }, () => {
             this.setState({
@@ -213,10 +233,11 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     render() {
         const providerValues = {
             allEntitiesList: this.state.allEntitiesList, 
-            relationsList: this.state.relationsList, 
+            relationsList: this.state.relationsList,
+            visSchemaMatchStatus: this.state.visSchemaMatchStatus,
             visSchema: visSchema,
             selectedPatternIndex: this.state.selectedPatternIndex,
-            selectedAttributesIndices: this.state.selectedAttributesIndices
+            selectedAttributesIndices: this.state.rendererSelectedAttributes
         };
 
         return (
@@ -234,8 +255,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                         selectedTableIndex={this.state.selectedTableIndex} />
                     <AppMainCont
                         selectedTableIndex={this.state.selectedTableIndex}
-                        selectedAttributesIndices={this.state.selectedAttributesIndices}
-                        visSchemaMatchStatus={this.state.visSchemaMatchStatus}
+                        selectedAttributesIndices={this.state.rendererSelectedAttributes}
                         load={this.state.load}
                         rerender={this.state.rerender}
                         onVisPatternIndexChange={this.onVisPatternIndexChange}

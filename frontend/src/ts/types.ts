@@ -137,7 +137,13 @@ type marginObject = {
     bottom?: number
 }
 
-export type MatchedParamIndicesType = {
-    mandatoryAttributes: number[][],
-    optionalAttributes?: number[][]
+// Pattern-matching
+export type PatternMatchAttribute = {
+    table: Table,
+    attributeIndex: number
+}
+export type PatternMatchResult = {
+    vs: VisSchema,
+    mandatoryAttributes: PatternMatchAttribute[][],
+    optionalAttributes: PatternMatchAttribute[][]
 }
