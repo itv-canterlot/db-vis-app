@@ -133,15 +133,15 @@ const getMatchAttributesFromSet = (rel: RelationNode, param: VisParam) => {
             // Skip pks(?)
             if (SchemaParser.isAttributeInPrimaryKey(i + 1, table.pk)) continue;
             // Check specific types first
-            if (!doesAttributeMatchVisParamType(thisAttr, param)) continue;
+            if (doesAttributeMatchVisParamType(thisAttr, param)) {
+                // Add this attribute to the list above
+                matchResult.push({
+                    table: table,
+                    attributeIndex: i
+                });
+            };
     
-            // Add this attribute to the list above
-            matchResult.push({
-                table: table,
-                attributeIndex: i
-            });
         }
-    
     });
 
     return matchResult;

@@ -81,6 +81,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         const firstValidPatternIndex = matchStatusForAllSchema.findIndex(res => this.isPatternMatchResultValid(res));
         const firstValidPatternMatchStatus: PatternMatchResult = matchStatusForAllSchema[firstValidPatternIndex];
 
+        console.log(matchStatusForAllSchema)
+
         const mandatoryParamInitIndices = firstValidPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {
             return Math.floor(Math.random() * mandMatch.length);
         });
@@ -97,7 +99,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         }
 
         console.log(mandatoryParamInitAtts)
-        
+
         // TODO: make sure the picked indices are not duplicates of each other
         this.setState({
             visSchemaMatchStatus: matchStatusForAllSchema,
@@ -118,7 +120,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         const optionalParamInitIndices = newPatternMatchStatus.optionalAttributes.map((mandMatch, idx) => {
             return Math.floor(Math.random() * mandMatch.length);
         });
-        const optionalParamAttrs = mandatoryParamInitIndices.map((attIdx, listIdx) => newPatternMatchStatus.optionalAttributes[listIdx][attIdx])
+        const optionalParamAttrs = optionalParamInitIndices.map((attIdx, listIdx) => newPatternMatchStatus.optionalAttributes[listIdx][attIdx])
 
         this.setState({
             selectedPatternIndex: newIndex,

@@ -26,12 +26,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
         // Map matched attributes to their names
         const matchedMandatoryAttributeNames = this.props.selectedAttributesIndices[0].map(matchAttr => matchAttr.table.attr[matchAttr.attributeIndex].attname)
 
-        const userSelectedMandatoryAttributeIndices = this.props.selectedAttributesIndices[0];
-        // const args = matchedMandatoryAttributeNames.map((v, i) => v[userSelectedMandatoryAttributeIndices[i].attributeIndex]);
-        console.log(matchedMandatoryAttributeNames)
-
         // TODO: other attributes
-
         getDataFromSingleTableByName(thisTable.tableName, matchedMandatoryAttributeNames).then(data => {
             // Separate out data points with null
             renderVisualisation(selectedPatternTemplateCode, data, matchedMandatoryAttributeNames);

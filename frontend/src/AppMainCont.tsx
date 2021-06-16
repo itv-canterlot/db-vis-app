@@ -85,12 +85,10 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
 
                     const selectedTable = this.props.selectedAttributesIndices[0][mpIdx].table;
                     const selectedAttribute = selectedTable.attr[this.props.selectedAttributesIndices[0][mpIdx].attributeIndex]
-                    console.log(selectedAttribute)
 
                     return (
                         <div className="btn-group ms-2" key={mpIdx}>
                             <button className="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                {/* ma{idx}: {thisTable.attr[thisAttrPatternStatus[mandatorySelectedAttributesIndices[idx]]].attname} */}
                                 ma{mpIdx}: {selectedAttribute.attname}
                             </button>
                             <ul className="dropdown-menu">
