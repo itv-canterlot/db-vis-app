@@ -1,36 +1,6 @@
 {
     "schema": [
         {
-            "name": "Bar Chart",
-            "type": 0,
-            "localKey": {
-                "minCount": 1,
-                "maxCount": 100
-            },
-            "mandatoryParameters": [
-                {
-                    "scalar": true
-                }
-            ]
-        }, {
-            "name": "Calendar",
-            "type": 0,
-            "localKey": {
-                "minCount": 1
-            },
-            "mandatoryParameters": [
-                {
-                    "scalar": true,
-                    "type": "TEMPORAL"
-                }
-            ],
-            "optionalParameters": [
-                {
-                    "scalar": false,
-                    "type": "COLOR"
-                }
-            ]
-        }, {
             "name": "Scatter Diagrams",
             "type": 0,
             "localKey": {
@@ -72,6 +42,36 @@
                 }
             ],
             "template": "bubble"
+        }, {
+            "name": "Bar Chart",
+            "type": 0,
+            "localKey": {
+                "minCount": 1,
+                "maxCount": 100
+            },
+            "mandatoryParameters": [
+                {
+                    "scalar": true
+                }
+            ]
+        }, {
+            "name": "Calendar",
+            "type": 0,
+            "localKey": {
+                "minCount": 1
+            },
+            "mandatoryParameters": [
+                {
+                    "scalar": true,
+                    "type": "TEMPORAL"
+                }
+            ],
+            "optionalParameters": [
+                {
+                    "scalar": false,
+                    "type": "COLOR"
+                }
+            ]
         }, {
             "name": "Choropleth Maps",
             "type": 0,
