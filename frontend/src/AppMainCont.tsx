@@ -11,9 +11,10 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
     }
 
     onPatternSelectionDropdownClick = (e: React.BaseSyntheticEvent) => {
+        const context: DBSchemaContextInterface = this.context;
         const selectedIndex = parseInt(e.target.getAttribute("data-index"));
         if (!selectedIndex) return;
-        if (selectedIndex === this.props.selectedTableIndex) return;
+        if (selectedIndex === context.selectedFirstTableIndex) return;
 
         this.props.onVisPatternIndexChange(selectedIndex);
     }
@@ -47,11 +48,11 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
     }
 
     render() {
-        const dbSchemaContext: DBSchemaContextInterface = this.context;
-        const thisTable = dbSchemaContext.allEntitiesList[this.props.selectedTableIndex];
-        const patternIndex = dbSchemaContext.selectedPatternIndex;
-        const thisPattern = dbSchemaContext.visSchema[patternIndex];
-        if (this.props.selectedTableIndex < 0) {
+        const context: DBSchemaContextInterface = this.context;
+        // const thisTable = context.allEntitiesList[context.];
+        const patternIndex = context.selectedPatternIndex;
+        const thisPattern = context.visSchema[patternIndex];
+        if (context.selectedFirstTableIndex < 0) {
             return (
                 <div className="d-flex justify-content-center">
                     <div>
@@ -60,31 +61,31 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
                 </div>
             )
         } else {
-            const thisPatternMatchResult: PatternMatchResult = dbSchemaContext.visSchemaMatchStatus[patternIndex];
+            const thisPatternMatchResult: PatternMatchResult = context.visSchemaMatchStatus[patternIndex];
             const mandatoryAttributeDropdownGroup = () => {
                 if (!thisPatternMatchResult || !thisPatternMatchResult.mandatoryAttributes) return null;
-                const mandatorySelectedAttributes = dbSchemaContext.selectedAttributesIndices[0];
+                const mandatorySelectedAttributes = context.selectedAttributesIndices[0];
                 return thisPatternMatchResult.mandatoryAttributes.map((attMatchStatus, mpIdx) => {
                     // Outer map: for each mandatory parameter in the pattern
-                    const thisAttributeDropdownItemList = attMatchStatus.map((matchAttr, listIndex) => {
-                        // Inner map: for each matched attribute for each mandatory parameter
-                        const thisAttribute = thisTable.attr[matchAttr.attributeIndex]
-                        return (
-                            <li key={listIndex}>
-                                <a className={"dropdown-item small" + (listIndex === mandatorySelectedAttributes[mpIdx].attributeIndex ? " active" : "")} 
-                                    href="#"
-                                    data-mandatory="true"
-                                    data-pattern-att-idx={mpIdx}
-                                    data-list-idx={listIndex}
-                                    onClick={this.props.onSelectedAttributeIndicesChange}>
-                                    {thisAttribute.attname}
-                                </a>
-                            </li>
-                        )
-                    });
+                    // const thisAttributeDropdownItemList = attMatchStatus.map((matchAttr, listIndex) => {
+                    //     // Inner map: for each matched attribute for each mandatory parameter
+                    //     const thisAttribute = thisTable.attr[matchAttr.attributeIndex]
+                    //     return (
+                    //         <li key={listIndex}>
+                    //             <a className={"dropdown-item small" + (listIndex === mandatorySelectedAttributes[mpIdx].attributeIndex ? " active" : "")} 
+                    //                 href="#"
+                    //                 data-mandatory="true"
+                    //                 data-pattern-att-idx={mpIdx}
+                    //                 data-list-idx={listIndex}
+                    //                 onClick={this.props.onSelectedAttributeIndicesChange}>
+                    //                 {thisAttribute.attname}
+                    //             </a>
+                    //         </li>
+                    //     )
+                    // });
 
-                    const selectedTable = this.props.selectedAttributesIndices[0][mpIdx].table;
-                    const selectedAttribute = selectedTable.attr[this.props.selectedAttributesIndices[0][mpIdx].attributeIndex]
+                    const selectedTable = context.selectedAttributesIndices[0][mpIdx].table;
+                    const selectedAttribute = selectedTable.attr[context.selectedAttributesIndices[0][mpIdx].attributeIndex]
 
                     return (
                         <div className="btn-group ms-2" key={mpIdx}>
@@ -92,7 +93,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
                                 ma{mpIdx}: {selectedAttribute.attname}
                             </button>
                             <ul className="dropdown-menu">
-                                {thisAttributeDropdownItemList}
+                                {/* {thisAttributeDropdownItemList} */}
                             </ul>
                         </div>
                     );
@@ -103,7 +104,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
                 <div>
                     <div className="d-flex justify-content-between align-items-center">
                         <div>
-                            {dbSchemaContext.allEntitiesList[this.props.selectedTableIndex].tableName}
+                            {context.allEntitiesList[context.selectedFirstTableIndex].tableName}
                         </div>
                         <div className="dropdown">
                             <a className="btn btn-primary dropdown-toggle" href="#" role="button" id="matched-schema-list-dropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -144,7 +145,7 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
         if (this.props.load) {
             return (<div>Loading...</div>);
         }
-        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        const context: DBSchemaContextInterface = this.context;
         return (
             <div className="col-8 col-lg-9">
                 <div className="row">
@@ -153,8 +154,6 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
                             <div className="col">
                                 <SchemaExplorer 
                                     expanded={true} 
-                                    selectedTableIndex={this.props.selectedTableIndex} 
-                                    selectedAttributesIndices={this.props.selectedAttributesIndices}
                                     onVisPatternIndexChange={this.props.onVisPatternIndexChange}
                                     onSelectedAttributeIndicesChange={this.props.onSelectedAttributeIndicesChange} />
                             </div>
@@ -162,10 +161,8 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
                         <div className="row">
                             <div className="col">
                                 {
-                                    this.props.selectedTableIndex >= 0 ? 
+                                    context.selectedFirstTableIndex >= 0 ? 
                                     <Visualiser 
-                                        selectedTableIndex={this.props.selectedTableIndex}
-                                        selectedAttributesIndices={this.props.selectedAttributesIndices}
                                         rerender={this.props.rerender} />
                                         : null
                                 }

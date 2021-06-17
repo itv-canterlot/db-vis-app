@@ -177,6 +177,10 @@ export const matchTableWithAllVisPatterns = (table: Table, rels: RelationNode[],
     return out;
 }
 
+const patternMatchSuccessful = (result: PatternMatchResult, vs: VisSchema) => {
+    return result.mandatoryAttributes.every(ma => ma.length > 0);
+}
+
 const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSchema) => {
     if (!table.pk) return undefined; // Not suitable if there is no PK to use
 
@@ -195,7 +199,8 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
             let thisPatternMatchResult: PatternMatchResult = {
                 vs: vs,
                 mandatoryAttributes: [],
-                optionalAttributes: []
+                optionalAttributes: [],
+                matched: false
             };
             
             // For each attribute in vs, compare against each attr in table, add appropriate indices to list
@@ -207,6 +212,10 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
                     thisConstMatchableIndices = getMatchingAttributesByParameter(table, mp);
                 }
                 thisPatternMatchResult.mandatoryAttributes.push(thisConstMatchableIndices);
+            }
+
+            if (patternMatchSuccessful(thisPatternMatchResult, vs)) {
+                thisPatternMatchResult.matched = true;
             }
 
             if (vs.optionalParameters) {

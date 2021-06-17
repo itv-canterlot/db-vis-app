@@ -7,9 +7,10 @@ import { getRelationsInListByName } from './SchemaParser';
 import { Table, RelationNode, VisSchema, Attribute, VISSCHEMATYPES } from './ts/types';
 import * as SchemaParser from './SchemaParser';
 import * as TypeConstants from './TypeConstants';
+import { StartingTableSelectModalProps, StartingTableSelectModalStates } from './ts/components';
 
 
-export class StartingTableSelectModal extends React.Component<{onClose: Function, onTableSelectChange: Function, selectedTableIndex: number}, {cachedSelectedIndex?: number, selectedForeignKeyIdx?: number}> {
+export class StartingTableSelectModal extends React.Component<StartingTableSelectModalProps, StartingTableSelectModalStates> {
     constructor(props) {
         super(props);
         this.state = {
@@ -245,9 +246,10 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
     }
 
     componentDidMount() {
-        if (this.props.selectedTableIndex >= 0 && this.state.cachedSelectedIndex !== this.props.selectedTableIndex) {
+        const context: DBSchemaContextInterface = this.context;
+        if (context.selectedFirstTableIndex >= 0 && this.state.cachedSelectedIndex !== context.selectedFirstTableIndex) {
             this.setState({
-                cachedSelectedIndex: this.props.selectedTableIndex
+                cachedSelectedIndex: context.selectedFirstTableIndex
             });
         }
         const modalElement = document.getElementById("starting-table-select-modal")
@@ -281,7 +283,7 @@ export class StartingTableSelectModal extends React.Component<{onClose: Function
                         </button>
                     </div>
                     <div className="modal-body">
-                        <EntitySelector onTableSelectChange={this.onTableSelectChange} selectedTableIndex={this.props.selectedTableIndex} id="starting-table-select-input" />
+                        <EntitySelector onTableSelectChange={this.onTableSelectChange} id="starting-table-select-input" />
                         {
                             this.state.cachedSelectedIndex >= 0 ?
                             this.getTableRelationVis() :

@@ -2,7 +2,7 @@ import * as React from 'react';
 import ReactDOM = require('react-dom');
 
 import { PatternMatchAttribute, PatternMatchResult, VisSchema } from './ts/types'
-import { DBSchemaContext } from './DBSchemaContext';
+import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { AppMainCont } from './AppMainCont';
 
 import { AppSidebar } from './AppSidebar';
@@ -23,7 +23,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
         this.state = {
             allEntitiesList: [],
-            selectedTableIndex: -1,
+            selectedFirstTableIndex: -1,
             selectedPatternIndex: -1,
             rendererSelectedAttributes: [[], []],
             rerender: true,
@@ -42,7 +42,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     }
 
     onClickShowMatchedSchemasModal = () => {
-        if (this.state.selectedTableIndex < 0) {
+        if (this.state.selectedFirstTableIndex < 0) {
             return;
         }
         this.setState({
@@ -64,7 +64,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
     isPatternMatchResultValid = (res: PatternMatchResult) => {
         if (typeof(res) == "undefined" || res == null) return false;
-        return res.mandatoryAttributes.every(att => att.length > 0);
+        return res.matched;
     }
 
     getAllMatchableVisSchemaPatterns = () => {
@@ -73,10 +73,10 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         if (visSchema === undefined) return;
 
         // Check type of the relation
-        let selectedEntity = this.state.allEntitiesList[this.state.selectedTableIndex];
+        let selectedEntity = this.state.allEntitiesList[this.state.selectedFirstTableIndex];
         let entityRel = SchemaParser.getRelationsInListByName(this.state.relationsList, selectedEntity.tableName);
 
-        // TODO: fix case with no match
+        // Find the first result that resulted in a match
         const matchStatusForAllSchema: PatternMatchResult[] = matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema);
         const firstValidPatternIndex = matchStatusForAllSchema.findIndex(res => this.isPatternMatchResultValid(res));
         const firstValidPatternMatchStatus: PatternMatchResult = matchStatusForAllSchema[firstValidPatternIndex];
@@ -172,7 +172,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             tableIndex = e;
         }
 
-        const tableIndexChanged = this.state.selectedTableIndex !== tableIndex
+        const tableIndexChanged = this.state.selectedFirstTableIndex !== tableIndex
 
         if (tableIndex < 0) {
             this.setState({
@@ -188,7 +188,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             rerender: false
         }, () => {    
             this.setState({
-                selectedTableIndex: tableIndex,
+                selectedFirstTableIndex: tableIndex,
                 rerender: tableIndexChanged
             }, () => {
                 this.getAllMatchableVisSchemaPatterns();
@@ -233,12 +233,13 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     }
 
     render() {
-        const providerValues = {
+        const providerValues: DBSchemaContextInterface = {
             allEntitiesList: this.state.allEntitiesList, 
             relationsList: this.state.relationsList,
             visSchemaMatchStatus: this.state.visSchemaMatchStatus,
             visSchema: visSchema,
             selectedPatternIndex: this.state.selectedPatternIndex,
+            selectedFirstTableIndex: this.state.selectedFirstTableIndex,
             selectedAttributesIndices: this.state.rendererSelectedAttributes
         };
 
@@ -246,18 +247,14 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             <DBSchemaContext.Provider value={providerValues}>
                 {this.state.showStartingTableSelectModal ? 
                 <StartingTableSelectModal 
-                    onClose={this.onCloseShowStartingTableSelectModal} onTableSelectChange={this.onTableSelectChange} 
-                    selectedTableIndex={this.state.selectedTableIndex}/> 
+                    onClose={this.onCloseShowStartingTableSelectModal} onTableSelectChange={this.onTableSelectChange} /> 
                 : null}
                 <div className="row" id="app-wrapper">
                     <AppSidebar 
                         databaseLocation={this.state.databaseLocation}
                         onClickShowStartingTableSelectModal={this.onClickShowStartingTableSelectModal}
-                        onClickShowMatchedSchemasModal={this.onClickShowMatchedSchemasModal}
-                        selectedTableIndex={this.state.selectedTableIndex} />
+                        onClickShowMatchedSchemasModal={this.onClickShowMatchedSchemasModal} />
                     <AppMainCont
-                        selectedTableIndex={this.state.selectedTableIndex}
-                        selectedAttributesIndices={this.state.rendererSelectedAttributes}
                         load={this.state.load}
                         rerender={this.state.rerender}
                         onVisPatternIndexChange={this.onVisPatternIndexChange}

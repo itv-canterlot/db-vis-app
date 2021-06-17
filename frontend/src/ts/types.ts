@@ -144,6 +144,7 @@ export type PatternMatchAttribute = {
 }
 export type PatternMatchResult = {
     vs: VisSchema,
+    matched: boolean,
     mandatoryAttributes: PatternMatchAttribute[][],
     optionalAttributes: PatternMatchAttribute[][]
 }

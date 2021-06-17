@@ -6,7 +6,7 @@ import { Table } from './ts/types';
 
 import * as ComponentTypes from './ts/components';
 
-export class TableCard extends React.Component<{selectedTableIndex: number}, {showFk?: boolean}> {
+export class TableCard extends React.Component<{}, {showFk?: boolean}> {
     constructor(props) {
         super(props);
         this.state = {
@@ -15,8 +15,8 @@ export class TableCard extends React.Component<{selectedTableIndex: number}, {sh
     }
 
     render() {
-        const dbSchemaContext: DBSchemaContextInterface = this.context;
-        const selectedTable = dbSchemaContext.allEntitiesList[this.props.selectedTableIndex];
+        const context: DBSchemaContextInterface = this.context;
+        const selectedTable = context.allEntitiesList[context.selectedFirstTableIndex];
         let pkConstraintName = "";
         
         if (selectedTable === undefined) return null;
@@ -99,9 +99,10 @@ export class AppSidebar extends React.Component<ComponentTypes.AppSidebarProps, 
     }
 
     printPrimaryKeyPrompt = () => {
-        if (this.props.selectedTableIndex >= 0) {
+        const context: DBSchemaContextInterface = this.context;
+        if (context.selectedFirstTableIndex >= 0) {
             const dbSchemaContext: DBSchemaContextInterface = this.context;
-            const thisTable = dbSchemaContext.allEntitiesList[this.props.selectedTableIndex];
+            const thisTable = dbSchemaContext.allEntitiesList[context.selectedFirstTableIndex];
             if (!thisTable.pk) {
                 return (
                     <div className="me-1 text-muted dropdown-tip bg-tip-grey d-inline-block">
@@ -111,7 +112,7 @@ export class AppSidebar extends React.Component<ComponentTypes.AppSidebarProps, 
             };
             return (
                 <div className="me-1 text-muted dropdown-tip bg-tip-pk d-inline-block">
-                    pk: <em>{ dbSchemaContext.allEntitiesList[this.props.selectedTableIndex].pk.keyName}</em>
+                    pk: <em>{ dbSchemaContext.allEntitiesList[context.selectedFirstTableIndex].pk.keyName}</em>
                 </div>)
         } else {
             return null;
@@ -137,11 +138,11 @@ export class AppSidebar extends React.Component<ComponentTypes.AppSidebarProps, 
             </div>
         );
 
-        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        const context: DBSchemaContextInterface = this.context;
         let selectedTable: Table = undefined;
         
-        if (this.props.selectedTableIndex >= 0) {
-            selectedTable = dbSchemaContext.allEntitiesList[this.props.selectedTableIndex];
+        if (context.selectedFirstTableIndex >= 0) {
+            selectedTable = context.allEntitiesList[context.selectedFirstTableIndex];
         }
 
 
@@ -159,7 +160,7 @@ export class AppSidebar extends React.Component<ComponentTypes.AppSidebarProps, 
                 <div className="row">
                     <div className="col overflow-ellipses overflow-hidden">
                         <strong>
-                            {this.props.selectedTableIndex >= 0 ? dbSchemaContext.allEntitiesList[this.props.selectedTableIndex].tableName : (<em>None selected</em>)}
+                            {context.selectedFirstTableIndex >= 0 ? context.allEntitiesList[context.selectedFirstTableIndex].tableName : (<em>None selected</em>)}
                         </strong>
                     </div>
                 </div>
@@ -186,7 +187,7 @@ export class AppSidebar extends React.Component<ComponentTypes.AppSidebarProps, 
             <div className="row">
                 <div className="col overflow-ellipses overflow-hidden">
                     <strong>
-                        {this.props.selectedTableIndex >= 0 ? "TODO" : <em>Not available</em>}
+                        {context.selectedFirstTableIndex >= 0 ? "TODO" : <em>Not available</em>}
                     </strong>
                 </div>
             </div>
@@ -210,7 +211,6 @@ export class AppSidebar extends React.Component<ComponentTypes.AppSidebarProps, 
                         bodyElement={matchedSchemaBody}
                         isLoaded={this.state.isLoaded}
                         onClick={this.props.onClickShowMatchedSchemasModal} />
-                    {/* {this.props.selectedTableIndex >= 0 ? <TableCard selectedTableIndex={this.props.selectedTableIndex} /> : null} */}
                 </div>
             </div>
         </div>

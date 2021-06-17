@@ -31,7 +31,6 @@ export type EntitySelectorProps = {
     onAttributeSelectChange?: Function,
     onFKAttributeSelectChange?: Function,
     onForeignKeySelectChange?: Function,
-    selectedTableIndex: number,
     selectedAttributeIndex?: number,
     selectedForeignKeyIndex?: number,
     selectedFKAttributeIndex?: number,
@@ -51,7 +50,7 @@ export type AttributeListSelectorProps = {
 export type ApplicationStates = {
     allEntitiesList?: Table[],
     relationsList?: RelationNode[],
-    selectedTableIndex?: number,
+    selectedFirstTableIndex?: number,
     selectedPatternIndex?: number,
     rendererSelectedAttributes?: PatternMatchAttribute[][], // TODO: expand if needed
     rerender?: boolean,
@@ -66,8 +65,7 @@ export type ApplicationStates = {
 export type AppSidebarProps = {
     databaseLocation: string,
     onClickShowStartingTableSelectModal: React.MouseEventHandler,
-    onClickShowMatchedSchemasModal: React.MouseEventHandler,
-    selectedTableIndex: number
+    onClickShowMatchedSchemasModal: React.MouseEventHandler
 }
 
 export type SidebarBubbleBlockProps = {
@@ -77,18 +75,25 @@ export type SidebarBubbleBlockProps = {
     onClick?: React.MouseEventHandler
 }
 
+/* SidebarModals.tsx */
+export type StartingTableSelectModalProps = {
+    onClose: Function, 
+    onTableSelectChange: Function, 
+}
+
+export type StartingTableSelectModalStates = {
+    cachedSelectedIndex?: number,
+    selectedForeignKeyIdx?: number
+}
+
 /* AppMainCont.tsx */
 export type SchemaExplorerProps = {
     expanded: boolean, 
-    selectedTableIndex: number,
-    selectedAttributesIndices: PatternMatchAttribute[][]
     onVisPatternIndexChange: Function,
     onSelectedAttributeIndicesChange: React.MouseEventHandler
 }
 
 export type AppMainContProps = {
-    selectedTableIndex: number,
-    selectedAttributesIndices: PatternMatchAttribute[][],
     load: boolean,
     rerender: boolean,
     onVisPatternIndexChange: Function,
@@ -101,8 +106,6 @@ export type AppMainContStates = {
 
 /* Visualiser.tsx */
 export type VisualiserProps = {
-    selectedTableIndex: number,
-    selectedAttributesIndices: PatternMatchAttribute[][],
     rerender: boolean
 }
 

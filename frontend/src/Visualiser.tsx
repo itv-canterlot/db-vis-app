@@ -15,44 +15,44 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
     visualisationHandler = () => {
         if (!this.props.rerender) return;
 
-        let dbContext: DBSchemaContextInterface = this.context;
-        const thisTable = dbContext.allEntitiesList[this.props.selectedTableIndex];
-        const selectedPattern = dbContext.selectedPatternIndex;
-        const patternMatchStatus = dbContext.visSchemaMatchStatus[selectedPattern];
-        const selectedPatternTemplateCode = dbContext.visSchema[selectedPattern].template
+        let context: DBSchemaContextInterface = this.context;
+        const thisTable = context.allEntitiesList[context.selectedFirstTableIndex];
+        const selectedPattern = context.selectedPatternIndex;
+        const patternMatchStatus = context.visSchemaMatchStatus[selectedPattern];
+        const selectedPatternTemplateCode = context.visSchema[selectedPattern].template
         if (!patternMatchStatus) return;
         // TODO: deal with multiple tables
 
         // Map matched attributes to their names
-        const matchedMandatoryAttributeNames = this.props.selectedAttributesIndices[0].map(matchAttr => matchAttr.table.attr[matchAttr.attributeIndex].attname)
+        const matchedMandatoryAttributeNames = context.selectedAttributesIndices[0].map(matchAttr => matchAttr.table.attr[matchAttr.attributeIndex].attname)
 
         // TODO: other attributes
         getDataFromSingleTableByName(thisTable.tableName, matchedMandatoryAttributeNames).then(data => {
             // Separate out data points with null
             renderVisualisation(selectedPatternTemplateCode, data, matchedMandatoryAttributeNames);
             this.setState({
-                renderedAttributesIndices: this.props.selectedAttributesIndices,
-                renderedTableIndex: this.props.selectedTableIndex
+                renderedAttributesIndices: context.selectedAttributesIndices,
+                renderedTableIndex: context.selectedFirstTableIndex
             })
         });
     }
 
     componentDidMount() {
-        let dbContext: DBSchemaContextInterface = this.context;
-        if (dbContext.allEntitiesList !== undefined && dbContext.allEntitiesList.length !== 0) {
-            if (this.props.selectedTableIndex < 0) return;
+        let context: DBSchemaContextInterface = this.context;
+        if (context.allEntitiesList !== undefined && context.allEntitiesList.length !== 0) {
+            if (context.selectedFirstTableIndex < 0) return;
 
             this.visualisationHandler();
         }
     }
     
     componentDidUpdate() {
-        let dbContext: DBSchemaContextInterface = this.context;
+        let context: DBSchemaContextInterface = this.context;
         if (this.state) {
-            if (this.props.selectedTableIndex === this.state.renderedTableIndex) {
+            if (context.selectedFirstTableIndex === this.state.renderedTableIndex) {
                 let allAttributeSetMatched = true;
-                for (let x = 0; x < this.props.selectedAttributesIndices.length; x++) {
-                    const newAttSet = this.props.selectedAttributesIndices[x];
+                for (let x = 0; x < context.selectedAttributesIndices.length; x++) {
+                    const newAttSet = context.selectedAttributesIndices[x];
                     const oldAttSet = this.state.renderedAttributesIndices[x];
                     
                     if (newAttSet.length === oldAttSet.length) {
@@ -66,8 +66,8 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                 }
     
                 if (!allAttributeSetMatched) {
-                    if (dbContext.allEntitiesList !== undefined && dbContext.allEntitiesList.length !== 0) {
-                        if (this.props.selectedTableIndex < 0) return;
+                    if (context.allEntitiesList !== undefined && context.allEntitiesList.length !== 0) {
+                        if (context.selectedFirstTableIndex < 0) return;
             
                         this.visualisationHandler();
                     }
