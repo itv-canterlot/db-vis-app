@@ -14,11 +14,14 @@ app.get('/', (req, res) => {
   res.send('Not implemented')
 });
 
-app.get('/tables', (_, webRes) => {
+app.get('/tables', (_, webRes, next) => {
   console.debug("GET /tables")
   pgconnect.getTableMetatdata().then(tabRes => {
     webRes.send(tabRes);
+  }).catch(err => {
+    next(new ErrorHandler(503, err.message))
   });
+
 });
 
 app.post('/table-dist-counts', (req, res) => {
@@ -29,24 +32,30 @@ app.post('/table-dist-counts', (req, res) => {
   });
 });
 
-app.post('/data-single-table-name-fields', (req, res) => {
+app.post('/data-single-table-name-fields', async (req, res, next) => {
   console.debug("POST /data-single-table-name-fields")
-  let fields = req.body["columnNames"];
-  let tableName = req.body["tableName"];
-  console.debug(`-- columnNames: ${fields}`);
-  console.debug(`-- tableName: ${tableName}`);
-  if (!fields || !tableName) {
-    return res.status(400).json("Input format error");
+  try {
+    let fields = req.body["columnNames"];
+    let tableName = req.body["tableName"];
+    console.debug(`-- columnNames: ${fields}`);
+    console.debug(`-- tableName: ${tableName}`);
+    if (!fields || !tableName) {
+      return res.status(400).json("Input format error");
+    }
+  
+    pgconnect.getDataByTableNameAndFields(tableName, fields).then(tabRes => {
+      if (tabRes instanceof Error) {
+        return res.status(500).json("Internal error: " + tabRes.message);
+      }
+      else {
+        return res.send(tabRes);
+      }
+    }).catch(err => {
+      next(new ErrorHandler(500, err.message));
+    });
+  } catch (err) {
+    next(new ErrorHandler(500, err.message));
   }
-
-  pgconnect.getDataByTableNameAndFields(tableName, fields).then(tabRes => {
-    if (tabRes instanceof Error) {
-      return res.status(402).json("Internal error: " + tabRes.message);
-    }
-    else {
-      return res.send(tabRes);
-    }
-  });
 });
 
 app.post('/temp-db-table-foreign-keys', (req, res) => {
@@ -79,14 +88,22 @@ app.post('/temp-db-table-foreign-keys', (req, res) => {
     })
     baseResponse["frelAtts"] = attrRes;
     res.send(baseResponse);
-  })
+  }).catch(err => {
+    next(new ErrorHandler(500, err.message));
+  });
 })
 
 app.get('/table-attributes', (req, webRes) => {
   console.debug("GET /table-attributes")
-  pgconnect.getTableAttributes(req.body["oid"]).then(tabRes => {
-    webRes.send(tabRes);
-  });
+  try {
+    pgconnect.getTableAttributes(req.body["oid"]).then(tabRes => {
+      webRes.send(tabRes);
+    }).catch(err => {
+      next(new ErrorHandler(500, err.message));
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
 app.get('/vis-encodings', (req, res) => {
@@ -111,9 +128,32 @@ app.get('/vis-encodings', (req, res) => {
         .filter(f => f != null)
         .map(f => JSON.parse(f));
       res.send(ret);
+    }).catch(err => {
+      next(new ErrorHandler(500, err.message));
     });
+})
+
+app.use((err, req, res, next) => {
+  handleError(err, res);
 })
 
 app.listen(port, () => {
   console.log(`Background app listening at http://localhost:${port}`)
 })
+
+class ErrorHandler extends Error {
+  constructor(statusCode, message) {
+    super();
+    this.statusCode = statusCode;
+    this.message = message;
+  }
+}
+
+const handleError = (err, res) => {
+  const {statusCode, message} = err;
+  res.status(statusCode).json({
+    status: "error",
+    statusCode,
+    message
+  })
+}

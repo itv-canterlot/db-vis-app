@@ -148,18 +148,13 @@ function errorHandling(err) {
 }
 
 async function singlePoolRequest(query) {
-    try {
-        const pool = new Pool(connConfig);
-        pool.on("error", (err, client) => errorHandling(err));
-    
-        poolQuery = await pool.query(query);
-        pool.end();
-    
-        return poolQuery["rows"];
-    } catch (error) {
-        // TODO: what to return on fault?
-        errorHandling(error);
-    }
+    const pool = new Pool(connConfig);
+    pool.on("error", (err, client) => errorHandling(err));
+
+    poolQuery = await pool.query(query);
+    pool.end();
+
+    return poolQuery["rows"];
 }
 
 async function getTablePrimaryKeys(tableName) {
@@ -310,37 +305,25 @@ async function getTableAttributes(tableName) {
 }
 
 async function getDataByTableNameAndFields(tableName, fields) {
-    try {
-        const query = dataSelectByTableNameAndFields(tableName, fields);
-        return await singlePoolRequest(query);
-    } catch (err) {
-        throw err;
-    }
+    const query = dataSelectByTableNameAndFields(tableName, fields);
+    return await singlePoolRequest(query);
 }
 
 async function getTableDistinctColumnCountByAllColumns(tableName) {
-    try {
-        let columnNames =  await singlePoolRequest(queryTableColumns(tableName));
-        columnNames = columnNames.map(e => e["column_name"])
-        return getTableDistinctColumnCountByColumnName(tableName, columnNames);
-    } catch (err) {
-        return err;
-    }
+    let columnNames =  await singlePoolRequest(queryTableColumns(tableName));
+    columnNames = columnNames.map(e => e["column_name"])
+    return getTableDistinctColumnCountByColumnName(tableName, columnNames);
 }
 
 async function getTableDistinctColumnCountByColumnName(tableName, columnNames) {
-    try {
-        columnCountPromises = columnNames.map(val => singlePoolRequest(individualCountsByColumn(tableName, val)));
-        return Promise.all(columnCountPromises).then(columnRes => {
-            columnRes = columnRes.map(val => val[0]);
-            for (let i = 0; i < columnRes.length; i++) {
-                columnRes[i]["columnName"] = columnNames[i];
-            }
-            return columnRes;
-        });
-    } catch (err) {
-        return err;
-    }
+    columnCountPromises = columnNames.map(val => singlePoolRequest(individualCountsByColumn(tableName, val)));
+    return Promise.all(columnCountPromises).then(columnRes => {
+        columnRes = columnRes.map(val => val[0]);
+        for (let i = 0; i < columnRes.length; i++) {
+            columnRes[i]["columnName"] = columnNames[i];
+        }
+        return columnRes;
+    });
 }
 
 let groupBy = function(xs, key) {
