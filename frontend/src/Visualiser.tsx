@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as d3 from 'd3';
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext'
 import { VisTemplateBuilder } from './ts/types'
-import { getDataFromSingleTableByName } from './Connections'
+import { getDataByMatchAttrs, getDataFromSingleTableByName } from './Connections'
 
 import visTemplates from './visTemplates';
 import { VisualiserProps, VisualiserStates } from './ts/components';
@@ -24,17 +24,29 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
         // TODO: deal with multiple tables
 
         // Map matched attributes to their names
-        const matchedMandatoryAttributeNames = context.selectedAttributesIndices[0].map(matchAttr => matchAttr.table.attr[matchAttr.attributeIndex].attname)
+        const attributeNames = context.selectedAttributesIndices
+            .map(atts => atts.map(matchAttr => {
+                if (matchAttr) {
+                    return matchAttr.table.attr[matchAttr.attributeIndex].attname
+                }
+            }));
 
         // TODO: other attributes
-        getDataFromSingleTableByName(thisTable.tableName, matchedMandatoryAttributeNames).then(data => {
-            // Separate out data points with null
-            renderVisualisation(selectedPatternTemplateCode, data, matchedMandatoryAttributeNames);
+        getDataByMatchAttrs(context.selectedAttributesIndices, patternMatchStatus).then(data => {
+            renderVisualisation(selectedPatternTemplateCode, data, attributeNames);
             this.setState({
                 renderedAttributesIndices: context.selectedAttributesIndices,
                 renderedTableIndex: context.selectedFirstTableIndex
             })
         });
+
+        // getDataFromSingleTableByName(thisTable.tableName, matchedMandatoryAttributeNames).then(data => {
+        //     renderVisualisation(selectedPatternTemplateCode, data, matchedMandatoryAttributeNames);
+        //     this.setState({
+        //         renderedAttributesIndices: context.selectedAttributesIndices,
+        //         renderedTableIndex: context.selectedFirstTableIndex
+        //     })
+        // });
     }
 
     componentDidMount() {
@@ -99,10 +111,8 @@ const renderVisualisation = (visSpecificCode: string, data: object[], args: obje
     let svg = d3.select("#vis-cont")
         .select("svg > g");
     if (!svg.empty()) {
-        console.log("Non-empty")
         svg.selectAll("*").remove();
     } else {
-        console.log("Empty")
         svg = d3.select("#vis-cont").append("svg")
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.top + margin.bottom)

@@ -6,6 +6,28 @@ const { exception } = require("console");
 // SQL boilerplates
 const dataSelectByTableNameAndFields = (tableName, fields) => `SELECT ${fields.length === 0 ? "*" : fields.join(", ")} FROM ${tableName};`;
 
+const dataSelectMultiTables = (attrs, fks, parentTableName) => {
+    const allTableNames = attrs.map(attr => attr["tableName"])
+    const joinStatement = (fks, parentTableName) => {
+        let statement = parentTableName;
+        if (fks) {
+            statement = statement + fks
+                .map(fkCols => {
+                    const {fkTableName, pkTableName, linkedColumns} = fkCols;
+                    const columnConstrinatsMap = linkedColumns.map(fks => {
+                        const
+                            pkColName = fks["pkColName"],
+                            fkColName = fks["fkColName"];
+                        return `${pkTableName}.${pkColName}=${fkTableName}.${fkColName}`
+                    }).join(" AND ");
+                    return ` JOIN ${fkTableName} ON ${columnConstrinatsMap}`;
+                }).join(" ")
+        }
+        return statement;
+    }
+    return `SELECT ${attrs.map(attr => attr["tableName"] + "." + attr["columnName"]).join(", ")} FROM ${joinStatement(fks, parentTableName)}`
+}
+
 const dataSelectAllColumnsByTableName = (tablename) => `SELECT * FROM ${tableName};`;
 
 const individualCountsByColumn = (tableName, fieldName) => `SELECT COUNT(${fieldName}) as count, COUNT(DISTINCT ${fieldName}) as distinct_count FROM ${tableName};`;
@@ -309,6 +331,11 @@ async function getDataByTableNameAndFields(tableName, fields) {
     return await singlePoolRequest(query);
 }
 
+async function getDataMultiTableQuery(attrs, fks, parentTableName) {
+    const query = dataSelectMultiTables(attrs, fks, parentTableName);
+    return await singlePoolRequest(query);
+}
+
 async function getTableDistinctColumnCountByAllColumns(tableName) {
     let columnNames =  await singlePoolRequest(queryTableColumns(tableName));
     columnNames = columnNames.map(e => e["column_name"])
@@ -333,6 +360,6 @@ let groupBy = function(xs, key) {
     }, {});
 };
 
-module.exports = { getTableForeignKeys, getTablePrimaryKeys, getTableAttributes, getDataByTableNameAndFields, getTableMetatdata,
+module.exports = { getTableForeignKeys, getTablePrimaryKeys, getTableAttributes, getDataByTableNameAndFields, getDataMultiTableQuery, getTableMetatdata,
     getTableDistinctColumnCountByAllColumns, getTableDistinctColumnCountByColumnName
 };

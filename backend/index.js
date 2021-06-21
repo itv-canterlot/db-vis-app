@@ -58,6 +58,27 @@ app.post('/data-single-table-name-fields', async (req, res, next) => {
   }
 });
 
+app.post('/data-match-attrs', async (req, res, next) => {
+  console.debug("POST /data-match-attrs")
+  try {
+    let {attrs, foreignKeys, parentTableName} = req.body;
+    pgconnect.getDataMultiTableQuery(attrs, foreignKeys, parentTableName)
+      .then(tabRes => {
+        if (tabRes instanceof Error) {
+          next(new ErrorHandler(500, tabRes.message));
+        }
+        else {
+          return res.send(tabRes);
+        }
+      })
+      .catch(err => {
+        next(new ErrorHandler(500, err.message))
+      });
+  } catch (err) {
+    next(new ErrorHandler(500, err.message));
+  }
+});
+
 app.post('/temp-db-table-foreign-keys', (req, res) => {
   var baseResponse = {};
   pgconnect.getTableForeignKeys(req.body["oid"]).then(tabRes => {

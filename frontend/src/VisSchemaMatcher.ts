@@ -198,9 +198,6 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
 
     let subsetRel = rels.find(rel => rel.type === VISSCHEMATYPES.SUBSET); // TODO: multiple subsets?
 
-    console.log(rels)
-    console.log(subsetRel)
-
     switch (vs.type) {
         case VISSCHEMATYPES.BASIC:
             // Find combinations of attributes that match the requirements
@@ -216,6 +213,7 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
                 let thisConstMatchableIndices;
                 if (subsetRel) {
                     thisConstMatchableIndices = getMatchAttributesFromSet(subsetRel, mp)
+                    thisPatternMatchResult.responsibleRelation = subsetRel;
                 } else {
                     thisConstMatchableIndices = getMatchingAttributesByParameter(table, mp);
                 }

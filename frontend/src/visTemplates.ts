@@ -22,9 +22,9 @@ function renderScatterPlot(parameters: VisTemplateBuilder) {
         height = parameters.height,
         svg = parameters.svg,
         margin = parameters.margin,
-        xname = parameters.args[0],
-        yname = parameters.args[1];
-        
+        xname = parameters.args[0][0],
+        yname = parameters.args[0][1];
+
     // Separate out null data points
     let data = parameters.data
     let nullPoints = [];
@@ -110,9 +110,9 @@ function renderBubblePlot(parameters: VisTemplateBuilder) {
         height = parameters.height,
         svg = parameters.svg,
         margin = parameters.margin,
-        xname = parameters.args[0],
-        yname = parameters.args[1],
-        zname = parameters.args[2];
+        xname = parameters.args[0][0],
+        yname = parameters.args[0][1],
+        zname = parameters.args[0][2];
         
     // Separate out null data points
     let data = parameters.data

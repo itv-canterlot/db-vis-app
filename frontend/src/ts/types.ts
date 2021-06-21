@@ -147,5 +147,6 @@ export type PatternMatchResult = {
     vs: VisSchema,
     matched: boolean,
     mandatoryAttributes: PatternMatchAttribute[][],
-    optionalAttributes: PatternMatchAttribute[][]
+    optionalAttributes: PatternMatchAttribute[][],
+    responsibleRelation?: RelationNode
 }
