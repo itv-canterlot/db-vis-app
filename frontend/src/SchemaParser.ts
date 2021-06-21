@@ -1,4 +1,4 @@
-import { Table, RelationNode, VISSCHEMATYPES, ForeignKey, PrimaryKey, ChildRelation } from './ts/types';
+import { Table, RelationNode, VISSCHEMATYPES, ForeignKey, PrimaryKey, ChildRelation, SuperSetRelationType, GroupedSuperSetRelationType } from './ts/types';
 
 const getKeyPosFromPK = (pk: PrimaryKey) => pk.columns.map(key => key.colPos);
 const getKeyPosFromFK = (fk: ForeignKey) => fk.columns.map(key => key.fkColPos);
@@ -190,28 +190,40 @@ const constructWeakEntityRelation = (tableList: Table[], thisTable: Table, weakE
     })
 }
 
-const constructSubsetRelation = (tableList: Table[], parentTable: Table, subsets: Table[]) => {
-    const ChildRelations: ChildRelation[] = subsets.map(subset => {
-        return {
-            table: subset,
-            fkIndex: null
-        }
-    })
+const constructSubsetRelation = (tableList: Table[], groupedSubsetsByTable: GroupedSuperSetRelationType, parentName: string) => {
+    const subsets = groupedSubsetsByTable[parentName];
+    const childRelations: ChildRelation[] = 
+        subsets.map(subset => {
+            return {
+                    table: subset.table,
+                    fkIndex: subset.fkIndex
+                }
+            });
+        
+    return {
+        type: VISSCHEMATYPES.SUBSET,
+        parentEntity: searchTableListByName(tableList, parentName),
+        childRelations: childRelations
+    }
 }
 
-function constructOneManyRelation(tableList: Table[], table: Table, weakEntitiesIndices: number[]) {
-    throw new Error('Function not implemented.');
+function constructOneManyRelation(tableList: Table[], childTable: Table) {
+    const childRelations: ChildRelation = {
+        table: childTable,
+        fkIndex: 0
+    }
+    return {
+        type: VISSCHEMATYPES.ONEMANY,
+        parentEntity: searchTableListByName(tableList, childTable.fk[0].pkTableName),
+        childRelations: [childRelations]
+    }
 }
 
 const getRelationType = (allTables: Table[]) => {
     let relationsList: RelationNode[] = [];
-    type SuperSetRelationType = {
-        table: Table, 
-        fkIndex: number, 
-        parentTableName: string
-    };
     let tablesThatAreSubset: SuperSetRelationType[] = [];
-
+    
+    // TODO: multiple foreign keys?
     allTables.forEach((table: Table) => {
         // Check 1: the table must have primary key and at least one foreign key
         if (!tableHasPKAndFK(table)) return [];
@@ -221,6 +233,7 @@ const getRelationType = (allTables: Table[]) => {
         let junctionTableSearchResult: ForeignKey[] = getJunctionTableLinks(table);
         if (junctionTableSearchResult.length >= 2) {
             relationsList.push(constructManyManyRelation(allTables, table, junctionTableSearchResult));
+            return;
         }
     
         // Check 3: Optional multi-valued attribute (to be implemented)
@@ -230,6 +243,7 @@ const getRelationType = (allTables: Table[]) => {
         if (weakEntitiesIndices.length > 0) {
             // This table is a lesser member of a weak entity relationship
             relationsList.push(...constructWeakEntityRelation(allTables, table, weakEntitiesIndices));
+            return;
         }
     
         // Otherwise, this table is an ER identity
@@ -241,32 +255,20 @@ const getRelationType = (allTables: Table[]) => {
                 fkIndex: tableSubsetIndex,
                 parentTableName: table.fk[tableSubsetIndex].pkTableName
             });
+            return;
         } else {
-            // TODO
+            // Otherwise this relation is a one-to-many relation
+            relationsList.push(constructOneManyRelation(allTables, table));
         }
     });
 
     // Construct subset-related relation nodes
-    const superSetTablesGroupByParentTableName: {[name: string]: SuperSetRelationType[]} = groupBy(tablesThatAreSubset, "parentTableName");
+    const superSetTablesGroupByParentTableName: GroupedSuperSetRelationType = groupBy(tablesThatAreSubset, "parentTableName");
     
     for (let parentName in superSetTablesGroupByParentTableName) {
-        const subsets = superSetTablesGroupByParentTableName[parentName];
-        const childRelations: ChildRelation[] = 
-        subsets.map(subset => {
-            return {
-                    table: subset.table,
-                    fkIndex: subset.fkIndex
-                }
-            });
-            
-            relationsList.push({
-                type: VISSCHEMATYPES.SUBSET,
-                parentEntity: searchTableListByName(allTables, parentName),
-                childRelations: childRelations
-            })
-        }
+        relationsList.push(constructSubsetRelation(allTables, superSetTablesGroupByParentTableName, parentName))
+    }
         
-    // console.log(relationsList);
     return relationsList;
 }
 

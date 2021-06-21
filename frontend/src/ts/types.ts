@@ -116,6 +116,16 @@ export type RelationNode = {
     index?: number
 }
 
+export type SuperSetRelationType = {
+    table: Table, 
+    fkIndex: number, 
+    parentTableName: string
+};
+
+export type GroupedSuperSetRelationType = {
+    [name: string]: SuperSetRelationType[]
+}
+
 export type ChildRelation = {
     table: Table,
     fkIndex: number

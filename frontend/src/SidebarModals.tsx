@@ -77,24 +77,27 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
                     let relationTypeTip, relationParentTip, foreignTableList;
 
                     // Listing related tables
-                    const getForeignTableList = (useParentFk: boolean) => rel.childRelations.map((childRel, childIdx) => {
-                        const childEntity = childRel.table;
-                        if (childEntity === thisTable) return null; // TODO: write something else here
-                        if (useParentFk) {
-                            return (
-                                <div key={childIdx}>
-                                    <i className="fas fa-arrow-right me-1" /> 
-                                    {childEntity.tableName}
-                                    {/* (<i className="fas fa-key ms-1 me-1"/>{rel.parentEntity.fk[childRel.fkIndex].keyName}) */}
-                                </div>);
-                        } else {
-                            return (
-                                <div key={childIdx}>
-                                    <i className="fas fa-arrow-right me-1" /> {childEntity.tableName}
-                                    {/* (<i className="fas fa-key ms-1 me-1"/>{childEntity.fk[childRel.fkIndex].keyName}) */}
-                                </div>);
+                    const getForeignTableList = (useParentFk: boolean) => {
+                        console.log(rel.childRelations)
+                        return rel.childRelations.map((childRel, childIdx) => {
+                            const childEntity = childRel.table;
+                            if (childEntity === thisTable) return null; // TODO: write something else here
+                            if (useParentFk) {
+                                return (
+                                    <div key={childIdx}>
+                                        <i className="fas fa-arrow-right me-1" /> 
+                                        {childEntity.tableName}
+                                        {/* (<i className="fas fa-key ms-1 me-1"/>{rel.parentEntity.fk[childRel.fkIndex].keyName}) */}
+                                    </div>);
+                            } else {
+                                return (
+                                    <div key={childIdx}>
+                                        <i className="fas fa-arrow-right me-1" /> {childEntity.tableName}
+                                        {/* (<i className="fas fa-key ms-1 me-1"/>{childEntity.fk[childRel.fkIndex].keyName}) */}
+                                    </div>);
+                            }
                         }
-                    });
+                    )};
 
                     // Tooltip for root status
                     if (isTableAtRoot) {
@@ -111,6 +114,11 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
                         } else if (thisRelType === VISSCHEMATYPES.SUBSET) {
                             relationParentTip = (
                                 <div className="type-tip tip-parent">Superset</div>
+                            );
+                            foreignTableList = getForeignTableList(false);
+                        } else if (thisRelType === VISSCHEMATYPES.ONEMANY) {
+                            relationParentTip = (
+                                <div className="type-tip tip-parent">Parent</div>
                             );
                             foreignTableList = getForeignTableList(false);
                         }
@@ -130,6 +138,10 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
                                 <div className="type-tip tip-child">Child (parent: {rel.parentEntity.tableName})</div>
                             );
                             foreignTableList = getForeignTableList(false);
+                        }else if (thisRelType === VISSCHEMATYPES.ONEMANY) {
+                            relationParentTip = (
+                                <div className="type-tip tip-child">Child (parent: {rel.parentEntity.tableName})</div>
+                            );
                         }
                     }
 
@@ -153,6 +165,13 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
                             relationTypeTip = (
                                 <div className="type-tip bg-tip-subset">
                                     Subset
+                                </div>
+                            );
+                            break;
+                        case VISSCHEMATYPES.ONEMANY:
+                            relationTypeTip = (
+                                <div className="type-tip bg-tip-onemany">
+                                    One-to-many
                                 </div>
                             );
                             break;
