@@ -1,5 +1,5 @@
 import * as SchemaParser from "./SchemaParser";
-import {Attribute, PrimaryKey, RelationNode, Table, VisKey, VisParam, VISPARAMTYPES, VisSchema, VISSCHEMATYPES, PatternMatchResult, PatternMatchAttribute} from "./ts/types";
+import {Attribute, RelationNode, Table, VisKey, VisParam, VISPARAMTYPES, VisSchema, VISSCHEMATYPES, PatternMatchResult, PatternMatchAttribute} from "./ts/types";
 import * as TypeConstants from "./TypeConstants";
 
 
@@ -49,18 +49,6 @@ const basicKeyConditionCheck = (table: Table, key: VisKey) => {
 const isThisTableJunction = (rel: RelationNode) => {
     return rel.type === VISSCHEMATYPES.WEAKENTITY;
 }
-
-// const getNeighbourJunctionTableIdx = (rel: RelationNode) => {
-//     let childJunctionTableIndices: number[] = [];
-//         for (let i = 0; i < rel.childRelations.length; i++) {
-//             let childNode = rel.childRelations[i];
-//             if (childNode.type === VISSCHEMATYPES.WEAKENTITY) {
-//                 childJunctionTableIndices.push(i);
-//             }
-//         }
-
-//     return childJunctionTableIndices;
-// }
 
 const weKeyConditionCheck = (rel: RelationNode, keys: VisKey) => {
     // Check if this entity is a weak entity

@@ -71,8 +71,6 @@ export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patt
     const queryGroupedByTableName: {[tableName: string]: object}[] = groupBy(attrsMappedToQuery, "tableName");
     let query;
 
-    console.log(queryGroupedByTableName)
-
     if (Object.keys(queryGroupedByTableName).length == 0) {
         console.log("No table found")
         return;

@@ -32,32 +32,6 @@ app.post('/table-dist-counts', (req, res) => {
   });
 });
 
-app.post('/data-single-table-name-fields', async (req, res, next) => {
-  console.debug("POST /data-single-table-name-fields")
-  try {
-    let fields = req.body["columnNames"];
-    let tableName = req.body["tableName"];
-    console.debug(`-- columnNames: ${fields}`);
-    console.debug(`-- tableName: ${tableName}`);
-    if (!fields || !tableName) {
-      return res.status(400).json("Input format error");
-    }
-  
-    pgconnect.getDataByTableNameAndFields(tableName, fields).then(tabRes => {
-      if (tabRes instanceof Error) {
-        return res.status(500).json("Internal error: " + tabRes.message);
-      }
-      else {
-        return res.send(tabRes);
-      }
-    }).catch(err => {
-      next(new ErrorHandler(500, err.message));
-    });
-  } catch (err) {
-    next(new ErrorHandler(500, err.message));
-  }
-});
-
 app.post('/data-match-attrs', async (req, res, next) => {
   console.debug("POST /data-match-attrs")
   try {

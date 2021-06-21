@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as d3 from 'd3';
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext'
 import { VisTemplateBuilder } from './ts/types'
-import { getDataByMatchAttrs, getDataFromSingleTableByName } from './Connections'
+import { getDataByMatchAttrs } from './Connections'
 
 import visTemplates from './visTemplates';
 import { VisualiserProps, VisualiserStates } from './ts/components';
@@ -39,14 +39,6 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                 renderedTableIndex: context.selectedFirstTableIndex
             })
         });
-
-        // getDataFromSingleTableByName(thisTable.tableName, matchedMandatoryAttributeNames).then(data => {
-        //     renderVisualisation(selectedPatternTemplateCode, data, matchedMandatoryAttributeNames);
-        //     this.setState({
-        //         renderedAttributesIndices: context.selectedAttributesIndices,
-        //         renderedTableIndex: context.selectedFirstTableIndex
-        //     })
-        // });
     }
 
     componentDidMount() {

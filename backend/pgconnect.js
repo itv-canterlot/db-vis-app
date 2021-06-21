@@ -326,20 +326,9 @@ async function getTableAttributes(tableName) {
     return singlePoolRequest(queryAttributesByTable(tableName));
 }
 
-async function getDataByTableNameAndFields(tableName, fields) {
-    const query = dataSelectByTableNameAndFields(tableName, fields);
-    return await singlePoolRequest(query);
-}
-
 async function getDataMultiTableQuery(attrs, fks, parentTableName) {
     const query = dataSelectMultiTables(attrs, fks, parentTableName);
     return await singlePoolRequest(query);
-}
-
-async function getTableDistinctColumnCountByAllColumns(tableName) {
-    let columnNames =  await singlePoolRequest(queryTableColumns(tableName));
-    columnNames = columnNames.map(e => e["column_name"])
-    return getTableDistinctColumnCountByColumnName(tableName, columnNames);
 }
 
 async function getTableDistinctColumnCountByColumnName(tableName, columnNames) {
@@ -360,6 +349,6 @@ let groupBy = function(xs, key) {
     }, {});
 };
 
-module.exports = { getTableForeignKeys, getTablePrimaryKeys, getTableAttributes, getDataByTableNameAndFields, getDataMultiTableQuery, getTableMetatdata,
-    getTableDistinctColumnCountByAllColumns, getTableDistinctColumnCountByColumnName
+module.exports = { getTableForeignKeys, getTablePrimaryKeys, getTableAttributes, getDataMultiTableQuery, getTableMetatdata,
+    getTableDistinctColumnCountByColumnName
 };
