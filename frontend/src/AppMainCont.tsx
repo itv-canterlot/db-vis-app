@@ -64,7 +64,11 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
                                 <i className="fas fa-table me-2" />{tableName}
                             </div>
                     </a>
-                    <ul className="dropdown-menu dropdown-nested-level-ul" aria-labelledby={`ma-${patternAttributeIndex}-list-${index}`}>
+                    <ul className="dropdown-menu dropdown-nested-level-ul"
+                        aria-labelledby={`ma-${patternAttributeIndex}-list-${index}`}
+                        data-patternatt-index={patternAttributeIndex}
+                        data-table-index={index}
+                        >
                         {this.getAttributeListWithSingleTable(groupedAttMatchStatuses[tableName], patternAttributeIndex, currentlySelectedAttribute)}
                     </ul>
                 </li>
@@ -84,62 +88,13 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
                         data-mandatory="true"
                         data-pattern-att-idx={patternAttributeIndex}
                         data-list-idx={listIndex}
+                        data-match-idx={matchAttr.matchIndex}
                         onClick={this.props.onSelectedAttributeIndicesChange}>
                         {thisAttribute.attname}
                     </a>
                 </li>
             )
         });
-    }
-
-    componentDidUpdate() {
-        // let dropdowns = document.querySelectorAll('.dropdown-toggle.dropdown-nested-level, .dropdown-toggle.attribute-list-dropdown')
-        // dropdowns.forEach((dd)=>{
-        //     // dd.addEventListener('mouseover', function (e) {
-        //     //     e.preventDefault();
-        //     //     var el = this.nextElementSibling
-        //     //     el.style.display = 'block';
-        //     // });
-        //     // dd.addEventListener('mouseout', function (e) {
-        //     //     e.preventDefault();
-        //     //     var el = this.nextElementSibling;
-        //     //     el.style.display = 'none';
-        //     // });
-        //     // dd.addEventListener('click', function (e) {
-        //     //     e.preventDefault();
-        //     // });
-        //     dd.addEventListener('click', function (e) {
-        //         e.preventDefault();
-        //         var el = this.nextElementSibling
-        //         el.style.display = el.style.display === 'block' ? 'none' : 'block'
-        //     })
-        // })
-        // close all inner dropdowns when parent is closed
-        // document.querySelectorAll('.attribute-list-dropdown').forEach(function(everydropdown){
-        //     everydropdown.addEventListener('hidden.bs.dropdown', function () {
-        //     // after dropdown is hidden, then find all submenus
-        //         this.querySelectorAll('.dropdown-nested-level-ul').forEach(function(everysubmenu){
-        //         // hide every submenu as well
-        //         everysubmenu.style.display = 'none';
-        //         });
-        //     })
-        // });
-
-        // document.querySelectorAll('.dropdown-menu a').forEach(function(element){
-        //     element.addEventListener('click', function (e) {
-        //         let nextEl = this.nextElementSibling;
-        //         if(nextEl && nextEl.classList.contains('dropdown-nested-level-ul')) {
-        //         // prevent opening link if link needs to open dropdown
-        //             e.preventDefault();
-        //             if(nextEl.style.display == 'block'){
-        //                 nextEl.style.display = 'none';
-        //             } else {
-        //                 nextEl.style.display = 'block';
-        //             }
-
-        //         }
-        //     });
-        // })
     }
 
     render() {
@@ -182,6 +137,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
                         </div>
                         );
                     } else {
+                        // Otherwise, render the attribute list directly
                         const thisAttributeDropdownItemList = this.getAttributeListWithSingleTable(
                             attributeMatchStatus, patternAttributeIndex, mandatorySelectedAttributes[patternAttributeIndex]);
                         return (
@@ -195,7 +151,6 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
                             </div>
                         );
                     }
-                    // Otherwise, render the attribute list directly
                 });
 
                 return attributeGroupElement

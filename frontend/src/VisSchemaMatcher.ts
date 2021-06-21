@@ -118,6 +118,10 @@ const getMatchingAttributesByParameter = (table: Table, param: VisParam) => {
         });
     }
 
+    paramMatchableIndices.forEach((attr, idx) => {
+        attr.matchIndex = idx;
+    })
+
     return paramMatchableIndices;
 }
 
@@ -143,6 +147,10 @@ const getMatchAttributesFromSet = (rel: RelationNode, param: VisParam) => {
     
         }
     });
+
+    matchResult.forEach((attr, idx) => {
+        attr.matchIndex = idx;
+    })
 
     return matchResult;
 }
@@ -170,7 +178,7 @@ export const matchTableWithAllVisPatterns = (table: Table, rels: RelationNode[],
     let out = [];
     // If the table is in a set, treat the set as a big table
     // getTablesWithinSet(rels, tablesWithinSet, relsWithoutSubset);
-    vss.forEach(vs => {
+    vss.forEach((vs, idx) => {
         out.push(matchTableWithVisPattern(table, rels, vs));
     })
 

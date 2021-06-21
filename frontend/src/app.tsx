@@ -138,9 +138,9 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         const isMandatory = target.getAttribute("data-mandatory") === "true";
         const isMandatoryIdx = isMandatory ? 0 : 1;
         const patternAttIdx = parseInt(target.getAttribute("data-pattern-att-idx"));
-        const listIdx = parseInt(target.getAttribute("data-list-idx"));
+        const matchIdx = parseInt(target.getAttribute("data-match-idx"));
         const currentPatternMatchResult = this.state.visSchemaMatchStatus[this.state.selectedPatternIndex];
-        const newMatchAttr = currentPatternMatchResult.mandatoryAttributes[patternAttIdx][listIdx]
+        const newMatchAttr = currentPatternMatchResult.mandatoryAttributes[patternAttIdx][matchIdx]
 
         let newAttsObject = [], editedAtts = [];
         this.state.rendererSelectedAttributes[isMandatoryIdx].forEach((matchAttr, idx) => {

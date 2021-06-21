@@ -140,7 +140,8 @@ type marginObject = {
 // Pattern-matching
 export type PatternMatchAttribute = {
     table: Table,
-    attributeIndex: number
+    attributeIndex: number,
+    matchIndex?: number
 }
 export type PatternMatchResult = {
     vs: VisSchema,
