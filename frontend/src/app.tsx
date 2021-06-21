@@ -1,7 +1,7 @@
 import * as React from 'react';
 import ReactDOM = require('react-dom');
 
-import { PatternMatchAttribute, PatternMatchResult, VisSchema } from './ts/types'
+import { PatternMatchAttribute, PatternMatchResult, RelationNode, Table, VisSchema } from './ts/types'
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { AppMainCont } from './AppMainCont';
 
@@ -67,6 +67,12 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         return res.matched;
     }
 
+    findFirstValidPatternMatchIndex = (selectedEntity: Table, entityRel: RelationNode[]) => {
+        const matchStatusForAllSchema: PatternMatchResult[] = matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema);
+        return matchStatusForAllSchema.findIndex(res => this.isPatternMatchResultValid(res));
+
+    }
+
     getAllMatchableVisSchemaPatterns = () => {
         // Break if not all the components had been initiated
         if (this.state.relationsList === undefined) return;
@@ -75,12 +81,15 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         // Check type of the relation
         let selectedEntity = this.state.allEntitiesList[this.state.selectedFirstTableIndex];
         let entityRel = SchemaParser.getRelationsInListByName(this.state.relationsList, selectedEntity.tableName);
+        
+        const firstValidPatternIndex = this.findFirstValidPatternMatchIndex(selectedEntity, entityRel);
+        if (!firstValidPatternIndex) return;
 
-        // Find the first result that resulted in a match
+        // Find the first pattern-matching result that resulted in a match
         const matchStatusForAllSchema: PatternMatchResult[] = matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema);
-        const firstValidPatternIndex = matchStatusForAllSchema.findIndex(res => this.isPatternMatchResultValid(res));
         const firstValidPatternMatchStatus: PatternMatchResult = matchStatusForAllSchema[firstValidPatternIndex];
-
+        if (!firstValidPatternMatchStatus) return;
+        
         const mandatoryParamInitIndices = firstValidPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {
             return Math.floor(Math.random() * mandMatch.length);
         });
@@ -178,6 +187,16 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         };
 
         if (!tableIndexChanged) return;
+
+        // let selectedEntity = this.state.allEntitiesList[tableIndex];
+        // let entityRel = SchemaParser.getRelationsInListByName(this.state.relationsList, selectedEntity.tableName);
+        // if (!this.findFirstValidPatternMatchIndex(selectedEntity, entityRel)) {
+        //     this.setState({
+        //         load: true,
+        //         rerender: false,
+        //         selectedFirstTableIndex: -1
+        //     });
+        // };
 
         this.setState({
             load: true,

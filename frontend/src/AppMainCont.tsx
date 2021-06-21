@@ -111,7 +111,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
                 </div>
             )
         } else {
-            const thisPatternMatchResult: PatternMatchResult = context.visSchemaMatchStatus[patternIndex];
+            const thisPatternMatchResult: PatternMatchResult = patternIndex < 0 ? undefined : context.visSchemaMatchStatus[patternIndex];
             const mandatoryAttributeDropdownGroup = () => {
                 if (!thisPatternMatchResult || !thisPatternMatchResult.mandatoryAttributes) return null;
                 const mandatorySelectedAttributes = context.selectedAttributesIndices[0];
@@ -217,7 +217,7 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
                         <div className="row">
                             <div className="col">
                                 {
-                                    context.selectedFirstTableIndex >= 0 ? 
+                                    context.selectedFirstTableIndex >= 0 && context.selectedPatternIndex >= 0 ? 
                                     <Visualiser 
                                         rerender={this.props.rerender} />
                                         : null
