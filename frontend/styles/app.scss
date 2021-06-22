@@ -120,6 +120,10 @@
     border: none;
 }
 
+.btn-entity-browse:focus {
+    box-shadow: none;
+}
+
 .start-table-rel-list {
     font-size: 0.9rem;
     max-height: 60vh;

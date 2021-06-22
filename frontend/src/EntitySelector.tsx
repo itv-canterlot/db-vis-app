@@ -8,9 +8,12 @@ import * as ComponentTypes from './ts/components';
 import * as UIRenderers from './UIRenderers';
 import * as d3 from 'd3';
 
-export class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps> {
+export class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps, {innerVal?: string}> {
     constructor(props) {
         super(props);
+        this.state = {
+            innerVal: ""
+        }
     }
 
     
@@ -25,20 +28,37 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
         return UIRenderers.entityArrayRenderer(item, onClickCallback, context.selectedFirstTableIndex, context.relationsList);
     }
 
+    updateInnerText = (s: string) => {
+        this.setState({
+            innerVal: s
+        })
+    }
+
+    onTableSelectChangeHandler = (e) => {
+        this.props.onTableSelectChange(e);
+        const selectedItemNode = e.target as HTMLAnchorElement;
+        const nodeText = selectedItemNode.getAttribute("data-content");
+        
+        this.setState({
+            innerVal: nodeText
+        })
+    }
+
     /* React components for entity selectors */
     entitiesListNode = () => {
         const context: DBSchemaContextInterface = this.context;
-        let selectedEntity = this.context.allEntitiesList[context.selectedFirstTableIndex] as Table;
-        // let selectedIsJunction = selectedEntity ? selectedEntity.isJunction : false;
+        const renderingIndex = this.props.selectedEntityIndex ? this.props.selectedEntityIndex : context.selectedFirstTableIndex
+        let selectedEntity = this.context.allEntitiesList[renderingIndex] as Table;
         return (<div className="row">
             <div className="col">
                 <div className="row position-relative">
                     <SearchDropdownList placeholder="Select Entity 1..." 
                         prependText="E1" dropdownList={this.context.allEntitiesList} 
-                        selectedIndex={this.context.selectedTableIndex}
-                        onListSelectionChange={this.props.onTableSelectChange}
+                        selectedIndex={renderingIndex}
+                        onListSelectionChange={this.onTableSelectChangeHandler}
                         arrayRenderer={this.entityArrayRendererHandler}
-                        innerVal={selectedEntity ? selectedEntity.tableName : ""}
+                        innerVal={this.state.innerVal}
+                        updateInnerText={this.updateInnerText}
                         listFilter={UIRenderers.entityArrayFilter}
                         id={this.props.id}
                         />
@@ -48,62 +68,16 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
         </div>)
     }
 
-    attributeListNode = () => {
+    componentDidMount() {
+        console.log("mount")
         const context: DBSchemaContextInterface = this.context;
-        let selectedTable = this.context.allEntitiesList[context.selectedFirstTableIndex];
-        if (context.selectedFirstTableIndex >= 0) {
-            return (
-                <AttributeListSelector 
-                    dropdownList={selectedTable.attr}
-                    selectedIndex={this.props.selectedAttributeIndex}
-                    onListSelectionChange={this.props.onAttributeSelectChange}
-                    tablePrimaryKey={selectedTable.pk}
-                    tableForeignKeys={selectedTable.fk}
-                    prependText="a1"
-                />
-            )
-        } else {
-            return null;
-        }
-    }
-
-    foreignKeyNode = () => {
-        const context: DBSchemaContextInterface = this.context;
-        if (context.selectedFirstTableIndex >= 0) {
-            return (
-                <div className="row mt-2 position-relative">
-                    <SearchDropdownList placeholder="Select Entity 2..." 
-                        prependText="E2" 
-                        dropdownList={this.context.allEntitiesList[context.selectedFirstTableIndex].fk}
-                        selectedIndex={this.props.selectedForeignKeyIndex}
-                        onListSelectionChange={this.props.onForeignKeySelectChange}
-                        arrayRenderer={UIRenderers.FKArrayRenderer}
-                        />
-                </div>
-            );
-        } else {
-            return null;
-        }
-    }
-
-    fkAttributeListNode = () => {
-        const context: DBSchemaContextInterface = this.context;
-        if (this.props.selectedForeignKeyIndex >= 0) {
-            let selectedFkName = this.context
-                .allEntitiesList[context.selectedFirstTableIndex]
-                .fk[this.props.selectedForeignKeyIndex].pkTableName
-            return (
-                <div className="row mt-2 ms-4 position-relative">
-                    <SearchDropdownList placeholder="Select Attribute 2..." 
-                        prependText="a2" dropdownList={getAttrsFromTableName(this.context.allEntitiesList, selectedFkName)} 
-                        selectedIndex={this.props.selectedFKAttributeIndex}
-                        onListSelectionChange={this.props.onFKAttributeSelectChange}
-                        arrayRenderer={this.attributeArrayRendererHandler}
-                        />
-                </div>
-            ) ;
-        } else {
-            return null;
+        const propSelectedIndex = this.props.selectedEntityIndex ? this.props.selectedEntityIndex : -1;
+        const contextSelectedIndex = context.selectedFirstTableIndex;
+        if (propSelectedIndex >= 0 && contextSelectedIndex >= 0) {
+            const selectedEntity = this.context.allEntitiesList[propSelectedIndex] as Table;
+            this.setState({
+                innerVal: selectedEntity.tableName
+            });
         }
     }
 

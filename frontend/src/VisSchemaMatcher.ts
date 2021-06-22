@@ -185,11 +185,13 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
     }
 
     let subsetRel = rels.find(rel => rel.type === VISSCHEMATYPES.SUBSET); // TODO: multiple subsets?
+    let relsInvolvedWithTable = SchemaParser.getRelationsInListByName(rels, table.tableName);
 
+    let thisPatternMatchResult: PatternMatchResult;
     switch (vs.type) {
         case VISSCHEMATYPES.BASIC:
             // Find combinations of attributes that match the requirements
-            let thisPatternMatchResult: PatternMatchResult = {
+            thisPatternMatchResult = {
                 vs: vs,
                 mandatoryAttributes: [],
                 optionalAttributes: [],
@@ -224,6 +226,45 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
                 }
             }
             return thisPatternMatchResult;
+
+        case VISSCHEMATYPES.WEAKENTITY:
+            // Find combinations of attributes that match the requirements
+            thisPatternMatchResult = {
+                vs: vs,
+                mandatoryAttributes: [],
+                optionalAttributes: [],
+                matched: false
+            };
+            return undefined;
+                
+            // For each attribute in vs, compare against each attr in table, add appropriate indices to list
+            // for (let mp of vs.mandatoryParameters) {
+            //     let thisConstMatchableIndices;
+            //     if (subsetRel) {
+            //         thisConstMatchableIndices = getMatchAttributesFromSet(subsetRel, mp)
+            //         thisPatternMatchResult.responsibleRelation = subsetRel;
+            //     } else {
+            //         thisConstMatchableIndices = getMatchingAttributesByParameter(table, mp);
+            //     }
+            //     thisPatternMatchResult.mandatoryAttributes.push(thisConstMatchableIndices);
+            // }
+
+            // if (patternMatchSuccessful(thisPatternMatchResult, vs)) {
+            //     thisPatternMatchResult.matched = true;
+            // }
+
+            // if (vs.optionalParameters) {
+            //     for (let op of vs.optionalParameters) {
+            //         let thisConstMatchableIndices;
+            //         if (subsetRel) {
+            //             thisConstMatchableIndices = getMatchAttributesFromSet(subsetRel, op)
+            //         } else {
+            //             thisConstMatchableIndices = getMatchingAttributesByParameter(table, op);
+            //         }
+            //         thisPatternMatchResult.optionalAttributes.push(thisConstMatchableIndices);
+            //     }
+            // }
+            // return thisPatternMatchResult;
 
         // case VISSCHEMATYPES.MANYMANY:
         //     if (!rels) return;

@@ -30,7 +30,30 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
             cachedSelectedIndex: tableIndex,
             selectedForeignKeyIdx: 0
         });
+    }
 
+    onClickEntityBrowseButton = (e:React.BaseSyntheticEvent) => {
+        const dbContext: DBSchemaContextInterface = this.context;
+        const targetId: string = e.target.id;
+        const currentCachedSelectedIndex = this.state.cachedSelectedIndex;
+        if (targetId.endsWith("-down")) {
+            // cachedIndex++
+            this.setState({
+                cachedSelectedIndex: currentCachedSelectedIndex + 1
+            }, () => {
+                const newEntityName = dbContext.allEntitiesList[this.state.cachedSelectedIndex].tableName;
+            })
+        } else if (targetId.endsWith("-up")) {
+            // cachedIndex--
+            this.setState({
+                cachedSelectedIndex: currentCachedSelectedIndex - 1
+            }, () => {
+                const newEntityName = dbContext.allEntitiesList[this.state.cachedSelectedIndex].tableName;
+                console.log(newEntityName);
+            })
+        } else {
+            return;
+        }
     }
     
     onTableChangeConfirm = (e) => {
@@ -290,6 +313,21 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
     }
     
     render() {
+        const getEntityBrowserButtonActiveState = (isUp: boolean) => {
+            const currentCachedSelectedIndex = this.state.cachedSelectedIndex;
+            let baseClassList = "btn btn-outline-secondary btn-entity-browse";
+            if (isUp) {
+                if (currentCachedSelectedIndex <= 0) baseClassList += " disabled";
+            } else {
+                // Is down
+                // Get the number of entities in the list
+                const dbContext:DBSchemaContextInterface = this.context;
+                const totalEntitiesCount = dbContext.allEntitiesList.length;
+                if (currentCachedSelectedIndex >= totalEntitiesCount) baseClassList += " disabled";
+            }
+
+            return baseClassList;
+        }
         return (
             <div className="modal fade d-block" role="dialog" id="starting-table-select-modal">
                 <div className="modal-dialog modal-dialog-centered" role="document" style={{maxWidth: "80%"}}>
@@ -301,7 +339,19 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
                         </button>
                     </div>
                     <div className="modal-body">
-                        <EntitySelector onTableSelectChange={this.onTableSelectChange} id="starting-table-select-input" />
+                        <div className="d-flex ">
+                        <EntitySelector onTableSelectChange={this.onTableSelectChange} selectedEntityIndex={this.state.cachedSelectedIndex} id="starting-table-select-input" />
+                        <div className="btn-group ms-3 me-2" role="group" aria-label="First group">
+                            <button type="button" className={getEntityBrowserButtonActiveState(true)} id="entity-browse-up"
+                                onClick={this.onClickEntityBrowseButton}>
+                                <i className="fas fa-chevron-up" style={{pointerEvents: "none"}} />
+                            </button>
+                            <button type="button" className={getEntityBrowserButtonActiveState(false)} id="entity-browse-down"
+                                onClick={this.onClickEntityBrowseButton}>
+                                <i className="fas fa-chevron-down" style={{pointerEvents: "none"}} />
+                            </button>
+                        </div>
+                        </div>
                         {
                             this.state.cachedSelectedIndex >= 0 ?
                             this.getTableRelationVis() :

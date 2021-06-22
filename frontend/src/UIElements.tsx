@@ -2,7 +2,7 @@ import { rollups } from 'd3-array';
 import * as React from 'react';
 import { convertCompilerOptionsFromJson } from 'typescript';
 import { SearchDropdownListProps, SidebarBubbleBlockProps } from './ts/components';
-class SearchDropdownList extends React.Component<SearchDropdownListProps, {showList?: boolean, filtering?: boolean, loaded?: boolean, keyword: string}> {
+class SearchDropdownList extends React.Component<SearchDropdownListProps, {showList?: boolean, filtering?: boolean, loaded?: boolean}> {
     inputRef: React.RefObject<HTMLInputElement>;
 
     constructor(props) {
@@ -12,7 +12,6 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
             showList: false,
             filtering: false,
             loaded: false,
-            keyword: ""
         };
 
         this.inputRef = React.createRef();
@@ -21,14 +20,14 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
     onListItemClick = (e) => {
         e.preventDefault();
         
+        // const inputNode = this.inputRef.current as HTMLInputElement;
         // Send the selected index to parent
         this.props.onListSelectionChange(e);
         // Unfocus from the input box
         this.blurInput();
-        // Fill in input box with the name of the selected element
-        const inputNode = this.inputRef.current as HTMLInputElement;
-        const selectedItemNode = e.target as HTMLAnchorElement;
-        inputNode.value = selectedItemNode.getAttribute("data-content");
+        // // Fill in input box with the name of the selected element
+        // const selectedItemNode = e.target as HTMLAnchorElement;
+        // inputNode.value = selectedItemNode.getAttribute("data-content");
     }
 
     // Default renderer for mapping array/object
@@ -55,7 +54,7 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
             if (Array.isArray(this.props.dropdownList)) {
                 return (
                     <div className={"dropdown-menu dropdown-custom-text-content" + (this.state.showList ? " d-block" : "")}>
-                        {this.props.listFilter(this.props.dropdownList, this.state.keyword).map(this.props.arrayRenderer ? this.arrayRendererHandler : this.defaultArrayMapper)}
+                        {this.props.listFilter(this.props.dropdownList, this.props.innerVal).map(this.props.arrayRenderer ? this.arrayRendererHandler : this.defaultArrayMapper)}
                     </div>
                 )
             } else {
@@ -94,10 +93,10 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
     }
     
     onKeyUp = (e: React.KeyboardEvent) => {
-        const inputNode = this.inputRef.current as HTMLInputElement;
-        this.setState({
-            keyword: inputNode.value
-        });
+        const currentInputValue = this.inputRef.current.value
+        if (currentInputValue !== this.props.innerVal) {
+            this.props.updateInnerText(currentInputValue)
+        }
         if (e.key === "Escape") {
             e.preventDefault();
             this.blurInput();
@@ -117,9 +116,17 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
         } if (this.props.innerVal) {
             inputNode.value = this.props.innerVal;
         }
-        this.setState({
-            keyword: inputNode.value
-        })
+    }
+
+    componentDidUpdate() {
+        const inputNode = this.inputRef.current as HTMLInputElement;
+        if (!inputNode) return;
+        
+        if (this.props.selectedIndex < 0) {
+            inputNode.value = "";
+        } if (this.props.innerVal) {
+            inputNode.value = this.props.innerVal;
+        }
     }
 
     render() {
