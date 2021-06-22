@@ -2,11 +2,21 @@ import { PatternMatchAttribute, PatternMatchResult, VISSCHEMATYPES } from "./ts/
 
 export const getAllTableMetadata = () => {
     // TODO/Work under progress: new backend hook
-    return fetch('http://localhost:3000/tables')
-        .then(rawResponse => rawResponse.json())
-        .then(res => {
-            return res;
+    const rawFetch = fetch('http://localhost:3000/tables')
+        .then(rawResponse => {
+            if (rawResponse.ok) {
+                return rawResponse.json()
+            } else {
+                throw new Error("COnnection failed")
+            }
+        }).catch(rej => {
+            return undefined;
         });
+        
+    return rawFetch.then(res => {
+        return res;
+    })
+        
 }
 
 // Loads schema files

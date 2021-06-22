@@ -225,7 +225,10 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         }, () => {
             let entitiesListPromise = Connections.getAllTableMetadata();
 
-
+            if (!entitiesListPromise) {
+                return;
+            }
+            
             Promise.resolve(entitiesListPromise).then(res => {
                 let preprocessResult = SchemaParser.preprocessEntities(res);
                 this.setState({
