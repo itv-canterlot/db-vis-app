@@ -35,8 +35,8 @@ app.post('/table-dist-counts', (req, res) => {
 app.post('/data-match-attrs', async (req, res, next) => {
   console.debug("POST /data-match-attrs")
   try {
-    let {attrs, foreignKeys, parentTableName} = req.body;
-    pgconnect.getDataMultiTableQuery(attrs, foreignKeys, parentTableName)
+    let {attrs, foreignKeys, parentTableName, primaryKeys} = req.body;
+    pgconnect.getDataMultiTableQuery(attrs, foreignKeys, parentTableName, primaryKeys)
       .then(tabRes => {
         if (tabRes instanceof Error) {
           next(new ErrorHandler(500, tabRes.message));

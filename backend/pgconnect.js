@@ -6,7 +6,7 @@ const { exception } = require("console");
 // SQL boilerplates
 const dataSelectByTableNameAndFields = (tableName, fields) => `SELECT ${fields.length === 0 ? "*" : fields.join(", ")} FROM ${tableName};`;
 
-const dataSelectMultiTables = (attrs, fks, parentTableName) => {
+const dataSelectMultiTables = (attrs, fks, parentTableName, primaryKeys) => {
     const allTableNames = attrs.map(attr => attr["tableName"])
     const joinStatement = (fks, parentTableName) => {
         let statement = parentTableName;
@@ -25,7 +25,11 @@ const dataSelectMultiTables = (attrs, fks, parentTableName) => {
         }
         return statement;
     }
-    return `SELECT ${attrs.map(attr => attr["tableName"] + "." + attr["columnName"]).join(", ")} FROM ${joinStatement(fks, parentTableName)}`
+    const attrsQuery = attrs.map(attr => attr["tableName"] + "." + attr["columnName"]).join(", ");
+    const primaryKeyQueries = [].concat(...primaryKeys.map(pk => pk.map(col => col["tableName"] + "." + col["columnName"]))).join(", ");
+    const connector = primaryKeyQueries === "" ? "" : ","
+
+    return `SELECT ${attrsQuery} ${connector} ${primaryKeyQueries} FROM ${joinStatement(fks, parentTableName)}`
 }
 
 const dataSelectAllColumnsByTableName = (tablename) => `SELECT * FROM ${tableName};`;
@@ -326,8 +330,8 @@ async function getTableAttributes(tableName) {
     return singlePoolRequest(queryAttributesByTable(tableName));
 }
 
-async function getDataMultiTableQuery(attrs, fks, parentTableName) {
-    const query = dataSelectMultiTables(attrs, fks, parentTableName);
+async function getDataMultiTableQuery(attrs, fks, parentTableName, primaryKeys) {
+    const query = dataSelectMultiTables(attrs, fks, parentTableName, primaryKeys);
     return await singlePoolRequest(query);
 }
 

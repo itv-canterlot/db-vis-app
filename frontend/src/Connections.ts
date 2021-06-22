@@ -1,4 +1,4 @@
-import { PatternMatchAttribute, PatternMatchResult, VISSCHEMATYPES } from "./ts/types";
+import { PatternMatchAttribute, PatternMatchResult, Table, VISSCHEMATYPES } from "./ts/types";
 
 export const getAllTableMetadata = () => {
     // TODO/Work under progress: new backend hook
@@ -71,23 +71,38 @@ export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patt
     const allDefinedAttrs = [...mandatoryAttrs, ...optionalAttrs].filter(attr => attr !== undefined && attr !== null);
 
     // Find the foreign keys that links the selected attributes
+    let queryInvolvedTables: {[tableName: string]: Table} = {};
     const attrsMappedToQuery = allDefinedAttrs.map(matchedAttrs => {
+        const matchedAttrsTable = matchedAttrs.table;
+        if (!Object.keys(queryInvolvedTables).includes(matchedAttrsTable.tableName)) {
+            queryInvolvedTables[matchedAttrsTable.tableName] = matchedAttrsTable;
+        }
         return {
-            tableName: matchedAttrs.table.tableName,
-            columnName: matchedAttrs.table.attr[matchedAttrs.attributeIndex].attname
+            tableName: matchedAttrsTable.tableName,
+            columnName: matchedAttrsTable.attr[matchedAttrs.attributeIndex].attname
         }
     });
 
     const queryGroupedByTableName: {[tableName: string]: object}[] = groupBy(attrsMappedToQuery, "tableName");
+    
     let query;
-
     if (Object.keys(queryGroupedByTableName).length == 0) {
         console.log("No table found")
         return;
     } else if (Object.keys(queryGroupedByTableName).length == 1) {
+        const parentTableName = Object.keys(queryGroupedByTableName)[0];
+        const tablePublicKeyColumnQueries = 
+            queryInvolvedTables[parentTableName].pk.columns
+                .map(col => {
+                    return {
+                        tableName: parentTableName,
+                        columnName: col.colName 
+                    }
+                });
         query = {
             attrs: attrsMappedToQuery,
-            parentTableName: Object.keys(queryGroupedByTableName)[0]
+            parentTableName: Object.keys(queryGroupedByTableName)[0],
+            primaryKeys: tablePublicKeyColumnQueries
         };
     } else {
         // For each of the grouped tables, find the foreign keys connecting each of the tables
@@ -107,10 +122,20 @@ export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patt
                             }
                         )};
                     });
+            const primaryKeyCols = Object.keys(queryInvolvedTables).map(tableName => {
+                const thisTable = queryInvolvedTables[tableName];
+                return thisTable.pk.columns.map(col => {
+                    return {
+                        tableName: tableName,
+                        columnName: col.colName
+                    };
+                });
+            })
             query = {
                 attrs: attrsMappedToQuery,
                 foreignKeys: childEntityFkCols,
-                parentTableName: responsibleRelation.parentEntity.tableName
+                parentTableName: responsibleRelation.parentEntity.tableName,
+                primaryKeys: primaryKeyCols
             };
         } else {
             throw new Error("Not implemented")
