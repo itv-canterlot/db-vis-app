@@ -78,7 +78,6 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
 
                     // Listing related tables
                     const getForeignTableList = (useParentFk: boolean) => {
-                        console.log(rel.childRelations)
                         return rel.childRelations.map((childRel, childIdx) => {
                             const childEntity = childRel.table;
                             if (childEntity === thisTable) return null; // TODO: write something else here
