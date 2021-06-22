@@ -7,7 +7,7 @@ export const getAllTableMetadata = () => {
             if (rawResponse.ok) {
                 return rawResponse.json()
             } else {
-                throw new Error("COnnection failed")
+                throw new Error("Connection failed")
             }
         }).catch(rej => {
             return undefined;
