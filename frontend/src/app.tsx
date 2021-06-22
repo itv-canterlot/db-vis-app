@@ -67,11 +67,6 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         return res.matched;
     }
 
-    findFirstValidPatternMatchIndex = (selectedEntity: Table, entityRel: RelationNode[]) => {
-        const matchStatusForAllSchema: PatternMatchResult[] = matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema);
-        return matchStatusForAllSchema.findIndex(res => this.isPatternMatchResultValid(res));
-
-    }
 
     getAllMatchableVisSchemaPatterns = () => {
         // Break if not all the components had been initiated
@@ -81,13 +76,14 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         // Check type of the relation
         let selectedEntity = this.state.allEntitiesList[this.state.selectedFirstTableIndex];
         let entityRel = SchemaParser.getRelationsInListByName(this.state.relationsList, selectedEntity.tableName);
-        
-        const firstValidPatternIndex = this.findFirstValidPatternMatchIndex(selectedEntity, entityRel);
+    
+        const matchStatusForAllSchema: PatternMatchResult[] = matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema);
+        const firstValidPatternIndex = matchStatusForAllSchema.findIndex(res => this.isPatternMatchResultValid(res));
         if (!firstValidPatternIndex) return;
 
         // Find the first pattern-matching result that resulted in a match
-        const matchStatusForAllSchema: PatternMatchResult[] = matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema);
         const firstValidPatternMatchStatus: PatternMatchResult = matchStatusForAllSchema[firstValidPatternIndex];
+        console.log(firstValidPatternIndex)
         if (!firstValidPatternMatchStatus) return;
         
         const mandatoryParamInitIndices = firstValidPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {

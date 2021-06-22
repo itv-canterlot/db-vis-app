@@ -20,6 +20,7 @@ const basicKeyConditionCheck = (table: Table, key: VisKey) => {
 
     // Key type check
     if (key.type) {
+        // TODO: multi-column keys
         for (let pkCol of table.pk.columns) {
             const thisAttr = table.attr[pkCol.colPos]
             if (key.type === VISPARAMTYPES.TEMPORAL) {
@@ -167,7 +168,12 @@ export const matchTableWithAllVisPatterns = (table: Table, rels: RelationNode[],
     // If the table is in a set, treat the set as a big table
     // getTablesWithinSet(rels, tablesWithinSet, relsWithoutSubset);
     vss.forEach((vs, idx) => {
-        out.push(matchTableWithVisPattern(table, rels, vs));
+        const thisVisSchemaMatchResult = matchTableWithVisPattern(table, rels, vs)
+        if (thisVisSchemaMatchResult) {
+            out.push(...thisVisSchemaMatchResult);
+        } else {
+            out.push(undefined);
+        }
     })
 
     return out;
@@ -187,6 +193,8 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
     let subsetRel = rels.find(rel => rel.type === VISSCHEMATYPES.SUBSET); // TODO: multiple subsets?
     let relsInvolvedWithTable = SchemaParser.getRelationsInListByName(rels, table.tableName);
 
+
+    let allPatternMatches: PatternMatchResult[] = [];
     let thisPatternMatchResult: PatternMatchResult;
     switch (vs.type) {
         case VISSCHEMATYPES.BASIC:
@@ -212,6 +220,8 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
 
             if (patternMatchSuccessful(thisPatternMatchResult, vs)) {
                 thisPatternMatchResult.matched = true;
+            } else {
+                break;
             }
 
             if (vs.optionalParameters) {
@@ -225,7 +235,9 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
                     thisPatternMatchResult.optionalAttributes.push(thisConstMatchableIndices);
                 }
             }
-            return thisPatternMatchResult;
+            
+            allPatternMatches.push(thisPatternMatchResult);
+            break;
 
         case VISSCHEMATYPES.WEAKENTITY:
             // Find combinations of attributes that match the requirements
@@ -235,36 +247,55 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
                 optionalAttributes: [],
                 matched: false
             };
-            return undefined;
-                
-            // For each attribute in vs, compare against each attr in table, add appropriate indices to list
-            // for (let mp of vs.mandatoryParameters) {
-            //     let thisConstMatchableIndices;
-            //     if (subsetRel) {
-            //         thisConstMatchableIndices = getMatchAttributesFromSet(subsetRel, mp)
-            //         thisPatternMatchResult.responsibleRelation = subsetRel;
-            //     } else {
-            //         thisConstMatchableIndices = getMatchingAttributesByParameter(table, mp);
-            //     }
-            //     thisPatternMatchResult.mandatoryAttributes.push(thisConstMatchableIndices);
-            // }
+            break;
 
-            // if (patternMatchSuccessful(thisPatternMatchResult, vs)) {
-            //     thisPatternMatchResult.matched = true;
-            // }
+        case VISSCHEMATYPES.MANYMANY:
+            // Find combinations of attributes that match the requirements
+            relsInvolvedWithTable.forEach(rel => {
+                if (rel.type !== VISSCHEMATYPES.MANYMANY) return;
+                if (vs.reflexive) {
+                    // Reflexive path
+                    if (!isRelationReflexive(rel)) return;
+                    
+                    thisPatternMatchResult = {
+                        vs: vs,
+                        mandatoryAttributes: [],
+                        optionalAttributes: [],
+                        matched: false,
+                        responsibleRelation: rel
+                    };
+                    
+                    for (let mp of vs.mandatoryParameters) {
+                        // Reflexive: check against one table is enough
+                        // const childTable = rel.childRelations[0].table; /// Hmmmm
+                        let thisConstMatchableIndices = getMatchingAttributesByParameter(table, mp);
+                        thisPatternMatchResult.mandatoryAttributes.push(thisConstMatchableIndices);
+                    }
+    
+                    console.log(patternMatchSuccessful(thisPatternMatchResult, vs))
+        
+                    if (patternMatchSuccessful(thisPatternMatchResult, vs)) {
+                        thisPatternMatchResult.matched = true;
+                    } else {
+                        return;
+                    }
+        
+                    if (vs.optionalParameters) {
+                        for (let op of vs.optionalParameters) {
+                            let thisConstMatchableIndices = getMatchingAttributesByParameter(table, op);
+                            thisPatternMatchResult.optionalAttributes.push(thisConstMatchableIndices);
+                        }
+                    }
 
-            // if (vs.optionalParameters) {
-            //     for (let op of vs.optionalParameters) {
-            //         let thisConstMatchableIndices;
-            //         if (subsetRel) {
-            //             thisConstMatchableIndices = getMatchAttributesFromSet(subsetRel, op)
-            //         } else {
-            //             thisConstMatchableIndices = getMatchingAttributesByParameter(table, op);
-            //         }
-            //         thisPatternMatchResult.optionalAttributes.push(thisConstMatchableIndices);
-            //     }
-            // }
-            // return thisPatternMatchResult;
+                    allPatternMatches.push(thisPatternMatchResult);
+                } else {
+                    // TODO
+                    return;
+                }
+
+            })
+            
+            break;
 
         // case VISSCHEMATYPES.MANYMANY:
         //     if (!rels) return;
@@ -327,8 +358,10 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
         // case VISSCHEMATYPES.ONEMANY:
         //     return undefined;
         default:
-            return undefined; // TODO
-    }
+            break; // TODO
+
+        }
+    return allPatternMatches;
 }
 
 const getTablesWithinSet = (rel: RelationNode) => {

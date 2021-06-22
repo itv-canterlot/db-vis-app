@@ -12,6 +12,8 @@ export default function visTemplates(graphType, parameters) {
         case "bar":
             // renderBarPlot(parameters);
             return;
+        case "chord":
+            return;
         default:
             return;
     }

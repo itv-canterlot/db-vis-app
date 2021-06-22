@@ -22,7 +22,8 @@
                     "scalar": false,
                     "type": "COLOR"
                 }
-            ]
+            ],
+            "template": "sankey"
         }, {
             "name": "Chord",
             "type": 3,
@@ -45,7 +46,8 @@
                     "scalar": false,
                     "type": "COLOR"
                 }
-            ]
+            ],
+            "template": "chord"
         }
     ]
 }
