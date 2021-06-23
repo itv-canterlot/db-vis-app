@@ -26,7 +26,14 @@ const dataSelectMultiTables = (attrs, fks, parentTableName, primaryKeys) => {
         return statement;
     }
     const attrsQuery = attrs.map(attr => attr["tableName"] + "." + attr["columnName"]).join(", ");
-    const primaryKeyQueries = [].concat(...primaryKeys.map(pk => pk.map(col => col["tableName"] + "." + col["columnName"]))).join(", ");
+    console.log(primaryKeys)
+    const primaryKeyQueries = [].concat(...primaryKeys.map(pk => {
+        if (Array.isArray(pk)) {
+            return pk.map(col => col["tableName"] + "." + col["columnName"])
+        } else {
+            return [pk["tableName"] + "." + pk["columnName"]]
+        }
+    })).join(", ");
     const connector = primaryKeyQueries === "" ? "" : ","
 
     return `SELECT ${attrsQuery} ${connector} ${primaryKeyQueries} FROM ${joinStatement(fks, parentTableName)}`
