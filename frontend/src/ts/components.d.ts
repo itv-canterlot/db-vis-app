@@ -92,7 +92,8 @@ export type StartingTableSelectModalStates = {
 export type SchemaExplorerProps = {
     expanded: boolean, 
     onVisPatternIndexChange: Function,
-    onSelectedAttributeIndicesChange: React.MouseEventHandler
+    onSelectedAttributeIndicesChange: React.MouseEventHandler,
+    onExpansionClick?: Function
 }
 
 export type AppMainContProps = {
@@ -103,7 +104,8 @@ export type AppMainContProps = {
 }
 
 export type AppMainContStates = {
-    stateChanged?: boolean
+    stateChanged?: boolean,
+    explorerExpanded: boolean
 }
 
 /* Visualiser.tsx */

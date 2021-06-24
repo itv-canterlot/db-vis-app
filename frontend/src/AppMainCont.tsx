@@ -195,23 +195,49 @@ SchemaExplorer.contextType = DBSchemaContext;
 export class AppMainCont extends React.Component<AppMainContProps, AppMainContStates> {
     constructor(props) {
         super(props);
+        this.state = {
+            explorerExpanded: false
+        }
+    }
+
+    onExpansionClick = () => {
+        this.setState({
+            explorerExpanded: !this.state.explorerExpanded
+        })
     }
 
     render() {
         if (this.props.load) {
             return (<div>Loading...</div>);
         }
+        const shrinkTag = () => {
+            if (context.selectedFirstTableIndex < 0) return null;
+            else return (
+                <div className="pt-1 pb-2" onClick={this.onExpansionClick} style={{cursor: "pointer"}}>
+                    <div className=" d-flex justify-content-center align-items-center">
+                        <div className="small me-2">
+                            {this.state.explorerExpanded ? "Shrink" : "More options..."}
+                        </div>
+                        <i className={"fas fa-angle-up mr-2"} />
+                        <i className={"fas fa-angle-down"} />
+                        {/* {this.state.explorerExpanded ? (<i className={"fas fa-angle-up"} />) : (<i className={"fas fa-angle-down"} />)} */}
+                    </div>
+                </div>
+            ) 
+        }
         const context: DBSchemaContextInterface = this.context;
         return (
             <div className="col-8 col-lg-9">
                 <div className="row">
                     <div className="col">
-                        <div className="row py-2" style={{borderBottom: "2px solid black"}}>
-                            <div className="col">
+                        <div className="row pt-2 pb-1" style={{borderBottom: "2px solid black", minHeight: this.state.explorerExpanded ? "50vh" : ""}}>
+                            <div className="col d-flex flex-column justify-content-between">
                                 <SchemaExplorer 
-                                    expanded={true} 
+                                    expanded={this.state.explorerExpanded}
+                                    onExpansionClick={this.onExpansionClick}
                                     onVisPatternIndexChange={this.props.onVisPatternIndexChange}
                                     onSelectedAttributeIndicesChange={this.props.onSelectedAttributeIndicesChange} />
+                                {shrinkTag()}
                             </div>
                         </div>
                         <div className="row">
