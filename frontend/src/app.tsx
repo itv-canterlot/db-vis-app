@@ -110,18 +110,27 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     }
 
     onVisPatternIndexChange = (newIndex: number) => {
+        console.log(newIndex)
         const newPatternMatchStatus: PatternMatchResult = 
             this.state.visSchemaMatchStatus[newIndex];
 
-        const mandatoryParamInitIndices = newPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {
-            return Math.floor(Math.random() * mandMatch.length);
-        });
-        const mandatoryParamAttrs = mandatoryParamInitIndices.map((attIdx, listIdx) => newPatternMatchStatus.mandatoryAttributes[listIdx][attIdx])
+        let mandatoryParamInitIndices, optionalParamInitIndices;
+        if (!newPatternMatchStatus) {
+            mandatoryParamInitIndices = [];
+            optionalParamInitIndices = [];
+        } else {
+            mandatoryParamInitIndices = newPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {
+                return Math.floor(Math.random() * mandMatch.length);
+            });
+            
+            optionalParamInitIndices = newPatternMatchStatus.optionalAttributes.map((mandMatch, idx) => {
+                return Math.floor(Math.random() * mandMatch.length);
+            });
+        }
         
-        const optionalParamInitIndices = newPatternMatchStatus.optionalAttributes.map((mandMatch, idx) => {
-            return Math.floor(Math.random() * mandMatch.length);
-        });
+        const mandatoryParamAttrs = mandatoryParamInitIndices.map((attIdx, listIdx) => newPatternMatchStatus.mandatoryAttributes[listIdx][attIdx])
         const optionalParamAttrs = optionalParamInitIndices.map((attIdx, listIdx) => newPatternMatchStatus.optionalAttributes[listIdx][attIdx])
+
 
         this.setState({
             selectedPatternIndex: newIndex,

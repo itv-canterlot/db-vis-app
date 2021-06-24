@@ -10,6 +10,9 @@ import { VisualiserProps, VisualiserStates } from './ts/components';
 export class Visualiser extends React.Component<VisualiserProps, VisualiserStates> {
     constructor(props) {
         super(props);
+        this.state = {
+            renderFailed: false
+        }
     }
 
     visualisationHandler = () => {
@@ -20,7 +23,14 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
         const selectedPattern = context.selectedPatternIndex;
         const patternMatchStatus = context.visSchemaMatchStatus[selectedPattern];
         const selectedPatternTemplateCode = context.visSchema[selectedPattern].template
-        if (!patternMatchStatus) return;
+
+        if (!patternMatchStatus) {
+            this.setState({
+                renderFailed: true
+            })
+            renderEmptyChart();
+            return;
+        }
         // TODO: deal with multiple tables
 
         // Map matched attributes to their names
@@ -35,6 +45,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
         getDataByMatchAttrs(context.selectedAttributesIndices, patternMatchStatus).then(data => {
             renderVisualisation(selectedPatternTemplateCode, data, attributeNames);
             this.setState({
+                renderFailed: false,
                 renderedAttributesIndices: context.selectedAttributesIndices,
                 renderedTableIndex: context.selectedFirstTableIndex
             })
@@ -84,12 +95,36 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
 
     render() {
         return (
-            <div className="col" id="vis-cont"></div>
+            <div className="col" id="vis-cont">
+            </div>
         )
     }
 }
 
 Visualiser.contextType = DBSchemaContext;
+
+const renderEmptyChart = () => {
+    // set the dimensions and margins of the graph
+    var margin = {top: 10, right: 30, bottom: 30, left: 60},
+    width = 460 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom;
+
+    // append the svg object to the body of the page
+    let svg = d3.select("#vis-cont")
+        .select("svg > g");
+    if (!svg.empty()) {
+        svg.selectAll("*").remove();
+    } else {
+        svg = d3.select("#vis-cont").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform",
+                "translate(" + margin.left + "," + margin.top + ")")
+    }
+
+    svg.append("text").text("Oh no!");
+}
 
 const renderVisualisation = (visSpecificCode: string, data: object[], args: object) => {
     if (!visSpecificCode) return; // Do not render if no template name is specified

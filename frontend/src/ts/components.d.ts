@@ -116,5 +116,6 @@ export type VisualiserProps = {
 export type VisualiserStates = {
     load?: boolean,
     renderedTableIndex?: number,
-    renderedAttributesIndices?: PatternMatchAttribute[][]
+    renderedAttributesIndices?: PatternMatchAttribute[][],
+    renderFailed: boolean
 }
