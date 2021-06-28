@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { AppMainContProps, AppMainContStates, SchemaExplorerProps } from './ts/components';
-import { CONFIRMATION_STATUS, PatternMatchAttribute, PatternMatchResult, VisParam, VISSCHEMATYPES, visSchemaTypeToReadableString } from './ts/types';
+import { CONFIRMATION_STATUS, PatternMatchAttribute, PatternMatchResult, PATTERN_MISMATCH_REASON_TYPE, VisParam, VISSCHEMATYPES, visSchemaTypeToReadableString } from './ts/types';
 import { Visualiser } from './Visualiser';
 
 class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
@@ -46,7 +46,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
 
             dbSchemaContext.visSchema.map((visSchema, idx) => {
                 const schemaMatchResult = patternMatchResult[idx];
-                if (!this.props.expanded && !schemaMatchResult) {
+                if (!this.props.expanded && (!schemaMatchResult || !schemaMatchResult.matched)) {
                     return;
                 }
 
@@ -60,7 +60,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
                     </li>
                 );
 
-                if (schemaMatchResult) {
+                if (schemaMatchResult && schemaMatchResult.matched) {
                     // If this item had been matched:
                     matchedItems.push(listElem);
                 } else {
@@ -193,6 +193,16 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
         )
     }
 
+    findSpecifiedReadon = (patternMatchResult: PatternMatchResult, mismatchReason: PATTERN_MISMATCH_REASON_TYPE) => {
+        if (patternMatchResult.mismatchReason) {
+            if (patternMatchResult.mismatchReason.reason === mismatchReason) {
+                console.log(patternMatchResult)
+                return true;
+            }
+        }
+        return false;
+    }
+
     parsedVisPattern = () => {
         if (!this.props.expanded) return null;
         const context: DBSchemaContextInterface = this.context;
@@ -211,12 +221,20 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
                 case "type":
                     keyName = "Schema type";
                     innerText = visSchemaTypeToReadableString(schemaContent);
+                    if (thisPatternMatchResult.mismatchReason) {
+                        if (thisPatternMatchResult.mismatchReason.reason === PATTERN_MISMATCH_REASON_TYPE.NO_SUITABLE_RELATION) {
+                            confirmationStatus = CONFIRMATION_STATUS.NO;
+                        }
+                    }
                     break;
                 case "localKey":
                     keyName = "Number of keys in Relation 1";
                     minCount = thisPatternSchema.localKey.minCount;
                     maxCount = thisPatternSchema.localKey.maxCount;
                     innerText = minCount + " ≤ " + "N" + (maxCount ? ("≤ " + maxCount) : "");
+                    if (this.findSpecifiedReadon(thisPatternMatchResult, PATTERN_MISMATCH_REASON_TYPE.KEY_COUNT_MISMATCH)) {
+                        confirmationStatus = CONFIRMATION_STATUS.NO
+                    }
                     break;
                 case "foreignKey":
                     if (thisPatternSchema.type !== VISSCHEMATYPES.BASIC) {
@@ -259,18 +277,19 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
                 return null;
             }
             else {
-                let confirmationIcon;
-                if (confirmationStatus === CONFIRMATION_STATUS.UNKNOWN) {
-                    confirmationIcon = (<i className="fas fa-question me-1" />)
-                } else if (confirmationStatus === CONFIRMATION_STATUS.YES) {
-                    confirmationIcon = (<i className="fas fa-check text-success me-1" />)
-                } else {
-                    confirmationIcon = (<i className="fas fa-times text-danger me-1" />)
-                }
+                // let confirmationIcon = <i />;
+                // if (confirmationStatus === CONFIRMATION_STATUS.NO) {
+                //     confirmationIcon = (<i className="fas fa-times text-danger ms-1" />)
+                // } else {
+                //     confirmationIcon = <i />;   
+                // }
                 return (
                     <div key={ki}>
                         <div>
-                            {confirmationIcon} {keyName}: {innerText}
+                            {keyName}: {innerText} 
+                            {/* <span>
+                            {confirmationIcon} 
+                            </span> */}
                         </div>
 
                     </div>
@@ -280,6 +299,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
         return (
             <div>
                 {patternSchemaTextSeparated}
+                <button type="button" className="btn btn-primary">Filter dataset</button>
             </div>
         )
     }

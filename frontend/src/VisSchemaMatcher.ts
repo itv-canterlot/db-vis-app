@@ -1,50 +1,69 @@
 import * as SchemaParser from "./SchemaParser";
-import {Attribute, RelationNode, Table, VisKey, VisParam, VISPARAMTYPES, VisSchema, VISSCHEMATYPES, PatternMatchResult, PatternMatchAttribute} from "./ts/types";
+import {Attribute, RelationNode, Table, VisKey, VisParam, VISPARAMTYPES, VisSchema, VISSCHEMATYPES, PatternMatchResult, PatternMatchAttribute, PatternMismatchReason, PATTERN_MISMATCH_REASON_TYPE} from "./ts/types";
 import * as TypeConstants from "./TypeConstants";
 
-
-
-const basicKeyConditionCheck = (table: Table, key: VisKey) => {
+const basicKeyConditionCheck = (table: Table, key: VisKey): PatternMismatchReason => {
     // Check if there *is* a key
-    if (table.pk.columns.length < 1) return false;
+    if (table.pk.columns.length < 1) {
+        return {
+            reason: PATTERN_MISMATCH_REASON_TYPE.NO_PK
+        }
+    };
 
     const keyMinCount = key.minCount,
         keyMaxCount = key.maxCount,
         tableKeyCount = table.pk.keyCount;
     // Count checks
     if (keyMaxCount) {
-        if (tableKeyCount > keyMaxCount) return false;
+        if (tableKeyCount > keyMaxCount) {
+            return {
+                reason: PATTERN_MISMATCH_REASON_TYPE.KEY_COUNT_MISMATCH
+            }
+        };
     }
-    if (tableKeyCount < keyMinCount) return false;
+    if (tableKeyCount < keyMinCount) {
+        return {
+            reason: PATTERN_MISMATCH_REASON_TYPE.KEY_COUNT_MISMATCH
+        }
+    };
     
 
     // Key type check
     if (key.type) {
         // TODO: multi-column keys
-        for (let pkCol of table.pk.columns) {
+        for (let i = 0; i < table.pk.columns.length; i++) {
+            let pkCol = table.pk.columns[i];
             const thisAttr = table.attr[pkCol.colPos]
+            let keyMatchResult = true;
             if (key.type === VISPARAMTYPES.TEMPORAL) {
                 if (!TypeConstants.isAttributeTemporal(thisAttr)) {
-                    return false;
+                    keyMatchResult = false;
                 }
             } else if (key.type === VISPARAMTYPES.LEXICAL) {
-                if (table.pk.columns.length > 1) return false;
+                if (table.pk.columns.length > 1) keyMatchResult = false;
                 if (!TypeConstants.isAttributeLexical(thisAttr)) {
-                    return false;
+                    keyMatchResult = false;
                 }
             } else if (key.type === VISPARAMTYPES.COLOR) {
                 // Assumption: there's only one key column for colour?
-                if (table.pk.columns.length > 1) return false;
-                if (!TypeConstants.isAttributeLexical(thisAttr)) return false;
+                if (table.pk.columns.length > 1) keyMatchResult = false;
+                if (!TypeConstants.isAttributeLexical(thisAttr)) keyMatchResult = false;
             } else if (key.type === VISPARAMTYPES.GEOGRAPHICAL) {
                 if (!TypeConstants.isAttributeGeographical(thisAttr)) {
-                    return false;
+                    keyMatchResult = false;
+                }
+            }
+
+            if (!keyMatchResult) {
+                return {
+                    reason: PATTERN_MISMATCH_REASON_TYPE.KEY_TYPE_MISMATCH,
+                    position: i
                 }
             }
         }
     }
 
-    return true;
+    return undefined;
 }
 
 const isThisTableJunction = (rel: RelationNode) => {
@@ -183,11 +202,18 @@ const patternMatchSuccessful = (result: PatternMatchResult, vs: VisSchema) => {
     return result.mandatoryAttributes.every(ma => ma.length > 0);
 }
 
-const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSchema) => {
+const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSchema): PatternMatchResult[] => {
     if (!table.pk) return undefined; // Not suitable if there is no PK to use
 
-    if (!basicKeyConditionCheck(table, vs.localKey)) {
-        return undefined;
+    const basicKeyConditionCheckResult = basicKeyConditionCheck(table, vs.localKey)
+    if (basicKeyConditionCheckResult) {
+        return [{
+            vs: vs,
+            mandatoryAttributes: [],
+            optionalAttributes: [],
+            matched: false,
+            mismatchReason: basicKeyConditionCheckResult
+        }];
     }
 
     let subsetRel = rels.find(rel => rel.type === VISSCHEMATYPES.SUBSET); // TODO: multiple subsets?
@@ -361,6 +387,16 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
             break; // TODO
 
         }
+
+    if (allPatternMatches.length === 0) {
+        allPatternMatches.push({
+            vs: vs,
+            mandatoryAttributes: [],
+            optionalAttributes: [],
+            matched: false,
+            mismatchReason: {reason: PATTERN_MISMATCH_REASON_TYPE.NO_SUITABLE_RELATION}
+        });
+    }
     return allPatternMatches;
 }
 
