@@ -63,6 +63,21 @@ export enum VISSCHEMATYPES {
     SUBSET = 4
 }
 
+export const visSchemaTypeToReadableString = (schema: VISSCHEMATYPES) => {
+    switch (schema) {
+        case VISSCHEMATYPES.BASIC:
+            return "Basic entity";
+        case VISSCHEMATYPES.WEAKENTITY:
+            return "Weak entity";
+        case VISSCHEMATYPES.ONEMANY:
+            return "One-to-many";
+        case VISSCHEMATYPES.MANYMANY:
+            return "Many-to-many";
+        case VISSCHEMATYPES.SUBSET:
+            return "Subset";
+    }
+}
+
 export type VisSchema = {
     name: string,
     type: VISSCHEMATYPES.BASIC,
@@ -159,4 +174,10 @@ export type PatternMatchResult = {
     mandatoryAttributes: PatternMatchAttribute[][],
     optionalAttributes: PatternMatchAttribute[][],
     responsibleRelation?: RelationNode
+}
+
+export enum CONFIRMATION_STATUS {
+    NO = 0,
+    YES = 1,
+    UNKNOWN = 2
 }

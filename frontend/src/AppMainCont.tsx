@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { AppMainContProps, AppMainContStates, SchemaExplorerProps } from './ts/components';
-import { PatternMatchAttribute, PatternMatchResult } from './ts/types';
+import { CONFIRMATION_STATUS, PatternMatchAttribute, PatternMatchResult, VisParam, VISSCHEMATYPES, visSchemaTypeToReadableString } from './ts/types';
 import { Visualiser } from './Visualiser';
 
 class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
@@ -12,8 +12,6 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
     onPatternSelectionDropdownClick = (e: React.BaseSyntheticEvent) => {
         const context: DBSchemaContextInterface = this.context;
         const selectedIndex = parseInt(e.target.getAttribute("data-index"));
-        console.log(selectedIndex);
-        console.log(context.selectedPatternIndex)
         if (selectedIndex === context.selectedPatternIndex) return;
 
         this.props.onVisPatternIndexChange(selectedIndex);
@@ -172,13 +170,116 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
         return attributeGroupElement
     }
 
+    getInnerTextForAttributes = (params: VisParam[]) => {
+        if (params.length === 0) {
+            return <div>
+                No parameter found
+            </div>
+        }
+        return (
+            <div>
+            { 
+                params.map((param, i) => {
+                    return (
+                        <div className="ms-2" key={i}>
+                            Parameter {i}
+                            {param.scalar ? <div className="ms-2">Is scalar</div> : null}
+                            {param.type ? <div className="ms-2">Is type {param.type}</div> : null}
+                        </div>
+                    );
+                })
+            }
+            </div>
+        )
+    }
+
     parsedVisPattern = () => {
         if (!this.props.expanded) return null;
         const context: DBSchemaContextInterface = this.context;
-        const thisPatternIndex = context.selectedPatternIndex;
+        const thisPatternSchema = context.visSchema[context.selectedPatternIndex];
+        const thisPatternMatchResult = context.visSchemaMatchStatus[context.selectedPatternIndex];
+        let minCount, maxCount;
+        const patternSchemaTextSeparated = Object.keys(thisPatternSchema).map((key, ki) => {
+            
+            let keyName: string, innerText: string | JSX.Element, confirmationStatus: CONFIRMATION_STATUS = CONFIRMATION_STATUS.UNKNOWN;
+            const schemaContent = thisPatternSchema[key];
+            switch (key) {
+                case "name":
+                    keyName = undefined;
+                    innerText = undefined;
+                    break;
+                case "type":
+                    keyName = "Schema type";
+                    innerText = visSchemaTypeToReadableString(schemaContent);
+                    break;
+                case "localKey":
+                    keyName = "Number of keys in Relation 1";
+                    minCount = thisPatternSchema.localKey.minCount;
+                    maxCount = thisPatternSchema.localKey.maxCount;
+                    innerText = minCount + " ≤ " + "N" + (maxCount ? ("≤ " + maxCount) : "");
+                    break;
+                case "foreignKey":
+                    if (thisPatternSchema.type !== VISSCHEMATYPES.BASIC) {
+                        minCount = thisPatternSchema.foreignKey.minCount;
+                        maxCount = thisPatternSchema.foreignKey.maxCount;
+                    }
+                    keyName = "Number of keys in Relation 2";
+                    innerText = minCount + " ≤ " + "N " + (maxCount ? ("≤ " + maxCount) : "");
+                    break;
+                case "mandatoryParameters":
+                    keyName = "Mandatory parameters";
+                    innerText = this.getInnerTextForAttributes(thisPatternSchema.mandatoryParameters);
+                    break;
+                case "optionalParameters":
+                    keyName = "Optional parameters";
+                    innerText = this.getInnerTextForAttributes(thisPatternSchema.optionalParameters);
+                    break;
+                case "template":
+                    keyName = undefined;
+                    innerText = undefined;
+                    break;
+                case "reflexive":
+                    if (thisPatternSchema.type === VISSCHEMATYPES.MANYMANY) {
+                        keyName = "Reflexivity"
+                        innerText = thisPatternSchema.reflexive.toString();
+                    }
+                    break;
+                case "complete":
+                    if (thisPatternSchema.type === VISSCHEMATYPES.WEAKENTITY) {
+                        keyName = "Completeness"
+                        innerText = thisPatternSchema.complete.toString();
+                    }
+                    break;
+                default:
+                    keyName = key;
+                    innerText = JSON.stringify(schemaContent);
+            }
+            const schemaText = thisPatternSchema[key];
+            if (!keyName) {
+                return null;
+            }
+            else {
+                let confirmationIcon;
+                if (confirmationStatus === CONFIRMATION_STATUS.UNKNOWN) {
+                    confirmationIcon = (<i className="fas fa-question me-1" />)
+                } else if (confirmationStatus === CONFIRMATION_STATUS.YES) {
+                    confirmationIcon = (<i className="fas fa-check text-success me-1" />)
+                } else {
+                    confirmationIcon = (<i className="fas fa-times text-danger me-1" />)
+                }
+                return (
+                    <div key={ki}>
+                        <div>
+                            {confirmationIcon} {keyName}: {innerText}
+                        </div>
+
+                    </div>
+                );
+            }
+        })
         return (
             <div>
-                {thisPatternIndex}
+                {patternSchemaTextSeparated}
             </div>
         )
     }
