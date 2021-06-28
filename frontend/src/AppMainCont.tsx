@@ -1,12 +1,16 @@
 import * as React from 'react';
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
-import { AppMainContProps, AppMainContStates, SchemaExplorerProps } from './ts/components';
+import { FilterSelectModal } from './SidebarModals';
+import { AppMainContProps, AppMainContStates, SchemaExplorerProps, SchemaExplorerStates } from './ts/components';
 import { CONFIRMATION_STATUS, PatternMatchAttribute, PatternMatchResult, PATTERN_MISMATCH_REASON_TYPE, VisParam, VISSCHEMATYPES, visSchemaTypeToReadableString } from './ts/types';
 import { Visualiser } from './Visualiser';
 
-class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
+class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorerStates> {
     constructor(props) {
         super(props);
+        this.state = {
+            showFilterSelectModal: false
+        }
     }
 
     onPatternSelectionDropdownClick = (e: React.BaseSyntheticEvent) => {
@@ -299,9 +303,21 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
         return (
             <div>
                 {patternSchemaTextSeparated}
-                <button type="button" className="btn btn-primary">Filter dataset</button>
+                <button type="button" className="btn btn-primary" onClick={this.onClickFilterDatasetButton}>Filter dataset</button>
             </div>
         )
+    }
+
+    onClickFilterDatasetButton = () => {
+        this.setState({
+            showFilterSelectModal: true
+        })
+    }
+
+    onCloseShowFilterSelectModal = () => {
+        this.setState({
+            showFilterSelectModal: false
+        })
     }
 
     render() {
@@ -322,6 +338,10 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, {}> {
 
             return (
                 <div>
+                    {this.state.showFilterSelectModal ? 
+                        <FilterSelectModal 
+                            onClose={this.onCloseShowFilterSelectModal} /> 
+                        : null}
                     <div className="d-flex justify-content-between align-items-center">
                         <div>
                             {context.allEntitiesList[context.selectedFirstTableIndex].tableName}

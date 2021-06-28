@@ -88,12 +88,32 @@ export type StartingTableSelectModalStates = {
     selectedForeignKeyIdx?: number
 }
 
+export type FilterSelectModalProps = {
+    onClose: Function
+}
+
+export type Filter = {
+    tableIndex: number,
+    attNum: number,
+    condition: any,
+    value: any
+}
+
+export type FilterSelectModalStates = {
+    cachedFilterSelection?: Filter,
+    filters?: Filter[]
+}
+
 /* AppMainCont.tsx */
 export type SchemaExplorerProps = {
     expanded: boolean, 
     onVisPatternIndexChange: Function,
     onSelectedAttributeIndicesChange: React.MouseEventHandler,
     onExpansionClick?: Function
+}
+
+export type SchemaExplorerStates = {
+    showFilterSelectModal?: boolean
 }
 
 export type AppMainContProps = {

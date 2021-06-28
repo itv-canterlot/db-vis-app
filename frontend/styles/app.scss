@@ -136,6 +136,17 @@ body, html {
     overflow-y: auto;
 }
 
+.filter-table-rel-list {
+    font-size: 0.9rem;
+    max-height: 30vh;
+    overflow-y: auto;
+}
+
+.filter-table-attr-group-item {
+    user-select: none;
+    cursor: pointer;
+}
+
 .foreign-relations-group-item {
     user-select: none;
     cursor: pointer;
