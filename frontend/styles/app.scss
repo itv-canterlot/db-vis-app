@@ -155,3 +155,15 @@ body, html {
 .foreign-relations-group-item:hover {
     background-color: $gray-200;
 }
+
+/* Chrome, Safari, Edge, Opera */
+.input-number-no-scroll::-webkit-outer-spin-button,
+.input-number-no-scroll::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+.input-number-no-scroll[type=number] {
+  -moz-appearance: textfield;
+}

@@ -200,7 +200,6 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
     findSpecifiedReadon = (patternMatchResult: PatternMatchResult, mismatchReason: PATTERN_MISMATCH_REASON_TYPE) => {
         if (patternMatchResult.mismatchReason) {
             if (patternMatchResult.mismatchReason.reason === mismatchReason) {
-                console.log(patternMatchResult)
                 return true;
             }
         }

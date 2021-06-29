@@ -9,10 +9,12 @@ import * as SchemaParser from './SchemaParser';
 import * as TypeConstants from './TypeConstants';
 import { Filter, FilterSelectModalProps, FilterSelectModalStates, StartingTableSelectModalProps, StartingTableSelectModalStates } from './ts/components';
 
-const foreignRelationsElement = (thisRels, thisTable) => {
+const foreignRelationsElement = (thisRels: RelationNode[], thisTable: Table) => {
     if (thisRels) {
         // Display parent relations first
-        let thisRelsSorted = [], thisRelsParent = [], thisRelsChildren = [];
+        let thisRelsSorted: RelationNode[] = [], 
+            thisRelsParent: RelationNode[] = [], 
+            thisRelsChildren: RelationNode[] = [];
         thisRels.forEach(rel => {
             if (SchemaParser.isTableAtRootOfRel(thisTable, rel)) {
                 thisRelsParent.push(rel);
@@ -131,7 +133,7 @@ const foreignRelationsElement = (thisRels, thisTable) => {
             }
             
             const relationElement = (
-                <li className="list-group-item foreign-relations-group-item" key={idx}>
+                <li className="list-group-item foreign-relations-group-item" key={idx} data-foreign-rel-idx={rel.index}>
                     <div className="d-flex justify-content-between">
                         {relationTypeTip}
                         {relationParentTip}
@@ -217,11 +219,11 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
         this.props.onClose();
     }
 
-    getTableRelationVis = (dbSchemaContext: DBSchemaContextInterface, cachedSelectedIndex: number) => {
+    getTableRelationVis = (dbSchemaContext: DBSchemaContextInterface, selectedIndex: number) => {
         let thisTable: Table = undefined;
         let thisRels: RelationNode[] = undefined
-        if (cachedSelectedIndex >= 0) {
-            thisTable = dbSchemaContext.allEntitiesList[cachedSelectedIndex];
+        if (selectedIndex >= 0) {
+            thisTable = dbSchemaContext.allEntitiesList[selectedIndex];
             thisRels = getRelationsInListByName(dbSchemaContext.relationsList, thisTable.tableName);
         }
     
@@ -370,12 +372,17 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
 StartingTableSelectModal.contextType = DBSchemaContext;
 
 export class FilterSelectModal extends React.Component<FilterSelectModalProps, FilterSelectModalStates> {
+    cachedFilterValueRef: React.RefObject<HTMLInputElement>;
+
     constructor(props) {
         super(props);
         this.state = {
             cachedFilterSelection: undefined,
-            filters: []
+            filters: [],
+            cachedForeignTableSelected: -1
         }
+
+        this.cachedFilterValueRef = React.createRef();
     }
 
     modalComponent: bootstrap.Modal = undefined;
@@ -395,98 +402,233 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         this.props.onClose();
     }
 
-    focusCheck = () => {
-        // if (this.state.cachedSelectedIndex < 0) {
-        //     document.getElementById("starting-table-select-input").focus()
-        // }
-    }
-
     onTableAttributeClick = (e: React.BaseSyntheticEvent) => {
         const currentTarget = e.currentTarget;
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
         const 
             tableIdx = parseInt(currentTarget.getAttribute("data-table-idx")),
             attNum = parseInt(currentTarget.getAttribute("data-attnum"));
-
-        this.setState({
-            cachedFilterSelection: {
-                tableIndex: tableIdx,
-                attNum: attNum,
-                condition: undefined,
-                value: undefined
+            
+        let fkIndex: number, fkTableSelected: Table;
+        if (tableIdx === dbSchemaContext.selectedFirstTableIndex) {
+            // Selected attribute is in the "base" table
+            const foreignKeyAttElement = currentTarget.getElementsByClassName("att-to-fk");
+            if (foreignKeyAttElement && foreignKeyAttElement.length > 0) {
+                fkIndex = parseInt(foreignKeyAttElement[0].getAttribute("data-fk-id"));
+                if (fkIndex !== undefined) {
+                    const fk = dbSchemaContext.allEntitiesList[dbSchemaContext.selectedFirstTableIndex].fk[fkIndex];
+                    fkTableSelected = dbSchemaContext.allEntitiesList.find(table => table.tableName === fk.pkTableName)
+                    console.log(dbSchemaContext.allEntitiesList[dbSchemaContext.selectedFirstTableIndex].fk);
+                }
             }
-        })
-        
+            this.setState({
+                cachedFilterSelection: 
+                    fkTableSelected ? 
+                    undefined : {
+                        tableIndex: tableIdx,
+                        attNum: attNum,
+                        condition: undefined,
+                        value: undefined
+                    },
+                cachedForeignTableFKIndex: fkTableSelected ? fkIndex : -1,
+                cachedForeignTableSelected: fkTableSelected ? fkTableSelected.idx : -1
+            })
+        } else {
+            // Selected attribute is in the "foreign" table
+            this.setState({
+                cachedFilterSelection: {
+                    tableIndex: tableIdx,
+                    attNum: attNum,
+                    condition: undefined,
+                    value: undefined
+                },
+            })
+        }
+       
     }
 
-    getTableRelationVis = (dbSchemaContext: DBSchemaContextInterface, cachedSelectedIndex: number) => {
+    onConditionSelected = (e: React.BaseSyntheticEvent) => {
+        const conditionIndexSelected = parseInt(e.target.getAttribute("data-cond-idx"));
+        if (conditionIndexSelected > -1) {
+            const cachedFilter = this.state.cachedFilterSelection
+            cachedFilter.condition = conditionIndexSelected;
+            this.setState({
+                cachedFilterSelection: cachedFilter
+            })
+        }
+    }
+
+    onConfirmCachedFilter = (e: React.BaseSyntheticEvent) => {
+        const filterInputValue = this.cachedFilterValueRef.current as HTMLInputElement
+        const cachedFilter = this.state.cachedFilterSelection;
+        cachedFilter.value = filterInputValue.value;
+        if (Object.keys(cachedFilter).every(key => {
+            const val = cachedFilter[key];
+            return val !== undefined && val !== "";
+        })) {
+            console.log("VAL")
+            this.setState({
+                cachedFilterSelection: cachedFilter,
+                filters: [...this.state.filters, cachedFilter]
+            });
+        }
+    }
+
+    getTableRelationVis = (dbSchemaContext: DBSchemaContextInterface, selectedIndex: number) => {
         let thisTable: Table = undefined;
-        let thisRels: RelationNode[] = undefined
-        if (cachedSelectedIndex >= 0) {
-            thisTable = dbSchemaContext.allEntitiesList[cachedSelectedIndex];
-            thisRels = getRelationsInListByName(dbSchemaContext.relationsList, thisTable.tableName);
+        if (selectedIndex >= 0) {
+            thisTable = dbSchemaContext.allEntitiesList[selectedIndex];
         }
     
-        let foreignKeyParing = null;
-    
-        if (thisRels) {
-            foreignKeyParing = (
-                <div className="card">
-                        <div className="card-body d-flex justify-content-between align-items-center">
-                            <h5 className="card-title">Foreign relations</h5>
-                            <span className="badge bg-primary rounded-pill">{thisRels.length}</span>
-                        </div>
-                        <ul className="list-group filter-table-rel-list ml-auto mr-auto">
-                            {foreignRelationsElement(thisRels, thisTable)}
-                        </ul>
-                    </div>
-               );
-        }
-    
-        const tableAttributeList = () => {
-            return thisTable.attr.map(att => {
+        const tableAttributeList = (table: Table) => {
+            return table.attr.map(att => {
                 return (
                 <li className="list-group-item pb-1 d-flex justify-content-between" onClick={this.onTableAttributeClick} 
-                    data-table-idx={thisTable.idx} data-attnum={att.attnum} key={att.attnum}>
+                    data-table-idx={table.idx} data-attnum={att.attnum} key={att.attnum}>
                     <div>
                         {att.attname}
                     </div>
-                    {renderTips(thisTable, att)}
+                    {renderTips(table, att, true)}
                 </li>
                 );
             });
         }
 
-        const cachedFilterText = (filter: Filter) => {
-            if (!filter) return null;
+
+        let foreignKeyAttList = null;
+        if (this.state.cachedForeignTableSelected) {
+            const selectedFk = thisTable.fk[this.state.cachedForeignTableFKIndex];
+            const selectedFkTable = dbSchemaContext.allEntitiesList[this.state.cachedForeignTableSelected];
+            
+            if (selectedFkTable) {
+                foreignKeyAttList = (
+                    <div className="card">
+                        <div className="card-body">
+                            <h5 className="card-title">➔ {selectedFkTable.tableName}</h5>
+                            <div className="small d-inline-block me-1 text-muted dropdown-tip bg-tip-fk" >fk: <em>{selectedFk.keyName}</em></div>
+                        </div>
+                        <ul className="list-group filter-table-attr-group-item filter-table-rel-list ml-auto mr-auto">
+                            {tableAttributeList(selectedFkTable)}
+                        </ul>
+                    </div>
+                );
+            }
+        }
+
+        const filterRelatedAttButton = (filter: Filter) => {   
             const dbSchemaContext: DBSchemaContextInterface = this.context;
             const filterRelatedTable = dbSchemaContext.allEntitiesList[filter.tableIndex];
             const filterRelatedAttName = filterRelatedTable.attr[filter.attNum - 1].attname
             return (
-                <div>
-                    {filterRelatedTable.tableName}/{filterRelatedAttName} is less than ___
+                <a href="#" className="btn btn-secondary btn me-2" role="button" aria-disabled="true">
+                    {filterRelatedTable.tableName}/{filterRelatedAttName}
+                </a>
+                )
+            }
+
+        type FilterConditions = {
+            friendlyName: string,
+            sqlCommand: string
+        }
+
+        const scalarConditions: FilterConditions[] = [
+            {
+                friendlyName: "is equal to",
+                sqlCommand: "="
+            }, {
+                friendlyName: "is not equal to",
+                sqlCommand: "!="
+            }, {
+                friendlyName: "is greater than",
+                sqlCommand: ">"
+            }, {
+                friendlyName: "is less than",
+                sqlCommand: "<"
+            }, {
+                friendlyName: "is greater than or equal to",
+                sqlCommand: ">="
+            }
+            
+        ]
+
+        let conditionDropdown;
+        if (this.state.cachedFilterSelection) {
+            const conditionCached = this.state.cachedFilterSelection.condition
+            conditionDropdown = (
+                <div className="btn-group me-2">
+                    <button type="button" className="btn btn-secondary">{conditionCached !== undefined && conditionCached > -1 ? scalarConditions[conditionCached].friendlyName : "Select..."}</button>
+                    <button type="button" className="btn btn-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span className="visually-hidden">Toggle Dropdown</span>
+                    </button>
+                    <ul className="dropdown-menu">
+                        {scalarConditions.map((cond, idx) => {
+                            return (<li key={idx} data-cond-idx={idx}><a className="dropdown-item" href="#" data-cond-idx={idx} onClick={this.onConditionSelected}>{cond.friendlyName}</a></li>)
+                        })}
+                    </ul>
                 </div>
             )
+        }
+
+        const equality = (
+            <div className="me-2">
+                is
+            </div>
+        )
+
+        const valueInput = (
+            <div className="input-group" style={{maxWidth: "20%"}}>
+                <input ref={this.cachedFilterValueRef} type="number" className="form-control input-number-no-scroll" placeholder="Value" aria-label="Value"/>
+            </div>
+        )
+
+        const cachedFilterSubmitButton = (
+            <button type="button" className="btn btn-success" onClick={this.onConfirmCachedFilter}>Confirm</button>
+        )
+
+        const cachedFilterText = () => {
+            const filter = this.state.cachedFilterSelection;
+            if (!filter) return null;
+            return (
+                <div className="d-flex align-items-center justify-content-between">
+                    <div className="d-flex align-items-center">
+                        {filterRelatedAttButton(filter)} {equality} {conditionDropdown} {valueInput}
+                    </div>
+                    <div>
+                        {cachedFilterSubmitButton}
+                    </div>
+                </div>
+            )
+        }
+
+        const savedFilters = () => {
+            const filters = this.state.filters;
+            if (!filters || filters.length === 0) {
+                return null;
+            }
+            
+            return JSON.stringify(filters);
         }
         
         return (
             <div className="row justify-content-center mt-4 mb-3">
-                <div className="col-4 mt-auto mb-auto">
+                <div className="col-5 mt-auto mb-auto">
                     <div className="card mb-2">
                         <div className="card-body">
                             <h5 className="card-title">{thisTable.tableName}</h5>
                             <h6 className="card-subtitle mb-3 text-muted">n_keys: {thisTable.pk ? thisTable.pk.keyCount : (<em>not available</em>)}</h6>
                         </div>
                         <ul className="list-group filter-table-attr-group-item list-group-flush start-table-rel-list ml-auto mr-auto">
-                            {tableAttributeList()}
+                            {tableAttributeList(thisTable)}
                         </ul>
                     </div>
-                    {foreignKeyParing}
+                    {foreignKeyAttList}
                 </div>
-                <div className="col-4 mt-auto mb-auto">
-                    {cachedFilterText(this.state.cachedFilterSelection)}
+                <div className="col-5 mt-auto mb-auto">
+                    {cachedFilterText()}
+                    {savedFilters()}
                 </div>
-                <div className="col-auto">
-                </div>
+                {/* <div className="col-auto">
+                </div> */}
             </div>
         );
     }
@@ -504,7 +646,6 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         });
         this.modalComponent.show();
 
-        modalElement.addEventListener('shown.bs.modal', this.focusCheck);
         modalElement.addEventListener('hidden.bs.modal', () => {
             this.props.onClose();
         })
@@ -552,7 +693,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                         }
                     </div>
                     <div className="modal-footer">
-                        <button type="button" className="btn btn-primary" onClick={this.onFilterSelectionConfirm}>Confirm</button>
+                        <button type="button" className={"btn btn-primary" + (this.state.filters.length === 0 ? " disabled" : "")} onClick={this.onFilterSelectionConfirm}>Confirm</button>
                         <button type="button" className="btn btn-secondary" onClick={this.handleOnClose}>Cancel</button>
                     </div>
                     </div>
@@ -564,7 +705,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
 FilterSelectModal.contextType = DBSchemaContext;
 
 
-const renderTips = (table: Table, att: Attribute) => {
+const renderTips = (table: Table, att: Attribute, showForeignKey?: boolean) => {
     let isAttributeInPrimaryKey, tablePrimaryKeyTip;
     if (table.pk) {
         isAttributeInPrimaryKey = SchemaParser.isAttributeInPrimaryKey(att.attnum, table.pk);
@@ -580,10 +721,21 @@ const renderTips = (table: Table, att: Attribute) => {
         tablePrimaryKeyTip = null;
     }
 
+    let fkTip = null;
+    if (showForeignKey) {
+        const thisAttFKIndex = table.fk.findIndex(fk => fk.columns.some(col => col.fkColPos === att.attnum))
+        if (thisAttFKIndex > -1) {
+            // This column is of a foreign key
+            const pkTableName = table.fk[thisAttFKIndex].pkTableName
+            fkTip = <div className="dropdown-tip bg-tip-fk att-to-fk" data-fk-id={thisAttFKIndex}> ➔ {pkTableName}</div>
+        }
+    }
+
     if (TypeConstants.isAttributeScalar(att)) {
         return (
             <div className="d-flex">
                 {tablePrimaryKeyTip}
+                {fkTip}
                 <div data-bs-toggle="tooltip" data-bs-placement="top" title={att.typname}>
                     <i className="fas fa-sort-numeric-down" />
                 </div>
@@ -593,6 +745,7 @@ const renderTips = (table: Table, att: Attribute) => {
         return (
             <div className="d-flex">
                 {tablePrimaryKeyTip}
+                {fkTip}
                 <div data-bs-toggle="tooltip" data-bs-placement="top" title={att.typname}>
                     <i className="fas fa-calendar" />
                 </div>
@@ -602,6 +755,7 @@ const renderTips = (table: Table, att: Attribute) => {
         return (
             <div className="d-flex">
                 {tablePrimaryKeyTip}
+                {fkTip}
                 <div data-bs-toggle="tooltip" data-bs-placement="top" title={att.typname}>
                     <i className="fas fa-question" />
                 </div>
