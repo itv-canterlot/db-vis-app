@@ -4,10 +4,12 @@ import bootstrap = require('bootstrap');
 import { DBSchemaContextInterface, DBSchemaContext } from './DBSchemaContext';
 import { EntitySelector } from './EntitySelector';
 import { getRelationsInListByName } from './SchemaParser';
-import { Table, RelationNode, VisSchema, Attribute, VISSCHEMATYPES } from './ts/types';
+import { Table, RelationNode, VisSchema, Attribute, VISSCHEMATYPES, Filter, FilterCondition } from './ts/types';
 import * as SchemaParser from './SchemaParser';
 import * as TypeConstants from './TypeConstants';
-import { Filter, FilterSelectModalProps, FilterSelectModalStates, StartingTableSelectModalProps, StartingTableSelectModalStates } from './ts/components';
+import { FilterSelectModalProps, FilterSelectModalStates, StartingTableSelectModalProps, StartingTableSelectModalStates } from './ts/components';
+import { getFilteredData } from './Connections';
+// import { getFilteredTable } from './Connections';
 
 const foreignRelationsElement = (thisRels: RelationNode[], thisTable: Table) => {
     if (thisRels) {
@@ -427,6 +429,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                     undefined : {
                         tableIndex: tableIdx,
                         attNum: attNum,
+                        fkIndex: fkIndex,
                         condition: undefined,
                         value: undefined
                     },
@@ -447,15 +450,12 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
        
     }
 
-    onConditionSelected = (e: React.BaseSyntheticEvent) => {
-        const conditionIndexSelected = parseInt(e.target.getAttribute("data-cond-idx"));
-        if (conditionIndexSelected > -1) {
-            const cachedFilter = this.state.cachedFilterSelection
-            cachedFilter.condition = conditionIndexSelected;
-            this.setState({
-                cachedFilterSelection: cachedFilter
-            })
-        }
+    changedCondition = (cond: FilterCondition) => {
+        const cachedFilter = this.state.cachedFilterSelection
+        cachedFilter.condition = cond;
+        this.setState({
+            cachedFilterSelection: cachedFilter
+        })
     }
 
     onConfirmCachedFilter = (e: React.BaseSyntheticEvent) => {
@@ -464,12 +464,16 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         cachedFilter.value = filterInputValue.value;
         if (Object.keys(cachedFilter).every(key => {
             const val = cachedFilter[key];
-            return val !== undefined && val !== "";
+            return val !== "";
         })) {
-            console.log("VAL")
             this.setState({
                 cachedFilterSelection: cachedFilter,
                 filters: [...this.state.filters, cachedFilter]
+            }, () => {
+                // Retrieve data (TODO: simplify this)
+                const dbSchemaContext: DBSchemaContextInterface = this.context;
+                const thisTable = dbSchemaContext.allEntitiesList[dbSchemaContext.selectedFirstTableIndex];
+                getFilteredData(thisTable, dbSchemaContext.allEntitiesList, this.state.filters)
             });
         }
     }
@@ -526,12 +530,9 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 )
             }
 
-        type FilterConditions = {
-            friendlyName: string,
-            sqlCommand: string
-        }
+        
 
-        const scalarConditions: FilterConditions[] = [
+        const scalarConditions: FilterCondition[] = [
             {
                 friendlyName: "is equal to",
                 sqlCommand: "="
@@ -552,17 +553,24 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         ]
 
         let conditionDropdown;
+
+        const thisConditionHandler = (e: React.BaseSyntheticEvent) => {
+            const conditionIndexSelected = parseInt(e.target.getAttribute("data-cond-idx"));
+            if (conditionIndexSelected > -1) {
+                this.changedCondition(scalarConditions[conditionIndexSelected])
+            }
+        }
         if (this.state.cachedFilterSelection) {
             const conditionCached = this.state.cachedFilterSelection.condition
             conditionDropdown = (
                 <div className="btn-group me-2">
-                    <button type="button" className="btn btn-secondary">{conditionCached !== undefined && conditionCached > -1 ? scalarConditions[conditionCached].friendlyName : "Select..."}</button>
+                    <button type="button" className="btn btn-secondary">{conditionCached !== undefined ? conditionCached.friendlyName : "Select..."}</button>
                     <button type="button" className="btn btn-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
                         <span className="visually-hidden">Toggle Dropdown</span>
                     </button>
                     <ul className="dropdown-menu">
                         {scalarConditions.map((cond, idx) => {
-                            return (<li key={idx} data-cond-idx={idx}><a className="dropdown-item" href="#" data-cond-idx={idx} onClick={this.onConditionSelected}>{cond.friendlyName}</a></li>)
+                            return (<li key={idx} data-cond-idx={idx}><a className="dropdown-item" href="#" data-cond-idx={idx} onClick={thisConditionHandler}>{cond.friendlyName}</a></li>)
                         })}
                     </ul>
                 </div>

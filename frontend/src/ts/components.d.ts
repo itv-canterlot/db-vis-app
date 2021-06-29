@@ -1,5 +1,5 @@
 import React = require('react')
-import {PrimaryKey, ForeignKey, Table, Attribute, RelationNode, PatternMatchResult, PatternMatchAttribute} from './types'
+import {PrimaryKey, ForeignKey, Table, Attribute, RelationNode, PatternMatchResult, PatternMatchAttribute, Filter} from './types'
 
 /** UIElements.tsx **/
 export type SearchDropdownListProps = {
@@ -90,13 +90,6 @@ export type StartingTableSelectModalStates = {
 
 export type FilterSelectModalProps = {
     onClose: Function
-}
-
-export type Filter = {
-    tableIndex: number,
-    attNum: number,
-    condition: any,
-    value: any
 }
 
 export type FilterSelectModalStates = {

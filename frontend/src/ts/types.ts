@@ -194,3 +194,43 @@ export type PatternMismatchReason = {
     reason: PATTERN_MISMATCH_REASON_TYPE,
     position?: number
 }
+
+export type FilterCondition = {
+    friendlyName: string,
+    sqlCommand: string
+}
+
+export type Filter = {
+    tableIndex: number,
+    attNum: number,
+    condition: FilterCondition,
+    fkIndex?: number,
+    value: any
+}
+
+export type Query = {
+    attrs: QueryAttribute[],
+    foreignKeys?: QueryForeignKeys[],
+    parentTableName: string,
+    primaryKeys: QueryAttribute[] | QueryAttribute[][],
+    params?: object
+}
+
+// Database connection types
+export type QueryAttribute = {
+    tableName: string,
+    columnName: string
+}
+
+export type QueryForeignKeys = {
+    fkTableName: string,
+    pkTableName: string,
+    linkedColumns: {
+        fkColName: string,
+        pkColName: string
+    }[]
+}
+
+export type QueryAttributeGroup = {
+    [tableName: string]: QueryAttribute
+}

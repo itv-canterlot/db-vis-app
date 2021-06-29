@@ -1,4 +1,5 @@
-import { PatternMatchAttribute, PatternMatchResult, Table, VISSCHEMATYPES } from "./ts/types";
+
+import { Filter, PatternMatchAttribute, PatternMatchResult, Query, QueryAttribute, QueryAttributeGroup, QueryForeignKeys, RelationNode, Table, VISSCHEMATYPES } from "./ts/types";
 
 export const getAllTableMetadata = () => {
     // TODO/Work under progress: new backend hook
@@ -64,6 +65,62 @@ export async function getDataFromSingleTableByName(tableName:string, columnNames
     });
 }
 
+const mapTablePublicKeyColumnsToQuery = (table: Table) => {
+    return table.pk.columns
+        .map(col => {
+            return {
+                tableName: table.tableName,
+                columnName: col.colName 
+            }
+});
+}
+
+const getSingleTableQuery = (table: Table, attQueries: QueryAttribute[], params?: object) => {
+    const tablePublicKeyColumnQueries = 
+        mapTablePublicKeyColumnsToQuery(table);
+    return {
+        attrs: attQueries,
+        parentTableName: table.tableName,
+        primaryKeys: tablePublicKeyColumnQueries,
+        params: params
+    };
+}
+
+const getMultiTableQuery = (parentTableName: string, tables: Table[], attQueries: QueryAttribute[], queryFks: QueryForeignKeys[], params?: object) => {
+    const primaryKeyCols = Object.keys(tables).map(tableName => {
+        const thisTable = tables[tableName];
+        return mapTablePublicKeyColumnsToQuery(thisTable);
+    })
+    return {
+        attrs: attQueries,
+        foreignKeys: queryFks,
+        parentTableName: parentTableName,
+        primaryKeys: primaryKeyCols,
+        params: params
+    };
+}
+
+const getFkColsQueriesByTables = (pkTable: Table, fkTable: Table, fkIndex: number) => {
+    return {
+        fkTableName: fkTable.tableName,
+        pkTableName: pkTable.tableName,
+        linkedColumns: fkTable.fk[fkIndex].columns.map(fkCol => {
+            return {
+                fkColName: fkCol.fkColName,
+                pkColName: fkCol.pkColName,
+            }
+        }
+    )}
+}
+
+const getFkColsQueriesByRels = (rel: RelationNode, queryAttributeGroup: QueryAttributeGroup[]) => {
+    return rel.childRelations
+        .filter(childRels => childRels.table.tableName in queryAttributeGroup)
+        .map(childRels => {
+            return getFkColsQueriesByTables(rel.parentEntity, childRels.table, childRels.fkIndex);
+        });
+}
+
 export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patternMatchResult: PatternMatchResult) {
     const [mandatoryAttrs, optionalAttrs] = attrs;
     const responsibleRelation = patternMatchResult.responsibleRelation;
@@ -71,6 +128,7 @@ export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patt
     const allDefinedAttrs = [...mandatoryAttrs, ...optionalAttrs].filter(attr => attr !== undefined && attr !== null);
 
     // Find the foreign keys that links the selected attributes
+    // First group the attributes by their table
     let queryInvolvedTables: {[tableName: string]: Table} = {};
     const attrsMappedToQuery = allDefinedAttrs.map(matchedAttrs => {
         const matchedAttrsTable = matchedAttrs.table;
@@ -83,60 +141,30 @@ export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patt
         }
     });
 
-    const queryGroupedByTableName: {[tableName: string]: object}[] = groupBy(attrsMappedToQuery, "tableName");
+    const queryGroupedByTableName: QueryAttributeGroup[] = groupBy(attrsMappedToQuery, "tableName");
     
-    let query;
+    let query: Query;
+    // Split depending on the number of tables involved
     if (Object.keys(queryGroupedByTableName).length == 0) {
         console.log("No table found")
         return;
     } else if (Object.keys(queryGroupedByTableName).length == 1) {
-        const parentTableName = Object.keys(queryGroupedByTableName)[0];
-        const tablePublicKeyColumnQueries = 
-            queryInvolvedTables[parentTableName].pk.columns
-                .map(col => {
-                    return {
-                        tableName: parentTableName,
-                        columnName: col.colName 
-                    }
-                });
-        query = {
-            attrs: attrsMappedToQuery,
-            parentTableName: Object.keys(queryGroupedByTableName)[0],
-            primaryKeys: tablePublicKeyColumnQueries
-        };
+        const tableName = Object.keys(queryGroupedByTableName)[0];
+        const queryAttributes = queryGroupedByTableName[tableName];
+        const thisTable = queryInvolvedTables[tableName];
+
+        query = getSingleTableQuery(thisTable, queryAttributes);
     } else {
         // For each of the grouped tables, find the foreign keys connecting each of the tables
         if (responsibleRelation && responsibleRelation.type === VISSCHEMATYPES.SUBSET) {
-            const childEntityFkCols = 
-                responsibleRelation.childRelations
-                    .filter(childRels => childRels.table.tableName in queryGroupedByTableName)
-                    .map(childRels => {
-                        return {
-                            fkTableName: childRels.table.tableName,
-                            pkTableName: responsibleRelation.parentEntity.tableName,
-                            linkedColumns: childRels.table.fk[childRels.fkIndex].columns.map(fkCol => {
-                                return {
-                                    fkColName: fkCol.fkColName,
-                                    pkColName: fkCol.pkColName,
-                                }
-                            }
-                        )};
-                    });
-            const primaryKeyCols = Object.keys(queryInvolvedTables).map(tableName => {
-                const thisTable = queryInvolvedTables[tableName];
-                return thisTable.pk.columns.map(col => {
-                    return {
-                        tableName: tableName,
-                        columnName: col.colName
-                    };
-                });
-            })
-            query = {
-                attrs: attrsMappedToQuery,
-                foreignKeys: childEntityFkCols,
-                parentTableName: responsibleRelation.parentEntity.tableName,
-                primaryKeys: primaryKeyCols
-            };
+            const childEntityFkCols = getFkColsQueriesByRels(responsibleRelation, queryGroupedByTableName);
+            query = 
+                getMultiTableQuery(
+                    responsibleRelation.parentEntity.tableName, 
+                    Object.keys(queryInvolvedTables).map(key => queryInvolvedTables[key]), 
+                    attrsMappedToQuery, 
+                    childEntityFkCols
+                )
         } else {
             throw new Error("Not implemented")
         }
@@ -159,6 +187,44 @@ export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patt
         throw(err);
     });
 }
+
+export async function getFilteredData(baseTable: Table, allEntities: Table[], filters?: Filter[]) {
+    let query: Query;
+
+    // Find filters that have foreign key involved
+    const filtersWithFK = filters.filter(f => f.fkIndex !== undefined);
+    
+    if (filtersWithFK.length == 0) {
+        // Filter is based on a single table
+        query = getSingleTableQuery(baseTable, undefined, {"filters": filters})
+    } else {
+        let queryInvolvedTables: {[tableName: string]: Table} = {};
+        filters.forEach(filter => {
+            const thisTable = allEntities[filter.tableIndex];
+            if (!Object.keys(queryInvolvedTables).includes(thisTable.tableName)) {
+                queryInvolvedTables[thisTable.tableName] = thisTable;
+            }
+        })
+
+        const queryFks = filtersWithFK.map(filter => {
+            const fkTable = allEntities[filter.tableIndex];
+            return getFkColsQueriesByTables(baseTable, fkTable, filter.fkIndex);
+        });
+        query = getMultiTableQuery(
+            baseTable.tableName, 
+            Object.keys(queryInvolvedTables).map(k => queryInvolvedTables[k]), 
+            undefined, 
+            queryFks,
+            {
+                "filters": filters
+            }
+        );
+    }
+
+    console.log(query);
+    
+}
+
 
 let groupBy = function(xs, key) {
     return xs.reduce(function(rv, x) {
