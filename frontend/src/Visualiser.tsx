@@ -53,6 +53,20 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
         });
     }
 
+    // onClickFilterButton = () => {
+    //     // Some sort of modal here
+    // }
+
+    // filterButton = () => { 
+    //     if (!this.state.renderFailed) {
+    //         return (
+    //             <button type="button" className="btn btn-secondary" onClick={this.onClickFilterButton}>Filter</button>
+    //         );
+    //     } else {
+    //         return null;
+    //     }
+    // }
+
     componentDidMount() {
         let context: DBSchemaContextInterface = this.context;
         if (context.allEntitiesList !== undefined && context.allEntitiesList.length !== 0) {
@@ -102,7 +116,12 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
 
     render() {
         return (
-            <div className="col" id="vis-cont">
+            <div className="row" id="main-vis-cont">
+                <div className="col">
+                    <div id="graph-cont">
+                    </div>
+                {/* {this.filterButton()} */}
+                </div>
             </div>
         )
     }
@@ -117,12 +136,12 @@ const renderEmptyChart = () => {
     height = 400 - margin.top - margin.bottom;
 
     // append the svg object to the body of the page
-    let svg = d3.select("#vis-cont")
+    let svg = d3.select("#graph-cont")
         .select("svg > g");
     if (!svg.empty()) {
         svg.selectAll("*").remove();
     } else {
-        svg = d3.select("#vis-cont").append("svg")
+        svg = d3.select("#graph-cont").append("svg")
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.top + margin.bottom)
             .append("g")
@@ -142,12 +161,12 @@ const renderVisualisation = (visSpecificCode: string, data: object[], args: obje
     height = 400 - margin.top - margin.bottom;
 
     // append the svg object to the body of the page
-    let svg = d3.select("#vis-cont")
+    let svg = d3.select("#graph-cont")
         .select("svg > g");
     if (!svg.empty()) {
         svg.selectAll("*").remove();
     } else {
-        svg = d3.select("#vis-cont").append("svg")
+        svg = d3.select("#graph-cont").append("svg")
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.top + margin.bottom)
             .append("g")

@@ -96,7 +96,8 @@ export type FilterSelectModalStates = {
     cachedFilterSelection?: Filter,
     filters?: Filter[],
     cachedForeignTableSelected?: number,
-    cachedForeignTableFKIndex?: number
+    cachedForeignTableFKIndex?: number,
+    filterType?: number
 }
 
 /* AppMainCont.tsx */

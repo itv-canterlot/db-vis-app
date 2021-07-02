@@ -15,7 +15,8 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         this.state = {
             cachedFilterSelection: undefined,
             filters: [],
-            cachedForeignTableSelected: -1
+            cachedForeignTableSelected: -1,
+            filterType: 0
         };
 
         this.cachedFilterValueRef = React.createRef();
@@ -276,6 +277,42 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         );
     };
 
+    onFilterTypeChange = (e: React.BaseSyntheticEvent) => {
+        const newFilterType = parseInt(e.currentTarget.getAttribute("data-filter-type"));
+        this.setState({
+            filterType: newFilterType
+        });
+    }
+
+    filterTypeRadioButtons = () => {
+        return (
+            <div className="btn-group" role="group" aria-label="Filter type selection button group">
+                <input type="radio" className="btn-check" name="btnradio" id="filter-type-selection" autoComplete="off"
+                    data-filter-type={0} defaultChecked={this.state.filterType === 0} onChange={this.onFilterTypeChange} />
+                <label className="btn btn-outline-primary" htmlFor="filter-type-selection">Filter query</label>
+
+                <input type="radio" className="btn-check" name="btnradio" id="filter-type-dataset" autoComplete="off"
+                    data-filter-type={1} defaultChecked={this.state.filterType === 1} onChange={this.onFilterTypeChange} />
+                <label className="btn btn-outline-primary" htmlFor="filter-type-dataset">Filter dataset</label>
+            </div>
+        );
+    }
+
+    tableAttributeListHandler = () => {
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        if (dbSchemaContext.selectedFirstTableIndex >= 0) {
+            if (this.state.filterType === 0) {
+                // Render the relation vis for the entire table
+                return this.getTableRelationVis(dbSchemaContext, dbSchemaContext.selectedFirstTableIndex);
+            } else if (this.state.filterType === 1) {
+                // Render the relation vis for the (potentially-retrieved) dataset
+                // TODO
+            }
+        }
+
+        return null;
+    }
+
     componentDidMount() {
         const context: DBSchemaContextInterface = this.context;
         // if (context.selectedFirstTableIndex >= 0 && this.state.cachedSelectedIndex !== context.selectedFirstTableIndex) {
@@ -331,9 +368,8 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                             </button>
                         </div>
                         <div className="modal-body">
-                            {dbSchemaContext.selectedFirstTableIndex >= 0 ?
-                                this.getTableRelationVis(dbSchemaContext, dbSchemaContext.selectedFirstTableIndex) :
-                                null}
+                            {this.filterTypeRadioButtons()}
+                            {this.tableAttributeListHandler()}
                         </div>
                         <div className="modal-footer">
                             <button type="button" className={"btn btn-primary" + (this.state.filters.length === 0 ? " disabled" : "")} onClick={this.onFilterSelectionConfirm}>Confirm</button>
