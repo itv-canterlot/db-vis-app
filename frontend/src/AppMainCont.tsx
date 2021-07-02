@@ -392,6 +392,12 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
         })
     }
 
+    onDataChange = (data: object) => {
+        if (this.props.onDataChange) {
+            this.props.onDataChange(data);
+        }
+    }
+
     render() {
         if (this.props.load) {
             return (<div>Loading...</div>);
@@ -431,7 +437,8 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
                                 {
                                     context.selectedFirstTableIndex >= 0 && context.selectedPatternIndex >= 0 ? 
                                     <Visualiser 
-                                        rerender={this.props.rerender} />
+                                        rerender={this.props.rerender}
+                                        onDataChange={this.onDataChange} />
                                         : null
                                 }
                             </div>

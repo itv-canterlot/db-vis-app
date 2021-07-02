@@ -51,6 +51,8 @@ export type AttributeListSelectorProps = {
 
 export type ApplicationStates = {
     allEntitiesList?: Table[],
+    data?: object[],
+    dataLoaded?: boolean,
     relationsList?: RelationNode[],
     selectedFirstTableIndex?: number,
     selectedPatternIndex?: number,
@@ -116,17 +118,19 @@ export type AppMainContProps = {
     load: boolean,
     rerender: boolean,
     onVisPatternIndexChange: Function,
-    onSelectedAttributeIndicesChange: React.MouseEventHandler
+    onSelectedAttributeIndicesChange: React.MouseEventHandler,
+    onDataChange?: Function
 }
 
 export type AppMainContStates = {
     stateChanged?: boolean,
-    explorerExpanded: boolean
+    explorerExpanded: boolean,
 }
 
 /* Visualiser.tsx */
 export type VisualiserProps = {
     rerender: boolean
+    onDataChange?: Function
 }
 
 export type VisualiserStates = {
@@ -134,5 +138,5 @@ export type VisualiserStates = {
     renderedTableIndex?: number,
     renderedAttributesIndices?: PatternMatchAttribute[][],
     renderedVisSchemaIndex?: number,
-    renderFailed: boolean
+    renderFailed: boolean,
 }

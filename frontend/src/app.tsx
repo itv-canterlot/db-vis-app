@@ -14,6 +14,7 @@ import * as SchemaParser from './SchemaParser';
 import { StartingTableSelectModal } from "./StartingTableSelectModal";
 
 import "../styles/app.scss"
+import { getDataByMatchAttrs } from './Connections';
 
 let visSchema: VisSchema[] = [];
 
@@ -27,6 +28,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             selectedPatternIndex: -1,
             rendererSelectedAttributes: [[], []],
             rerender: true,
+            dataLoaded: false,
             load: false,
             listLoaded: false,
             databaseLocation: "http://localhost:5432", // Placeholder
@@ -68,13 +70,13 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     }
 
 
-    getAllMatchableVisSchemaPatterns = () => {
+    getAllMatchableVisSchemaPatterns = (selectedFirstTableIndex) => {
         // Break if not all the components had been initiated
         if (this.state.relationsList === undefined) return;
         if (visSchema === undefined) return;
 
         // Check type of the relation
-        let selectedEntity = this.state.allEntitiesList[this.state.selectedFirstTableIndex];
+        let selectedEntity = this.state.allEntitiesList[selectedFirstTableIndex];
         let entityRel = SchemaParser.getRelationsInListByName(this.state.relationsList, selectedEntity.tableName);
     
         const matchStatusForAllSchema: PatternMatchResult[] = matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema);
@@ -102,11 +104,13 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         }
 
         // TODO: make sure the picked indices are not duplicates of each other
-        this.setState({
+        return {
             visSchemaMatchStatus: matchStatusForAllSchema,
             selectedPatternIndex: firstValidPatternIndex ? firstValidPatternIndex : -1,
             rendererSelectedAttributes: [mandatoryParamInitAtts, optionalParamInitAtts]
-        });
+        };
+
+        
     }
 
     onVisPatternIndexChange = (newIndex: number) => {
@@ -192,31 +196,45 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
         if (!tableIndexChanged) return;
 
-        // let selectedEntity = this.state.allEntitiesList[tableIndex];
-        // let entityRel = SchemaParser.getRelationsInListByName(this.state.relationsList, selectedEntity.tableName);
-        // if (!this.findFirstValidPatternMatchIndex(selectedEntity, entityRel)) {
-        //     this.setState({
-        //         load: true,
-        //         rerender: false,
-        //         selectedFirstTableIndex: -1
-        //     });
-        // };
-
         this.setState({
-            load: true,
-            rerender: false
-        }, () => {    
-            this.setState({
-                selectedFirstTableIndex: tableIndex,
-                rerender: tableIndexChanged
-            }, () => {
-                this.getAllMatchableVisSchemaPatterns();
+            dataLoaded: false,
+            data: undefined
+        }, () => {
+            const {
+                visSchemaMatchStatus, 
+                selectedPatternIndex, 
+                rendererSelectedAttributes} = this.getAllMatchableVisSchemaPatterns(tableIndex);
+
+            const getDataCallback = (data: object[]) => {
                 this.setState({
-                    load: false,
-                    // rerender: false
+                    dataLoaded: true,
+                    data: data,
+                    selectedFirstTableIndex: tableIndex,
+                    rerender: tableIndexChanged,
+                    visSchemaMatchStatus: visSchemaMatchStatus,
+                    selectedPatternIndex: selectedPatternIndex ? selectedPatternIndex : -1,
+                    rendererSelectedAttributes: rendererSelectedAttributes
+                }, () => {
+                    console.log("App state ste")
+                    // this.setState({
+                    //     dataLoaded: false
+                    // })
                 });
-            });
+        }
+    
+            getDataByMatchAttrs(rendererSelectedAttributes, visSchemaMatchStatus[selectedPatternIndex]).then(getDataCallback.bind(this));
         })
+
+
+        // this.setState({
+        //     load: true,
+        // });
+        // }, () => {    
+        //     this.setState({
+        //         load: false,
+        //         // rerender: false
+        //     });
+        // })
     }
 
     getTableMetadata = () => {
@@ -248,6 +266,12 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         });
     }
 
+    onDataChange = (data) => {
+        this.setState({
+            data: data
+        })
+    }
+
     async componentDidMount() {
         // Can even do some loading screen stuff here
         readVisSchemaJSON();
@@ -258,6 +282,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         const providerValues: DBSchemaContextInterface = {
             allEntitiesList: this.state.allEntitiesList, 
             relationsList: this.state.relationsList,
+            data: this.state.data,
+            dataLoaded: this.state.dataLoaded,
             visSchemaMatchStatus: this.state.visSchemaMatchStatus,
             visSchema: visSchema,
             selectedPatternIndex: this.state.selectedPatternIndex,
@@ -277,6 +303,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                         onClickShowStartingTableSelectModal={this.onClickShowStartingTableSelectModal}
                         onClickShowMatchedSchemasModal={this.onClickShowMatchedSchemasModal} />
                     <AppMainCont
+                        onDataChange={this.onDataChange}
                         load={this.state.load}
                         rerender={this.state.rerender}
                         onVisPatternIndexChange={this.onVisPatternIndexChange}

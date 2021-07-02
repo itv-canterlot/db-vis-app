@@ -3,6 +3,8 @@ import { PatternMatchAttribute, PatternMatchResult, RelationNode, Table, VisSche
 
 export interface DBSchemaContextInterface {
     allEntitiesList: Table[],
+    data: object[],
+    dataLoaded: boolean
     relationsList: RelationNode[],
     visSchema: VisSchema[],
     visSchemaMatchStatus: PatternMatchResult[]
@@ -13,6 +15,8 @@ export interface DBSchemaContextInterface {
 
 export const DBSchemaContext = React.createContext<DBSchemaContextInterface>({
     allEntitiesList: [],
+    data: [],
+    dataLoaded: false,
     relationsList: [],
     visSchema: [],
     visSchemaMatchStatus: [],

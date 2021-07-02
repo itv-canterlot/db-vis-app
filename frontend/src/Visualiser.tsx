@@ -16,13 +16,17 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
     }
 
     visualisationHandler = () => {
+        console.log("Vis handler")
         if (!this.props.rerender) return;
 
         let context: DBSchemaContextInterface = this.context;
-        const thisTable = context.allEntitiesList[context.selectedFirstTableIndex];
         const selectedPattern = context.selectedPatternIndex;
         const patternMatchStatus = context.visSchemaMatchStatus[selectedPattern];
         const selectedPatternTemplateCode = context.visSchema[selectedPattern].template
+        
+        if (!context.dataLoaded) {
+            return;
+        }
 
         if (!patternMatchStatus || !patternMatchStatus.matched) {
             this.setState({
@@ -41,67 +45,65 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                 }
             }));
 
-        // TODO: other attributes
-        getDataByMatchAttrs(context.selectedAttributesIndices, patternMatchStatus).then(data => {
-            renderVisualisation(selectedPatternTemplateCode, data, attributeNames);
+        if (!context.data || context.data.length === 0) {
             this.setState({
-                renderFailed: false,
-                renderedAttributesIndices: context.selectedAttributesIndices,
-                renderedTableIndex: context.selectedFirstTableIndex,
-                renderedVisSchemaIndex: selectedPattern
-            })
-        });
+                renderFailed: true
+            });
+            renderEmptyChart();
+            return;
+        }
+        
+        renderVisualisation(selectedPatternTemplateCode, context.data, attributeNames);
+        this.setState({
+            renderFailed: false,
+            renderedAttributesIndices: context.selectedAttributesIndices,
+            renderedTableIndex: context.selectedFirstTableIndex,
+            renderedVisSchemaIndex: selectedPattern
+        })
     }
-
-    // onClickFilterButton = () => {
-    //     // Some sort of modal here
-    // }
-
-    // filterButton = () => { 
-    //     if (!this.state.renderFailed) {
-    //         return (
-    //             <button type="button" className="btn btn-secondary" onClick={this.onClickFilterButton}>Filter</button>
-    //         );
-    //     } else {
-    //         return null;
-    //     }
-    // }
 
     componentDidMount() {
         let context: DBSchemaContextInterface = this.context;
         if (context.allEntitiesList !== undefined && context.allEntitiesList.length !== 0) {
             if (context.selectedFirstTableIndex < 0) return;
+            if (!context.dataLoaded) return;
 
             this.visualisationHandler();
         }
     }
     
     componentDidUpdate() {
+        console.log("Vis component update")
         let context: DBSchemaContextInterface = this.context;
         if (this.state) {
-            if (context.selectedPatternIndex === this.state.renderedVisSchemaIndex) {
-                if (context.selectedFirstTableIndex === this.state.renderedTableIndex) {
-                    let allAttributeSetMatched = true;
-                    for (let x = 0; x < context.selectedAttributesIndices.length; x++) {
-                        const newAttSet = context.selectedAttributesIndices[x];
-                        const oldAttSet = this.state.renderedAttributesIndices[x];
-                        
-                        if (newAttSet.length === oldAttSet.length) {
-                            for (let y = 0; y < newAttSet.length; y++) {
-                                if (newAttSet[y] !== oldAttSet[y]) {
-                                    allAttributeSetMatched = false;
-                                    break;
+            if (context.dataLoaded) {
+                // this.visualisationHandler();
+                if (context.selectedPatternIndex === this.state.renderedVisSchemaIndex) {
+                    if (context.selectedFirstTableIndex === this.state.renderedTableIndex) {
+                        let allAttributeSetMatched = true;
+                        for (let x = 0; x < context.selectedAttributesIndices.length; x++) {
+                            const newAttSet = context.selectedAttributesIndices[x];
+                            const oldAttSet = this.state.renderedAttributesIndices[x];
+                            
+                            if (newAttSet.length === oldAttSet.length) {
+                                for (let y = 0; y < newAttSet.length; y++) {
+                                    if (newAttSet[y] !== oldAttSet[y]) {
+                                        allAttributeSetMatched = false;
+                                        break;
+                                    }
                                 }
-                            }
-                        } else allAttributeSetMatched = false;
-                    }
-        
-                    if (!allAttributeSetMatched) {
-                        if (context.allEntitiesList !== undefined && context.allEntitiesList.length !== 0) {
-                            if (context.selectedFirstTableIndex < 0) return;
-                
-                            this.visualisationHandler();
+                            } else allAttributeSetMatched = false;
                         }
+            
+                        if (!allAttributeSetMatched) {
+                            if (context.allEntitiesList !== undefined && context.allEntitiesList.length !== 0) {
+                                if (context.selectedFirstTableIndex < 0) return;
+                    
+                                this.visualisationHandler();
+                            }
+                        }
+                    } else {
+                        this.visualisationHandler();
                     }
                 } else {
                     this.visualisationHandler();
@@ -109,8 +111,6 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
             } else {
                 this.visualisationHandler();
             }
-        } else {
-            this.visualisationHandler();
         }
     }
 
