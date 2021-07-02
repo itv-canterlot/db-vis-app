@@ -15,6 +15,7 @@ import { StartingTableSelectModal } from "./StartingTableSelectModal";
 
 import "../styles/app.scss"
 import { getDataByMatchAttrs } from './Connections';
+import { FilterSelectModal } from './FilterSelectModal';
 
 let visSchema: VisSchema[] = [];
 
@@ -33,7 +34,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             listLoaded: false,
             databaseLocation: "http://localhost:5432", // Placeholder
             showStartingTableSelectModal: false,
-            showMatchedSchemasModal: false
+            showMatchedSchemasModal: false,
+            showFilterSelectModal: false
         };
     }
 
@@ -43,12 +45,9 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         });
     }
 
-    onClickShowMatchedSchemasModal = () => {
-        if (this.state.selectedFirstTableIndex < 0) {
-            return;
-        }
+    onClickShowFilterSelectModal = () => {
         this.setState({
-            showMatchedSchemasModal: true
+            showFilterSelectModal: true
         });
     }
 
@@ -58,9 +57,9 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         });
     }
 
-    onCloseShowMatchedSchemasModal = () => {
+    onCloseShowFilterSelectModal = () => {
         this.setState({
-            showMatchedSchemasModal: false
+            showFilterSelectModal: false
         });
     }
 
@@ -214,15 +213,11 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     visSchemaMatchStatus: visSchemaMatchStatus,
                     selectedPatternIndex: selectedPatternIndex ? selectedPatternIndex : -1,
                     rendererSelectedAttributes: rendererSelectedAttributes
-                }, () => {
-                    console.log("App state ste")
-                    // this.setState({
-                    //     dataLoaded: false
-                    // })
                 });
-        }
-    
+            }
+
             getDataByMatchAttrs(rendererSelectedAttributes, visSchemaMatchStatus[selectedPatternIndex]).then(getDataCallback.bind(this));
+
         })
 
 
@@ -294,20 +289,26 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         return (
             <DBSchemaContext.Provider value={providerValues}>
                 {this.state.showStartingTableSelectModal ? 
-                <StartingTableSelectModal 
-                    onClose={this.onCloseShowStartingTableSelectModal} onTableSelectChange={this.onTableSelectChange} /> 
-                : null}
+                    <StartingTableSelectModal 
+                        onClose={this.onCloseShowStartingTableSelectModal} onTableSelectChange={this.onTableSelectChange} /> 
+                    : null}
+                {this.state.showFilterSelectModal ? 
+                    <FilterSelectModal 
+                        onClose={this.onCloseShowFilterSelectModal} /> 
+                    : null}
                 <div className="row" id="app-wrapper">
                     <AppSidebar 
                         databaseLocation={this.state.databaseLocation}
                         onClickShowStartingTableSelectModal={this.onClickShowStartingTableSelectModal}
-                        onClickShowMatchedSchemasModal={this.onClickShowMatchedSchemasModal} />
+                        onClickShowFilterSelectModal={this.onClickShowFilterSelectModal}
+                         />
                     <AppMainCont
                         onDataChange={this.onDataChange}
                         load={this.state.load}
                         rerender={this.state.rerender}
                         onVisPatternIndexChange={this.onVisPatternIndexChange}
                         onSelectedAttributeIndicesChange={this.onSelectedAttributeIndicesChange}
+                        onClickShowFilterSelectModal={this.onClickShowFilterSelectModal}
                          />
                 </div>
             </DBSchemaContext.Provider>

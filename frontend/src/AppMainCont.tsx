@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
-import { FilterSelectModal } from "./FilterSelectModal";
 import { AppMainContProps, AppMainContStates, SchemaExplorerProps, SchemaExplorerStates } from './ts/components';
 import { CONFIRMATION_STATUS, PatternMatchAttribute, PatternMatchResult, PATTERN_MISMATCH_REASON_TYPE, VisParam, VISSCHEMATYPES, visSchemaTypeToReadableString } from './ts/types';
 import { Visualiser } from './Visualiser';
@@ -8,9 +7,6 @@ import { Visualiser } from './Visualiser';
 class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorerStates> {
     constructor(props) {
         super(props);
-        this.state = {
-            showFilterSelectModal: false
-        }
     }
 
     onPatternSelectionDropdownClick = (e: React.BaseSyntheticEvent) => {
@@ -307,16 +303,8 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
         )
     }
 
-    onClickFilterDatasetButton = () => {
-        this.setState({
-            showFilterSelectModal: true
-        })
-    }
-
-    onCloseShowFilterSelectModal = () => {
-        this.setState({
-            showFilterSelectModal: false
-        })
+    onClickFilterDatasetButton = (e: React.MouseEvent) => {
+        this.props.onClickShowFilterSelectModal(e)
     }
 
     render() {
@@ -337,10 +325,6 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
 
             return (
                 <div>
-                    {this.state.showFilterSelectModal ? 
-                        <FilterSelectModal 
-                            onClose={this.onCloseShowFilterSelectModal} /> 
-                        : null}
                     <div className="d-flex justify-content-between align-items-center">
                         <div>
                             {context.allEntitiesList[context.selectedFirstTableIndex].tableName}
@@ -428,6 +412,7 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
                                     expanded={this.state.explorerExpanded}
                                     onExpansionClick={this.onExpansionClick}
                                     onVisPatternIndexChange={this.props.onVisPatternIndexChange}
+                                    onClickShowFilterSelectModal={this.props.onClickShowFilterSelectModal}
                                     onSelectedAttributeIndicesChange={this.props.onSelectedAttributeIndicesChange} />
                                 {shrinkTag()}
                             </div>

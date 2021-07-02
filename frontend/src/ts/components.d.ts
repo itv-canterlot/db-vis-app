@@ -63,13 +63,14 @@ export type ApplicationStates = {
     databaseLocation?: string,
     showStartingTableSelectModal?: boolean,
     showMatchedSchemasModal?: boolean,
+    showFilterSelectModal?: boolean,
     visSchemaMatchStatus?: PatternMatchResult[]
 }
 
 export type AppSidebarProps = {
     databaseLocation: string,
     onClickShowStartingTableSelectModal: React.MouseEventHandler,
-    onClickShowMatchedSchemasModal: React.MouseEventHandler
+    onClickShowFilterSelectModal: React.MouseEventHandler
 }
 
 export type SidebarBubbleBlockProps = {
@@ -107,11 +108,11 @@ export type SchemaExplorerProps = {
     expanded: boolean, 
     onVisPatternIndexChange: Function,
     onSelectedAttributeIndicesChange: React.MouseEventHandler,
+    onClickShowFilterSelectModal: React.MouseEventHandler,
     onExpansionClick?: Function
 }
 
 export type SchemaExplorerStates = {
-    showFilterSelectModal?: boolean
 }
 
 export type AppMainContProps = {
@@ -119,6 +120,7 @@ export type AppMainContProps = {
     rerender: boolean,
     onVisPatternIndexChange: Function,
     onSelectedAttributeIndicesChange: React.MouseEventHandler,
+    onClickShowFilterSelectModal: React.MouseEventHandler,
     onDataChange?: Function
 }
 

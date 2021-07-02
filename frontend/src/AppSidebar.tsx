@@ -192,6 +192,24 @@ export class AppSidebar extends React.Component<ComponentTypes.AppSidebarProps, 
                 </div>
             </div>
         );
+
+        /* Bubble 4: Filter dataset */
+        const filterDatasetHeader = (
+            <div className="row">
+                <div className="col">
+                    <i className="fas fa-filter me-2" />Filter dataset
+                </div>
+            </div>);
+    
+        const filterDatasetBody = (
+            <div className="row">
+                <div className="col overflow-ellipses overflow-hidden">
+                    <strong>
+                        {context.selectedFirstTableIndex >= 0 ? "TODO" : <em>Not available</em>}
+                    </strong>
+                </div>
+            </div>
+        );
         
         return (
         <div className="col-4 col-lg-3" id="app-sidebar-cont">
@@ -210,7 +228,12 @@ export class AppSidebar extends React.Component<ComponentTypes.AppSidebarProps, 
                         headerElement={matchedSchemaHeader}
                         bodyElement={matchedSchemaBody}
                         isLoaded={this.state.isLoaded}
-                        onClick={this.props.onClickShowMatchedSchemasModal} />
+                        onClick={undefined} />
+                    <SidebarBubbleBlock
+                        headerElement={filterDatasetHeader}
+                        bodyElement={filterDatasetBody}
+                        isLoaded={this.state.isLoaded}
+                        onClick={this.props.onClickShowFilterSelectModal} />
                 </div>
             </div>
         </div>
