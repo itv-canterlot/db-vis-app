@@ -28,7 +28,7 @@ function renderScatterPlot(parameters: VisTemplateBuilder) {
         yname = parameters.args[0][1];
 
     // Separate out null data points
-    let data = parameters.data
+    let data = JSON.parse(JSON.stringify(parameters.data))
     let nullPoints = [];
     let nullFilterIndex = data.length - 1;
 
@@ -42,6 +42,7 @@ function renderScatterPlot(parameters: VisTemplateBuilder) {
         nullFilterIndex--;
     }
 
+    console.log(nullPoints)
 
     // Floating point values for the data points - for statistical use only, not for plotting
     const xfloat = data

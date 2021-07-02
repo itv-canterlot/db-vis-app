@@ -1,7 +1,7 @@
 import * as React from 'react';
 import ReactDOM = require('react-dom');
 
-import { PatternMatchAttribute, PatternMatchResult, RelationNode, Table, VisSchema } from './ts/types'
+import { PatternMatchResult, VisSchema } from './ts/types'
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { AppMainCont } from './AppMainCont';
 
@@ -131,17 +131,26 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
         const mandatoryParamAttrs = mandatoryParamInitIndices.map((attIdx, listIdx) => newPatternMatchStatus.mandatoryAttributes[listIdx][attIdx])
         const optionalParamAttrs = optionalParamInitIndices.map((attIdx, listIdx) => newPatternMatchStatus.optionalAttributes[listIdx][attIdx])
-
+        const newParamAttrs = [mandatoryParamAttrs, optionalParamAttrs];
 
         this.setState({
-            selectedPatternIndex: newIndex,
-            rendererSelectedAttributes: [mandatoryParamAttrs, optionalParamAttrs],
-            rerender: true
+            dataLoaded: false,
+            data: undefined
         }, () => {
-            this.setState({
-                rerender: false
-            });
-        });
+            const getDataCallback = (data: object[]) => {
+                this.setState({
+                    dataLoaded: true,
+                    data: data,
+                    selectedPatternIndex: newIndex,
+                    rendererSelectedAttributes: newParamAttrs
+                })
+            };
+
+            Connections.getDataByMatchAttrs(
+                newParamAttrs, 
+                this.state.visSchemaMatchStatus[newIndex]).then(getDataCallback.bind(this))
+        })
+
     }
 
     onSelectedAttributeIndicesChange = (e: React.BaseSyntheticEvent) => {
@@ -165,13 +174,18 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         newAttsObject[Math.abs(isMandatoryIdx - 1)] = this.state.rendererSelectedAttributes[Math.abs(isMandatoryIdx - 1)];
         
         this.setState({
-            rendererSelectedAttributes: newAttsObject,
-            rerender: true
+            dataLoaded: false,
+            data: undefined
         }, () => {
-            this.setState({
-                rerender: false
-            })
-        });
+            const getDataCallback = (data: object[]) => {
+                this.setState({
+                    dataLoaded: true,
+                    data: data,
+                    rendererSelectedAttributes: newAttsObject
+                });
+            }
+            Connections.getDataByMatchAttrs(newAttsObject, this.state.visSchemaMatchStatus[this.state.selectedPatternIndex]).then(getDataCallback.bind(this))
+        })
     }
 
     // Called when R1 is changed
@@ -217,17 +231,6 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
             Connections.getDataByMatchAttrs(rendererSelectedAttributes, visSchemaMatchStatus[selectedPatternIndex]).then(getDataCallback.bind(this));
         })
-
-
-        // this.setState({
-        //     load: true,
-        // });
-        // }, () => {    
-        //     this.setState({
-        //         load: false,
-        //         // rerender: false
-        //     });
-        // })
     }
 
     getTableMetadata = () => {

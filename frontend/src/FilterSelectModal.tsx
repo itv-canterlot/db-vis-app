@@ -56,7 +56,6 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 if (fkIndex !== undefined) {
                     const fk = dbSchemaContext.allEntitiesList[dbSchemaContext.selectedFirstTableIndex].fk[fkIndex];
                     fkTableSelected = dbSchemaContext.allEntitiesList.find(table => table.tableName === fk.pkTableName);
-                    console.log(dbSchemaContext.allEntitiesList[dbSchemaContext.selectedFirstTableIndex].fk);
                 }
             }
             this.setState({
@@ -340,9 +339,18 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         if (this.state.cachedFilterSelection) {
             const thisTable = dbSchemaContext.allEntitiesList[this.state.cachedFilterSelection.tableIndex]
             const thisAttr = thisTable.attr[this.state.cachedFilterSelection.attNum - 1];
+            const dataFiltered = 
+                contextData.filter(d => d[thisAttr.attname] !== undefined && d[thisAttr.attname] !== null)
+                    .map(d => d[thisAttr.attname]);
             filterElem = (
                 <div>
-                    {contextData.filter(d => d[thisAttr.attname] !== undefined || d[thisAttr.attname] !== null).length}
+                    <div>
+                        {dataFiltered.length}
+                    </div>
+                    <div>
+                        {Math.min(...dataFiltered)} - {Math.max(...dataFiltered)},
+                        mean {getAverage(dataFiltered).toFixed(2)}, std {getStandardDeviation(dataFiltered).toFixed(2)}
+                    </div>
                 </div>
             )
         }
@@ -365,7 +373,6 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             } else if (this.state.filterType === 1) {
                 // Render the relation vis for the (potentially-retrieved) dataset
                 const contextData = dbSchemaContext.data;
-                console.log(contextData)
                 if (contextData && contextData.length > 0) {
                     return (
                         <div className="row justify-content-center mt-4 mb-3">
@@ -455,3 +462,18 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
     }
 }
 FilterSelectModal.contextType = DBSchemaContext;
+
+
+// Helper function
+const getStandardDeviation = (array) => {
+    const n = array.length
+    const arrayToNums = array.map(a => parseFloat(a));
+    const mean = arrayToNums.reduce((a, b) => a + b) / n
+    return Math.sqrt(arrayToNums.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n)
+  }
+
+const getAverage = (arr) => {
+    return arr
+        .map(e => parseFloat(e))
+        .reduce( ( p, c ) => p + c, 0 ) / arr.length;
+}
