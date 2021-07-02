@@ -1,10 +1,11 @@
 import * as React from 'react';
 import bootstrap = require('bootstrap');
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
-import { Table, Filter, FilterCondition } from './ts/types';
+import { Table, Filter, FilterCondition, Attribute, PatternMatchAttribute } from './ts/types';
 import { FilterSelectModalProps, FilterSelectModalStates } from './ts/components';
 import { getFilteredData } from './Connections';
 import { renderTips } from './ModalPublicElements';
+import { isAttributeScalar } from './TypeConstants';
 
 
 export class FilterSelectModal extends React.Component<FilterSelectModalProps, FilterSelectModalStates> {
@@ -113,27 +114,47 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             });
         }
     };
+    
+    getAttributeListFromTable = (table: Table) => {
+        return this.getAttributeListInSingleTable(table.attr, table);
+    };
+
+    getAttributeListInSingleTable = (attrs: Attribute[], table?: Table) => {
+        return attrs.map(att => {
+            return (
+                <li className="list-group-item pb-1 d-flex justify-content-between" onClick={this.onTableAttributeClick}
+                    data-table-idx={table.idx} data-attnum={att.attnum} key={att.attnum}>
+                    <div>
+                        {att.attname}
+                    </div>
+                    {renderTips(table, att, true)}
+                </li>
+            );
+        });
+    }
+
+    getAttributeListFromPatternMatchResults = (attrs: PatternMatchAttribute[][]) => {
+        const allAttrs = attrs.flat(1);
+        return allAttrs.map((attr, key) => {
+            if (!attr) return;
+            const tableObject = attr.table;
+            const attrObject = tableObject.attr[attr.attributeIndex];
+            return (
+                <li className="list-group-item pb-1 d-flex justify-content-between"
+                    data-table-idx={tableObject.idx} data-attnum={attrObject.attnum} key={key} onClick={this.onTableAttributeClick}>
+                    <div>
+                        {tableObject.tableName}/{attrObject.attname}
+                    </div>
+                    {renderTips(tableObject, attrObject, true)}
+                </li>)
+        })
+    }
 
     getTableRelationVis = (dbSchemaContext: DBSchemaContextInterface, selectedIndex: number) => {
         let thisTable: Table = undefined;
         if (selectedIndex >= 0) {
             thisTable = dbSchemaContext.allEntitiesList[selectedIndex];
         }
-
-        const tableAttributeList = (table: Table) => {
-            return table.attr.map(att => {
-                return (
-                    <li className="list-group-item pb-1 d-flex justify-content-between" onClick={this.onTableAttributeClick}
-                        data-table-idx={table.idx} data-attnum={att.attnum} key={att.attnum}>
-                        <div>
-                            {att.attname}
-                        </div>
-                        {renderTips(table, att, true)}
-                    </li>
-                );
-            });
-        };
-
 
         let foreignKeyAttList = null;
         if (this.state.cachedForeignTableSelected) {
@@ -148,7 +169,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                             <div className="small d-inline-block me-1 text-muted dropdown-tip bg-tip-fk">fk: <em>{selectedFk.keyName}</em></div>
                         </div>
                         <ul className="list-group filter-table-attr-group-item filter-table-rel-list ml-auto mr-auto">
-                            {tableAttributeList(selectedFkTable)}
+                            {this.getAttributeListFromTable(selectedFkTable)}
                         </ul>
                     </div>
                 );
@@ -262,7 +283,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                             <h6 className="card-subtitle mb-3 text-muted">n_keys: {thisTable.pk ? thisTable.pk.keyCount : (<em>not available</em>)}</h6>
                         </div>
                         <ul className="list-group filter-table-attr-group-item list-group-flush start-table-rel-list ml-auto mr-auto">
-                            {tableAttributeList(thisTable)}
+                            {this.getAttributeListFromTable(thisTable)}
                         </ul>
                     </div>
                     {foreignKeyAttList}
@@ -280,7 +301,11 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
     onFilterTypeChange = (e: React.BaseSyntheticEvent) => {
         const newFilterType = parseInt(e.currentTarget.getAttribute("data-filter-type"));
         this.setState({
-            filterType: newFilterType
+            filterType: newFilterType,
+            cachedFilterSelection: undefined,
+            cachedForeignTableFKIndex: -1,
+            filters: [],
+            cachedForeignTableSelected: -1
         });
     }
 
@@ -298,6 +323,39 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         );
     }
 
+    datasetFilteringElement = () => {
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        const contextData = dbSchemaContext.data;
+
+        let datasetStatisticsElem = null, filterElem = null;
+
+        if (contextData) {
+            datasetStatisticsElem = (
+                <div>
+                    {contextData.length}
+                </div>
+            )
+        }
+
+        if (this.state.cachedFilterSelection) {
+            const thisTable = dbSchemaContext.allEntitiesList[this.state.cachedFilterSelection.tableIndex]
+            const thisAttr = thisTable.attr[this.state.cachedFilterSelection.attNum - 1];
+            filterElem = (
+                <div>
+                    {contextData.filter(d => d[thisAttr.attname] !== undefined || d[thisAttr.attname] !== null).length}
+                </div>
+            )
+        }
+
+        return (
+            <div>
+                {datasetStatisticsElem}
+                {filterElem}
+            </div>
+        );
+
+    }
+
     tableAttributeListHandler = () => {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
         if (dbSchemaContext.selectedFirstTableIndex >= 0) {
@@ -306,7 +364,27 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 return this.getTableRelationVis(dbSchemaContext, dbSchemaContext.selectedFirstTableIndex);
             } else if (this.state.filterType === 1) {
                 // Render the relation vis for the (potentially-retrieved) dataset
-                // TODO
+                const contextData = dbSchemaContext.data;
+                console.log(contextData)
+                if (contextData && contextData.length > 0) {
+                    return (
+                        <div className="row justify-content-center mt-4 mb-3">
+                            <div className="col-5 mt-auto mb-auto">
+                                <div className="card mb-2">
+                                    <div className="card-body">
+                                        <h5 className="card-title">Attributes involved in dataset</h5>
+                                    </div>
+                                    <ul className="list-group filter-table-attr-group-item list-group-flush start-table-rel-list ml-auto mr-auto">
+                                        {this.getAttributeListFromPatternMatchResults(dbSchemaContext.selectedAttributesIndices)}
+                                    </ul>
+                                </div>
+                            </div>
+                            <div className="col-5 mt-auto mb-auto">
+                                {this.datasetFilteringElement()}
+                            </div>
+                        </div>
+                    )
+                }
             }
         }
 
@@ -315,11 +393,6 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
 
     componentDidMount() {
         const context: DBSchemaContextInterface = this.context;
-        // if (context.selectedFirstTableIndex >= 0 && this.state.cachedSelectedIndex !== context.selectedFirstTableIndex) {
-        //     this.setState({
-        //         cachedSelectedIndex: context.selectedFirstTableIndex
-        //     });
-        // }
         const modalElement = document.getElementById("starting-table-select-modal");
         this.modalComponent = new bootstrap.Modal(modalElement, {
             keyboard: false

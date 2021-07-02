@@ -14,7 +14,6 @@ import * as SchemaParser from './SchemaParser';
 import { StartingTableSelectModal } from "./StartingTableSelectModal";
 
 import "../styles/app.scss"
-import { getDataByMatchAttrs } from './Connections';
 import { FilterSelectModal } from './FilterSelectModal';
 
 let visSchema: VisSchema[] = [];
@@ -216,8 +215,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 });
             }
 
-            getDataByMatchAttrs(rendererSelectedAttributes, visSchemaMatchStatus[selectedPatternIndex]).then(getDataCallback.bind(this));
-
+            Connections.getDataByMatchAttrs(rendererSelectedAttributes, visSchemaMatchStatus[selectedPatternIndex]).then(getDataCallback.bind(this));
         })
 
 

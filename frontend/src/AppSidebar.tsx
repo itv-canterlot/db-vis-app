@@ -197,7 +197,7 @@ export class AppSidebar extends React.Component<ComponentTypes.AppSidebarProps, 
         const filterDatasetHeader = (
             <div className="row">
                 <div className="col">
-                    <i className="fas fa-filter me-2" />Filter dataset
+                    <i className="fas fa-filter me-2" />Filter
                 </div>
             </div>);
     
