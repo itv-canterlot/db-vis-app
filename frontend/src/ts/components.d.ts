@@ -1,5 +1,5 @@
 import React = require('react')
-import {PrimaryKey, ForeignKey, Table, Attribute, RelationNode, PatternMatchResult, PatternMatchAttribute, Filter} from './types'
+import {PrimaryKey, ForeignKey, Table, Attribute, RelationNode, PatternMatchResult, PatternMatchAttribute, Filter, VisSchema} from './types'
 
 /** UIElements.tsx **/
 export type SearchDropdownListProps = {
@@ -132,5 +132,6 @@ export type VisualiserStates = {
     load?: boolean,
     renderedTableIndex?: number,
     renderedAttributesIndices?: PatternMatchAttribute[][],
+    renderedVisSchemaIndex?: number,
     renderFailed: boolean
 }

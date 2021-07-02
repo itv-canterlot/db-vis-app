@@ -24,7 +24,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
         const patternMatchStatus = context.visSchemaMatchStatus[selectedPattern];
         const selectedPatternTemplateCode = context.visSchema[selectedPattern].template
 
-        if (!patternMatchStatus) {
+        if (!patternMatchStatus || !patternMatchStatus.matched) {
             this.setState({
                 renderFailed: true
             })
@@ -47,7 +47,8 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
             this.setState({
                 renderFailed: false,
                 renderedAttributesIndices: context.selectedAttributesIndices,
-                renderedTableIndex: context.selectedFirstTableIndex
+                renderedTableIndex: context.selectedFirstTableIndex,
+                renderedVisSchemaIndex: selectedPattern
             })
         });
     }
@@ -64,29 +65,35 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
     componentDidUpdate() {
         let context: DBSchemaContextInterface = this.context;
         if (this.state) {
-            if (context.selectedFirstTableIndex === this.state.renderedTableIndex) {
-                let allAttributeSetMatched = true;
-                for (let x = 0; x < context.selectedAttributesIndices.length; x++) {
-                    const newAttSet = context.selectedAttributesIndices[x];
-                    const oldAttSet = this.state.renderedAttributesIndices[x];
-                    
-                    if (newAttSet.length === oldAttSet.length) {
-                        for (let y = 0; y < newAttSet.length; y++) {
-                            if (newAttSet[y] !== oldAttSet[y]) {
-                                allAttributeSetMatched = false;
-                                break;
+            if (context.selectedPatternIndex === this.state.renderedVisSchemaIndex) {
+                if (context.selectedFirstTableIndex === this.state.renderedTableIndex) {
+                    let allAttributeSetMatched = true;
+                    for (let x = 0; x < context.selectedAttributesIndices.length; x++) {
+                        const newAttSet = context.selectedAttributesIndices[x];
+                        const oldAttSet = this.state.renderedAttributesIndices[x];
+                        
+                        if (newAttSet.length === oldAttSet.length) {
+                            for (let y = 0; y < newAttSet.length; y++) {
+                                if (newAttSet[y] !== oldAttSet[y]) {
+                                    allAttributeSetMatched = false;
+                                    break;
+                                }
                             }
-                        }
-                    } else allAttributeSetMatched = false;
-                }
-    
-                if (!allAttributeSetMatched) {
-                    if (context.allEntitiesList !== undefined && context.allEntitiesList.length !== 0) {
-                        if (context.selectedFirstTableIndex < 0) return;
-            
-                        this.visualisationHandler();
+                        } else allAttributeSetMatched = false;
                     }
+        
+                    if (!allAttributeSetMatched) {
+                        if (context.allEntitiesList !== undefined && context.allEntitiesList.length !== 0) {
+                            if (context.selectedFirstTableIndex < 0) return;
+                
+                            this.visualisationHandler();
+                        }
+                    }
+                } else {
+                    this.visualisationHandler();
                 }
+            } else {
+                this.visualisationHandler();
             }
         } else {
             this.visualisationHandler();
