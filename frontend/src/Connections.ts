@@ -1,5 +1,5 @@
 
-import { Filter, PatternMatchAttribute, PatternMatchResult, Query, QueryAttribute, QueryAttributeGroup, QueryForeignKeys, RelationNode, Table, VISSCHEMATYPES } from "./ts/types";
+import { Filter, ForeignKey, PatternMatchAttribute, PatternMatchResult, Query, QueryAttribute, QueryAttributeGroup, QueryForeignKeys, RelationNode, Table, VISSCHEMATYPES } from "./ts/types";
 
 export const getAllTableMetadata = () => {
     // TODO/Work under progress: new backend hook
@@ -100,11 +100,11 @@ const getMultiTableQuery = (parentTableName: string, tables: Table[], attQueries
     };
 }
 
-const getFkColsQueriesByTables = (pkTable: Table, fkTable: Table, fkIndex: number) => {
+const getFkColsQueriesByTables = (pkTable: Table, fkTable: Table, fk: ForeignKey) => {
     return {
         fkTableName: fkTable.tableName,
         pkTableName: pkTable.tableName,
-        linkedColumns: fkTable.fk[fkIndex].columns.map(fkCol => {
+        linkedColumns: fk.columns.map(fkCol => {
             return {
                 fkColName: fkCol.fkColName,
                 pkColName: fkCol.pkColName,
@@ -117,7 +117,7 @@ const getFkColsQueriesByRels = (rel: RelationNode, queryAttributeGroup: QueryAtt
     return rel.childRelations
         .filter(childRels => childRels.table.tableName in queryAttributeGroup)
         .map(childRels => {
-            return getFkColsQueriesByTables(rel.parentEntity, childRels.table, childRels.fkIndex);
+            return getFkColsQueriesByTables(rel.parentEntity, childRels.table, childRels.table.fk[childRels.fkIndex]);
         });
 }
 
@@ -192,7 +192,7 @@ export async function getFilteredData(baseTable: Table, allEntities: Table[], fi
     let query: Query;
 
     // Find filters that have foreign key involved
-    const filtersWithFK = filters.filter(f => f.fkIndex !== undefined);
+    const filtersWithFK = filters.filter(f => f.fk !== undefined);
     
     if (filtersWithFK.length == 0) {
         // Filter is based on a single table
@@ -208,7 +208,7 @@ export async function getFilteredData(baseTable: Table, allEntities: Table[], fi
 
         const queryFks = filtersWithFK.map(filter => {
             const fkTable = allEntities[filter.tableIndex];
-            return getFkColsQueriesByTables(baseTable, fkTable, filter.fkIndex);
+            return getFkColsQueriesByTables(baseTable, fkTable, filter.fk);
         });
         query = getMultiTableQuery(
             baseTable.tableName, 

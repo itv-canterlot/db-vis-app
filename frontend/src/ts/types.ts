@@ -204,7 +204,7 @@ export type Filter = {
     tableIndex: number,
     attNum: number,
     condition: FilterCondition,
-    fkIndex?: number,
+    fk?: ForeignKey,
     value: any
 }
 

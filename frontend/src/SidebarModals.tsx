@@ -429,7 +429,6 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                     undefined : {
                         tableIndex: tableIdx,
                         attNum: attNum,
-                        fkIndex: fkIndex,
                         condition: undefined,
                         value: undefined
                     },
@@ -438,10 +437,13 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             })
         } else {
             // Selected attribute is in the "foreign" table
+            const tableWithFk = dbSchemaContext.allEntitiesList[dbSchemaContext.selectedFirstTableIndex] // TODO: other cases
+            const fk = tableWithFk.fk[this.state.cachedForeignTableFKIndex]
             this.setState({
                 cachedFilterSelection: {
                     tableIndex: tableIdx,
                     attNum: attNum,
+                    fk: fk,
                     condition: undefined,
                     value: undefined
                 },
