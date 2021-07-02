@@ -11,7 +11,7 @@ import { matchTableWithAllVisPatterns } from './VisSchemaMatcher'
 import * as ComponentTypes from './ts/components';
 import * as Connections from './Connections';
 import * as SchemaParser from './SchemaParser';
-import { StartingTableSelectModal } from './SidebarModals';
+import { StartingTableSelectModal } from "./StartingTableSelectModal";
 
 import "../styles/app.scss"
 

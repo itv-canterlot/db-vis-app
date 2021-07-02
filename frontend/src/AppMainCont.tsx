@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
-import { FilterSelectModal } from './SidebarModals';
+import { FilterSelectModal } from "./FilterSelectModal";
 import { AppMainContProps, AppMainContStates, SchemaExplorerProps, SchemaExplorerStates } from './ts/components';
 import { CONFIRMATION_STATUS, PatternMatchAttribute, PatternMatchResult, PATTERN_MISMATCH_REASON_TYPE, VisParam, VISSCHEMATYPES, visSchemaTypeToReadableString } from './ts/types';
 import { Visualiser } from './Visualiser';
