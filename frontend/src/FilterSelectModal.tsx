@@ -6,6 +6,7 @@ import { FilterSelectModalProps, FilterSelectModalStates } from './ts/components
 import { getFilteredData } from './Connections';
 import { renderTips } from './ModalPublicElements';
 import { isAttributeScalar } from './TypeConstants';
+import * as d3 from 'd3';
 
 
 export class FilterSelectModal extends React.Component<FilterSelectModalProps, FilterSelectModalStates> {
@@ -322,6 +323,15 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         );
     }
 
+    filterDataByAttribute = (data: object[], attr: Attribute) => {
+        return data.filter(d => d[attr.attname] !== undefined && d[attr.attname] !== null)
+            .map(d => d[attr.attname]);
+    }
+
+    getDataExtremes = (data: any) => {
+        return [Math.min(...data), Math.max(...data)]
+    }
+
     datasetFilteringElement = () => {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
         const contextData = dbSchemaContext.data;
@@ -339,15 +349,15 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         if (this.state.cachedFilterSelection) {
             const thisTable = dbSchemaContext.allEntitiesList[this.state.cachedFilterSelection.tableIndex]
             const thisAttr = thisTable.attr[this.state.cachedFilterSelection.attNum - 1];
-            const dataFiltered = 
-                contextData.filter(d => d[thisAttr.attname] !== undefined && d[thisAttr.attname] !== null)
-                    .map(d => d[thisAttr.attname]);
+            const dataFiltered = this.filterDataByAttribute(contextData, thisAttr);
+                
             filterElem = (
                 <div>
                     <div>
                         {dataFiltered.length}
                     </div>
                     <div>
+                        <div id="filter-data-dist-vis-cont"></div>
                         {Math.min(...dataFiltered)} - {Math.max(...dataFiltered)},
                         mean {getAverage(dataFiltered).toFixed(2)}, std {getStandardDeviation(dataFiltered).toFixed(2)}
                     </div>
@@ -411,11 +421,92 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         });
     }
 
+    renderDataDistributionChart = (data: object[], attr: Attribute) => {
+        var margin = ({top: 20, right: 20, bottom: 30, left: 40}),
+        width = 500 - margin.left - margin.right,
+        height = 300 - margin.top - margin.bottom, 
+        color = "steelblue";
+
+        const filteredData = this.filterDataByAttribute(data, attr).map(d => parseFloat(d))
+        const n_bins = d3.thresholdSturges(filteredData);
+
+        let bins = d3.bin().thresholds(n_bins)(filteredData);
+
+        let x = d3.scaleLinear()
+            .domain([bins[0].x0, bins[bins.length - 1].x1])
+            .range([margin.left, width - margin.right])
+
+        let y = d3.scaleLinear()
+            .domain([0, d3.max(bins, d => d.length)]).nice()
+            .range([height - margin.bottom, margin.top])
+
+        const xLabel = attr.attname, yLabel = "Count";
+
+        let xAxis = g => g
+            .attr("transform", `translate(0,${height - margin.bottom})`)
+            .call(d3.axisBottom(x).ticks(n_bins).tickSizeOuter(0))
+            .call(g => g.append("text")
+                .attr("x", width - margin.right)
+                .attr("y", -4)
+                .attr("fill", "currentColor")
+                .attr("font-weight", "bold")
+                .attr("text-anchor", "end")
+                .text(xLabel))
+
+        let yAxis = g => g
+            .attr("transform", `translate(${margin.left},0)`)
+            .call(d3.axisLeft(y).ticks(height / 40))
+            .call(g => g.select(".domain").remove())
+            .call(g => g.select(".tick:last-of-type text").clone()
+                .attr("x", 4)
+                .attr("text-anchor", "start")
+                .attr("font-weight", "bold")
+                .text(yLabel))
+
+        let svg = d3.select("#filter-data-dist-vis-cont")
+            .selectAll("svg");
+        if (!svg.empty()) {
+            svg.remove();
+        }
+        
+        svg = d3.select("#filter-data-dist-vis-cont")
+        .append("svg")
+        .attr("viewBox", [0, 0, width, height].join(" "))
+        .attr("width", width)
+        .attr("height", height);
+        
+        svg.append("g")
+            .attr("fill", color)
+            .selectAll("rect")
+            .data(bins)
+            .join("rect")
+            .attr("x", d => x(d.x0) + 1)
+            .attr("width", d => Math.max(0, x(d.x1) - x(d.x0) - 1))
+            .attr("y", d => y(d.length))
+            .attr("height", d => y(0) - y(d.length));
+
+        svg.append("g")
+            .call(xAxis);
+        
+        svg.append("g")
+            .call(yAxis);
+    }
+
     componentDidUpdate() {
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
+
+        if (this.state.filterType === 1) {
+            const contextData = dbSchemaContext.data;
+            if (this.state.cachedFilterSelection !== undefined && this.state.cachedFilterSelection.tableIndex !== undefined) {
+                const thisTable = dbSchemaContext.allEntitiesList[this.state.cachedFilterSelection.tableIndex]
+                const thisAttr = thisTable.attr[this.state.cachedFilterSelection.attNum - 1];
+                this.renderDataDistributionChart(contextData, thisAttr);
+            }
+        }
     }
 
     render() {
