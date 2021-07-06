@@ -142,3 +142,11 @@ export type VisualiserStates = {
     renderedVisSchemaIndex?: number,
     renderFailed: boolean,
 }
+
+/* FilterSelector.tsx */
+export type FilterSelectorProps = {
+    filter: Filter,
+    cachedFilterValueRef: React.RefObject<HTMLInputElement>,
+    changedCondition: Function,
+    onConfirmCachedFilter: React.MouseEventHandler
+}

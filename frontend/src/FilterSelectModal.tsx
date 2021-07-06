@@ -1,13 +1,13 @@
 import * as React from 'react';
 import bootstrap = require('bootstrap');
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
-import { Table, Filter, FilterCondition, Attribute, PatternMatchAttribute } from './ts/types';
+import { Table, FilterCondition, Attribute, PatternMatchAttribute } from './ts/types';
 import { FilterSelectModalProps, FilterSelectModalStates } from './ts/components';
 import { getFilteredData } from './Connections';
 import { renderTips } from './ModalPublicElements';
 import { isAttributeScalar } from './TypeConstants';
 import * as d3 from 'd3';
-
+import { FilterSelector } from './FilterSelector';
 
 export class FilterSelectModal extends React.Component<FilterSelectModalProps, FilterSelectModalStates> {
     cachedFilterValueRef: React.RefObject<HTMLInputElement>;
@@ -177,93 +177,19 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 );
             }
         }
+        
 
-        const filterRelatedAttButton = (filter: Filter) => {
-            const dbSchemaContext: DBSchemaContextInterface = this.context;
-            const filterRelatedTable = dbSchemaContext.allEntitiesList[filter.tableIndex];
-            const filterRelatedAttName = filterRelatedTable.attr[filter.attNum - 1].attname;
-            return (
-                <a href="#" className="btn btn-secondary btn me-2" role="button" aria-disabled="true">
-                    {filterRelatedTable.tableName}/{filterRelatedAttName}
-                </a>
-            );
-        };
-
-
-
-        const scalarConditions: FilterCondition[] = [
-            {
-                friendlyName: "is equal to",
-                sqlCommand: "="
-            }, {
-                friendlyName: "is not equal to",
-                sqlCommand: "!="
-            }, {
-                friendlyName: "is greater than",
-                sqlCommand: ">"
-            }, {
-                friendlyName: "is less than",
-                sqlCommand: "<"
-            }, {
-                friendlyName: "is greater than or equal to",
-                sqlCommand: ">="
-            }
-        ];
-
-        let conditionDropdown;
-
-        const thisConditionHandler = (e: React.BaseSyntheticEvent) => {
-            const conditionIndexSelected = parseInt(e.target.getAttribute("data-cond-idx"));
-            if (conditionIndexSelected > -1) {
-                this.changedCondition(scalarConditions[conditionIndexSelected]);
-            }
-        };
-        if (this.state.cachedFilterSelection) {
-            const conditionCached = this.state.cachedFilterSelection.condition;
-            conditionDropdown = (
-                <div className="btn-group me-2">
-                    <button type="button" className="btn btn-secondary">{conditionCached !== undefined ? conditionCached.friendlyName : "Select..."}</button>
-                    <button type="button" className="btn btn-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-                        <span className="visually-hidden">Toggle Dropdown</span>
-                    </button>
-                    <ul className="dropdown-menu">
-                        {scalarConditions.map((cond, idx) => {
-                            return (<li key={idx} data-cond-idx={idx}><a className="dropdown-item" href="#" data-cond-idx={idx} onClick={thisConditionHandler}>{cond.friendlyName}</a></li>);
-                        })}
-                    </ul>
-                </div>
-            );
-        }
-
-        const equality = (
-            <div className="me-2">
-                is
-            </div>
-        );
-
-        const valueInput = (
-            <div className="input-group" style={{ maxWidth: "20%" }}>
-                <input ref={this.cachedFilterValueRef} type="number" className="form-control input-number-no-scroll" placeholder="Value" aria-label="Value" />
-            </div>
-        );
-
-        const cachedFilterSubmitButton = (
-            <button type="button" className="btn btn-success" onClick={this.onConfirmCachedFilter}>Confirm</button>
-        );
 
         const cachedFilterElem = () => {
-            const filter = this.state.cachedFilterSelection;
-            if (!filter)
+            const cachedFilter = this.state.cachedFilterSelection;
+            if (!cachedFilter)
                 return null;
-            return (
-                <div className="d-flex align-items-center justify-content-between">
-                    <div className="d-flex align-items-center">
-                        {filterRelatedAttButton(filter)} {equality} {conditionDropdown} {valueInput}
-                    </div>
-                    <div>
-                        {cachedFilterSubmitButton}
-                    </div>
-                </div>
+            return (                
+                <FilterSelector 
+                    filter={this.state.cachedFilterSelection} 
+                    cachedFilterValueRef={this.cachedFilterValueRef}
+                    changedCondition={this.changedCondition}
+                    onConfirmCachedFilter={this.onConfirmCachedFilter} />
             );
         };
 
@@ -294,8 +220,6 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                     {cachedFilterElem()}
                     {savedFilters()}
                 </div>
-                {/* <div className="col-auto">
-                </div> */}
             </div>
         );
     };
@@ -335,7 +259,16 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
     }
 
     filterFormElem = () => {
-        return <h5>Filters</h5>
+        return (
+            <div>
+                <h5>Filters</h5>
+                <FilterSelector 
+                    filter={this.state.cachedFilterSelection} 
+                    cachedFilterValueRef={this.cachedFilterValueRef} 
+                    changedCondition={this.changedCondition}
+                    onConfirmCachedFilter={this.onConfirmCachedFilter} />
+            </div>
+        )
     }
 
     datasetFilteringElement = () => {
