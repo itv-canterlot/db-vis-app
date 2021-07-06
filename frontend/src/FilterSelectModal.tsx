@@ -249,7 +249,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             <button type="button" className="btn btn-success" onClick={this.onConfirmCachedFilter}>Confirm</button>
         );
 
-        const cachedFilterText = () => {
+        const cachedFilterElem = () => {
             const filter = this.state.cachedFilterSelection;
             if (!filter)
                 return null;
@@ -276,7 +276,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
 
         return (
             <div className="row justify-content-center mt-4 mb-3">
-                <div className="col-5 mt-auto mb-auto">
+                <div className="col-4 mt-auto mb-auto">
                     <div className="card mb-2">
                         <div className="card-body">
                             <h5 className="card-title">{thisTable.tableName}</h5>
@@ -288,8 +288,8 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                     </div>
                     {foreignKeyAttList}
                 </div>
-                <div className="col-5 mt-auto mb-auto">
-                    {cachedFilterText()}
+                <div className="col-8 mt-auto mb-auto">
+                    {cachedFilterElem()}
                     {savedFilters()}
                 </div>
                 {/* <div className="col-auto">
@@ -332,46 +332,142 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         return [Math.min(...data), Math.max(...data)]
     }
 
+    filterFormElem = () => {
+        <h5 className="text-secondary">Filters</h5>
+    }
+
     datasetFilteringElement = () => {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
         const contextData = dbSchemaContext.data;
 
-        let datasetStatisticsElem = null, filterElem = null;
+        let datasetStatisticsElem = null, filterDataVisElem = null;
 
-        if (contextData) {
-            datasetStatisticsElem = (
-                <div>
-                    {contextData.length}
-                </div>
-            )
-        }
+        let thisTable: Table, thisAttr: Attribute, dataFiltered: number[];
 
         if (this.state.cachedFilterSelection) {
-            const thisTable = dbSchemaContext.allEntitiesList[this.state.cachedFilterSelection.tableIndex]
-            const thisAttr = thisTable.attr[this.state.cachedFilterSelection.attNum - 1];
-            const dataFiltered = this.filterDataByAttribute(contextData, thisAttr);
-                
-            filterElem = (
-                <div>
+            thisTable = dbSchemaContext.allEntitiesList[this.state.cachedFilterSelection.tableIndex]
+            thisAttr = thisTable.attr[this.state.cachedFilterSelection.attNum - 1];
+            dataFiltered = this.filterDataByAttribute(contextData, thisAttr);
+        }
+
+        if (contextData) {
+            let dataMin = null, dataMax = null, filteredDataLength = null, meanStd = null;
+            if (this.state.cachedFilterSelection) {
+                dataMin = (
+                    <div>
+                        <div className="small">
+                            min
+                        </div>
+                        <div>
+                            <strong>
+                                {Math.min(...dataFiltered)}
+                            </strong>
+                        </div>
+                    </div>
+                );
+                dataMax = (
+                    <div className="text-end">
+                        <div className="small">
+                            max
+                        </div>
+                        <div>
+                            <strong>
+                                {Math.max(...dataFiltered)}
+                            </strong>
+                        </div>
+                    </div>
+                );
+
+                filteredDataLength = (
                     <div>
                         {dataFiltered.length}
                     </div>
-                    <div>
+                )
+
+                meanStd = (
+                    <div className="text-center">
+                        <div>
+                            μ = <strong>{getAverage(dataFiltered).toFixed(2)}</strong>
+                        </div>
+                        <div>
+                            σ = <strong>{getStandardDeviation(dataFiltered).toFixed(2)}</strong>
+                        </div>
+                    </div>
+                )
+                
+                datasetStatisticsElem = (
+                    <div className="card">
+                        <div className="card-body d-flex justify-content-between align-items-center">
+                            {dataMin} {meanStd} {dataMax}
+                        </div>
+                        <ul className="list-group list-group-flush">
+                            <li className="list-group-item">
+                                <div>
+                                    # total dataset entries: {dbSchemaContext.data.length}
+                                </div>
+                                <div>
+                                    # valid data entries for attribute: {dataFiltered.length}
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                )
+            }
+
+        }
+
+        if (this.state.cachedFilterSelection) {                
+            filterDataVisElem = (
+                <div className="row">
+                    <div className="col d-flex justify-content-center">
                         <div id="filter-data-dist-vis-cont"></div>
-                        {Math.min(...dataFiltered)} - {Math.max(...dataFiltered)},
-                        mean {getAverage(dataFiltered).toFixed(2)}, std {getStandardDeviation(dataFiltered).toFixed(2)}
                     </div>
                 </div>
             )
         }
 
         return (
-            <div>
-                {datasetStatisticsElem}
-                {filterElem}
+            <div className="row">
+                <div className="col-6">
+                    <div className="row">
+                        <div className="col">
+                            {filterDataVisElem}
+                        </div>
+                    </div>
+                    <div className="row">
+                        <div className="col">
+                            {datasetStatisticsElem}
+                        </div>
+                    </div>
+
+                </div>
+                <div className="col-6">
+                    {this.filterFormElem}
+                </div>
             </div>
         );
 
+    }
+
+    getDatasetFilteringComponenent = () => {
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        return (
+            <div className="row justify-content-center mt-4 mb-3">
+                <div className="col-4 mt-auto mb-auto">
+                    <div className="card mb-2">
+                        <div className="card-body">
+                            <h5 className="card-title">Attributes involved in dataset</h5>
+                        </div>
+                        <ul className="list-group filter-table-attr-group-item list-group-flush start-table-rel-list ml-auto mr-auto">
+                            {this.getAttributeListFromPatternMatchResults(dbSchemaContext.selectedAttributesIndices)}
+                        </ul>
+                    </div>
+                </div>
+                <div className="col-8 mt-auto mb-auto">
+                    {this.datasetFilteringElement()}
+                </div>
+            </div>
+        );
     }
 
     tableAttributeListHandler = () => {
@@ -384,23 +480,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 // Render the relation vis for the (potentially-retrieved) dataset
                 const contextData = dbSchemaContext.data;
                 if (contextData && contextData.length > 0) {
-                    return (
-                        <div className="row justify-content-center mt-4 mb-3">
-                            <div className="col-5 mt-auto mb-auto">
-                                <div className="card mb-2">
-                                    <div className="card-body">
-                                        <h5 className="card-title">Attributes involved in dataset</h5>
-                                    </div>
-                                    <ul className="list-group filter-table-attr-group-item list-group-flush start-table-rel-list ml-auto mr-auto">
-                                        {this.getAttributeListFromPatternMatchResults(dbSchemaContext.selectedAttributesIndices)}
-                                    </ul>
-                                </div>
-                            </div>
-                            <div className="col-5 mt-auto mb-auto">
-                                {this.datasetFilteringElement()}
-                            </div>
-                        </div>
-                    )
+                    return this.getDatasetFilteringComponenent();
                 }
             }
         }
@@ -490,6 +570,20 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         
         svg.append("g")
             .call(yAxis);
+
+        let xmean = d3.mean(filteredData, (d) => d);
+        console.log(xmean)
+
+        svg.append("line")
+            .attr("class", "line")
+            .attr("x1", x(xmean))
+            .attr("y1", 0)
+            .attr("x2", x(xmean))
+            .attr("y2", height)
+            .style("stroke-width", 2)
+            .style("stroke", "maroon")
+            .style("stroke-dasharray", ("3, 3"))
+            .style("fill", "none"); 
     }
 
     componentDidUpdate() {
