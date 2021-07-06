@@ -140,7 +140,9 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             const tableObject = attr.table;
             const attrObject = tableObject.attr[attr.attributeIndex];
             return (
-                <li className="list-group-item pb-1 d-flex justify-content-between"
+                <li className={
+                        "list-group-item pb-1 d-flex justify-content-between" + 
+                        (this.state.cachedFilterSelection && this.state.cachedFilterSelection.attNum === attrObject.attnum ? " active" : "")}
                     data-table-idx={tableObject.idx} data-attnum={attrObject.attnum} key={key} onClick={this.onTableAttributeClick}>
                     <div>
                         {tableObject.tableName}/{attrObject.attname}
@@ -163,7 +165,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
 
             if (selectedFkTable) {
                 foreignKeyAttList = (
-                    <div className="card">
+                    <div className="card mt-2">
                         <div className="card-body">
                             <h5 className="card-title">➔ {selectedFkTable.tableName}</h5>
                             <div className="small d-inline-block me-1 text-muted dropdown-tip bg-tip-fk">fk: <em>{selectedFk.keyName}</em></div>
@@ -333,7 +335,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
     }
 
     filterFormElem = () => {
-        <h5 className="text-secondary">Filters</h5>
+        return <h5>Filters</h5>
     }
 
     datasetFilteringElement = () => {
@@ -396,7 +398,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 )
                 
                 datasetStatisticsElem = (
-                    <div className="card">
+                    <div className="card mt-2">
                         <div className="card-body d-flex justify-content-between align-items-center">
                             {dataMin} {meanStd} {dataMax}
                         </div>
@@ -442,7 +444,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
 
                 </div>
                 <div className="col-6">
-                    {this.filterFormElem}
+                    {this.state.cachedFilterSelection ? this.filterFormElem() : null}
                 </div>
             </div>
         );
@@ -454,7 +456,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         return (
             <div className="row justify-content-center mt-4 mb-3">
                 <div className="col-4 mt-auto mb-auto">
-                    <div className="card mb-2">
+                    <div className="card">
                         <div className="card-body">
                             <h5 className="card-title">Attributes involved in dataset</h5>
                         </div>
@@ -572,7 +574,6 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             .call(yAxis);
 
         let xmean = d3.mean(filteredData, (d) => d);
-        console.log(xmean)
 
         svg.append("line")
             .attr("class", "line")
