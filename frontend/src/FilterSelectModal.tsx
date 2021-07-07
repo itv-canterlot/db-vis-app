@@ -8,7 +8,7 @@ import { renderTips } from './ModalPublicElements';
 import { isAttributeScalar } from './TypeConstants';
 import * as d3 from 'd3';
 import { FilterSelector } from './FilterSelector';
-import { stdRangeCondition } from './ts/FilterConditions';
+import * as FilterConditions from './ts/FilterConditions';
 
 export class FilterSelectModal extends React.Component<FilterSelectModalProps, FilterSelectModalStates> {
     cachedFilterValueRef: React.RefObject<HTMLInputElement>;
@@ -101,7 +101,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         const filterInputValue = this.cachedFilterValueRef.current as HTMLInputElement;
         const cachedFilter = this.state.cachedFilterSelection;
         if (this.state.cachedFilterType === FilterType.STD) {
-            cachedFilter.condition = stdRangeCondition;
+            cachedFilter.condition = FilterConditions.stdRangeCondition;
         }
 
         cachedFilter.value = filterInputValue.value;
@@ -265,8 +265,27 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
     }
 
     filterDataByAttribute = (data: object[], attr: Attribute) => {
-        return data.filter(d => d[attr.attname] !== undefined && d[attr.attname] !== null)
+        const dataFilteredByAtt = data.filter(d => d[attr.attname] !== undefined && d[attr.attname] !== null)
             .map(d => d[attr.attname]);
+        if (this.state.filters && this.state.filters) {
+            return dataFilteredByAtt.filter(d => {
+                return this.state.filters.every(filter => {
+                    let param = {
+                        baseVal: parseFloat(d),
+                        std: undefined,
+                        mean: undefined
+                    };
+                    if (filter.condition.filterType === FilterType.STD) {
+                        param.std = getStandardDeviation(dataFilteredByAtt);
+                        param.mean = getAverage(dataFilteredByAtt);
+                    }
+                    
+                    return FilterConditions.computeFilterCondition(param, filter)
+                })
+            })
+        } else {
+            return dataFilteredByAtt;
+        }
     }
 
     getDataExtremes = (data: any) => {
@@ -603,6 +622,7 @@ FilterSelectModal.contextType = DBSchemaContext;
 
 // Helper function
 const getStandardDeviation = (array) => {
+    if (array.length === 0) return NaN;
     const n = array.length
     const arrayToNums = array.map(a => parseFloat(a));
     const mean = arrayToNums.reduce((a, b) => a + b) / n
@@ -610,6 +630,7 @@ const getStandardDeviation = (array) => {
   }
 
 const getAverage = (arr) => {
+    if (arr.length === 0) return NaN;
     return arr
         .map(e => parseFloat(e))
         .reduce( ( p, c ) => p + c, 0 ) / arr.length;

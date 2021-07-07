@@ -92,8 +92,13 @@ export class FilterSelector extends React.Component<FilterSelectorProps, {}> {
                 )
             case (FilterType.STD):
                 return (
-                    <div className="d-flex align-items-center">
-                        <div>Keep data points of</div>{this.filterRelatedAttListElem(this.props.filter)}<div>within</div>{this.valueInput} <div>standard deviations</div>
+                    <div>
+                        <div className="d-flex align-items-center">
+                            <div>Keep data points of</div>{this.filterRelatedAttListElem(this.props.filter)}
+                        </div>
+                        <div className="d-flex align-items-center">
+                            <div>within</div>{this.valueInput} <div>standard deviations</div>
+                        </div>
                     </div>
                 )
             default:

@@ -37,10 +37,10 @@ export const computeFilterCondition = (params: {[key: string]: number}, filter: 
     const filterType = filter.condition.filterType;
     
     if (filterType === FilterType.SCALAR_COMPARISON) {
-        computeScalarFilterCondition(params, filter);
+        return computeScalarFilterCondition(params, filter);
     }
     else if (filterType === FilterType.STD) {
-        computeStdRangeFilterCondition(params, filter);
+        return computeStdRangeFilterCondition(params, filter);
     }
     else {
         return undefined;
