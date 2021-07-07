@@ -195,9 +195,36 @@ export type PatternMismatchReason = {
     position?: number
 }
 
+// Data Filters
+// export const enum FilterType {
+//     SCALAR_COMPARISON,
+//     STD
+// }
+
+export class FilterType {
+    static readonly SCALAR_COMPARISON = new FilterType(0, "Scalar comparison");
+    static readonly STD = new FilterType(1, "Limit outliers");
+
+    private constructor(
+        private readonly key,
+        public readonly value){
+
+        }
+    
+    toString() {
+        return this.value;
+    }
+
+    static getAllFilterTypes = () => [
+        FilterType.SCALAR_COMPARISON,
+        FilterType.STD
+    ]
+}
+
 export type FilterCondition = {
+    filterType: FilterType
     friendlyName: string,
-    sqlCommand: string
+    sqlCommand?: string
 }
 
 export type Filter = {

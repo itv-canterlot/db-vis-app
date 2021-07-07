@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { FilterSelectorProps } from './ts/components';
-import { Filter, FilterCondition } from './ts/types';
-
+import { Filter, FilterType } from './ts/types';
+import * as FilterConditions from "./ts/FilterConditions";
 
 
 export class FilterSelector extends React.Component<FilterSelectorProps, {}> {
@@ -21,33 +21,12 @@ export class FilterSelector extends React.Component<FilterSelectorProps, {}> {
         );
     };
 
-
-
     thisConditionHandler = (e: React.BaseSyntheticEvent) => {
         const conditionIndexSelected = parseInt(e.target.getAttribute("data-cond-idx"));
         if (conditionIndexSelected > -1) {
-            this.props.changedCondition(this.scalarConditions[conditionIndexSelected]);
+            this.props.changedCondition(FilterConditions.scalarConditions[conditionIndexSelected]);
         }
     };
-
-    scalarConditions: FilterCondition[] = [
-        {
-            friendlyName: "is equal to",
-            sqlCommand: "="
-        }, {
-            friendlyName: "is not equal to",
-            sqlCommand: "!="
-        }, {
-            friendlyName: "is greater than",
-            sqlCommand: ">"
-        }, {
-            friendlyName: "is less than",
-            sqlCommand: "<"
-        }, {
-            friendlyName: "is greater than or equal to",
-            sqlCommand: ">="
-        }
-    ];
 
     conditionDropdown = () => {
         const conditionCached = this.props.filter.condition;
@@ -58,7 +37,7 @@ export class FilterSelector extends React.Component<FilterSelectorProps, {}> {
                     <span className="visually-hidden">Toggle Dropdown</span>
                 </button>
                 <ul className="dropdown-menu">
-                    {this.scalarConditions.map((cond, idx) => {
+                    {FilterConditions.scalarConditions.map((cond, idx) => {
                         return (<li key={idx} data-cond-idx={idx}><a className="dropdown-item" href="#" data-cond-idx={idx} onClick={this.thisConditionHandler}>{cond.friendlyName}</a></li>);
                     })}
                 </ul>
@@ -82,13 +61,58 @@ export class FilterSelector extends React.Component<FilterSelectorProps, {}> {
         <button type="button" className="btn btn-success" onClick={this.props.onConfirmCachedFilter}>Confirm</button>
     );
 
+    filterTypeSelection = () => {
+        const filterType = this.props.cachedFilterType;
+        if (!filterType) return null;
+        else return (
+            <div className="btn-group">
+                <button className="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    {this.props.cachedFilterType.toString()}
+                </button>
+                <ul className="dropdown-menu">
+                    {FilterType.getAllFilterTypes().map((ft, i) => {
+                        return (
+                            <li key={i} data-filter-range-id={i} onClick={this.props.onChangeFilterType}>
+                                <a className={"dropdown-item" + (ft === this.props.cachedFilterType ? " active" : "")} href="#">{ft.toString()}</a>
+                            </li>
+                        );
+                    })}
+                </ul>
+            </div>
+        )
+    }
+
+    getFilterSelectorByType = () => {
+        switch (this.props.cachedFilterType) {
+            case (FilterType.SCALAR_COMPARISON):
+                return (
+                    <div className="d-flex align-items-center">
+                        {this.filterRelatedAttListElem(this.props.filter)} {this.equality} {this.conditionDropdown()} {this.valueInput}
+                    </div>
+                )
+            case (FilterType.STD):
+                return (
+                    <div className="d-flex align-items-center">
+                        <div>Keep data points of</div>{this.filterRelatedAttListElem(this.props.filter)}<div>within</div>{this.valueInput} <div>standard deviations</div>
+                    </div>
+                )
+            default:
+                return null;
+        }
+    }
+
     render() {
         return (
             <div className="d-flex align-items-center justify-content-between">
-                <div className="d-flex align-items-center">
-                    {this.filterRelatedAttListElem(this.props.filter)} {this.equality} {this.conditionDropdown()} {this.valueInput}
+                <div>
+                    <div className="mb-2">
+                        {this.filterTypeSelection()}                    
+                    </div>
+                    {this.getFilterSelectorByType()}
                 </div>
-                {this.cachedFilterSubmitButton}
+                <div>
+                    {this.cachedFilterSubmitButton}
+                </div>
             </div>
         )
     }

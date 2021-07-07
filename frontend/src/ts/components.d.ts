@@ -1,5 +1,5 @@
 import React = require('react')
-import {PrimaryKey, ForeignKey, Table, Attribute, RelationNode, PatternMatchResult, PatternMatchAttribute, Filter, VisSchema} from './types'
+import {PrimaryKey, ForeignKey, Table, Attribute, RelationNode, PatternMatchResult, PatternMatchAttribute, Filter, VisSchema, FilterType} from './types'
 
 /** UIElements.tsx **/
 export type SearchDropdownListProps = {
@@ -97,10 +97,11 @@ export type FilterSelectModalProps = {
 
 export type FilterSelectModalStates = {
     cachedFilterSelection?: Filter,
+    cachedFilterType?: FilterType,
     filters?: Filter[],
     cachedForeignTableSelected?: number,
     cachedForeignTableFKIndex?: number,
-    filterType?: number
+    filterRange?: number
 }
 
 /* AppMainCont.tsx */
@@ -147,6 +148,8 @@ export type VisualiserStates = {
 export type FilterSelectorProps = {
     filter: Filter,
     cachedFilterValueRef: React.RefObject<HTMLInputElement>,
+    cachedFilterType: FilterType,
     changedCondition: Function,
-    onConfirmCachedFilter: React.MouseEventHandler
+    onConfirmCachedFilter: React.MouseEventHandler,
+    onChangeFilterType: React.MouseEventHandler
 }

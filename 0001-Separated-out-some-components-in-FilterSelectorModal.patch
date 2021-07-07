@@ -1,0 +1,448 @@
+From b6dfd12fb38c72b7c7515beb3847ed681067fc6a Mon Sep 17 00:00:00 2001
+From: Ricky Yuan <itvcanterlot@gmail.com>
+Date: Tue, 6 Jul 2021 16:04:06 +0100
+Subject: [PATCH] Separated out some components in FilterSelectorModal
+
+---
+ frontend/src/FilterSelectModal.tsx | 251 +++++++++++------------------
+ frontend/src/FilterSelector.tsx    |  96 +++++++++++
+ frontend/src/ts/components.d.ts    |   8 +
+ 3 files changed, 200 insertions(+), 155 deletions(-)
+ create mode 100644 frontend/src/FilterSelector.tsx
+
+diff --git a/frontend/src/FilterSelectModal.tsx b/frontend/src/FilterSelectModal.tsx
+index 3ec103f..697e42d 100644
+--- a/frontend/src/FilterSelectModal.tsx
++++ b/frontend/src/FilterSelectModal.tsx
+@@ -1,13 +1,83 @@
+ import * as React from 'react';
+ import bootstrap = require('bootstrap');
+ import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
+-import { Table, Filter, FilterCondition, Attribute, PatternMatchAttribute } from './ts/types';
++import { Table, FilterCondition, Attribute, PatternMatchAttribute } from './ts/types';
+ import { FilterSelectModalProps, FilterSelectModalStates } from './ts/components';
+ import { getFilteredData } from './Connections';
+ import { renderTips } from './ModalPublicElements';
+ import { isAttributeScalar } from './TypeConstants';
+ import * as d3 from 'd3';
++import { FilterSelector } from './FilterSelector';
+ 
++export class DatasetStatsComponent extends React.Component<{dataFiltered: number[], totalDataLength: number}, {}> {
++    constructor(props) {
++        super(props);
++    }
++
++    dataMin = (
++        <div>
++            <div className="small">
++                min
++            </div>
++            <div>
++                <strong>
++                    {Math.min(...this.props.dataFiltered)}
++                </strong>
++            </div>
++        </div>
++    );
++
++    dataMax = (
++        <div className="text-end">
++            <div className="small">
++                max
++            </div>
++            <div>
++                <strong>
++                    {Math.max(...this.props.dataFiltered)}
++                </strong>
++            </div>
++        </div>
++    );
++
++    filteredDataLength = (
++        <div>
++            {this.props.dataFiltered.length}
++        </div>
++    )
++
++    meanStd = (
++        <div className="text-center">
++            <div>
++                μ = <strong>{getAverage(this.props.dataFiltered).toFixed(2)}</strong>
++            </div>
++            <div>
++                σ = <strong>{getStandardDeviation(this.props.dataFiltered).toFixed(2)}</strong>
++            </div>
++        </div>
++    )
++
++    render() {
++        const dbSchemaContext: DBSchemaContextInterface = this.context;
++        return (
++            <div className="card mt-2">
++                <div className="card-body d-flex justify-content-between align-items-center">
++                    {this.dataMin} {this.meanStd} {this.dataMax}
++                </div>
++                <ul className="list-group list-group-flush">
++                    <li className="list-group-item">
++                        <div>
++                            # total dataset entries: {this.props.totalDataLength}
++                        </div>
++                        <div>
++                            # valid data entries for attribute: {this.props.dataFiltered.length}
++                        </div>
++                    </li>
++                </ul>
++            </div>
++        )
++    }
++}
+ 
+ export class FilterSelectModal extends React.Component<FilterSelectModalProps, FilterSelectModalStates> {
+     cachedFilterValueRef: React.RefObject<HTMLInputElement>;
+@@ -177,93 +247,19 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
+                 );
+             }
+         }
++        
+ 
+-        const filterRelatedAttButton = (filter: Filter) => {
+-            const dbSchemaContext: DBSchemaContextInterface = this.context;
+-            const filterRelatedTable = dbSchemaContext.allEntitiesList[filter.tableIndex];
+-            const filterRelatedAttName = filterRelatedTable.attr[filter.attNum - 1].attname;
+-            return (
+-                <a href="#" className="btn btn-secondary btn me-2" role="button" aria-disabled="true">
+-                    {filterRelatedTable.tableName}/{filterRelatedAttName}
+-                </a>
+-            );
+-        };
+-
+-
+-
+-        const scalarConditions: FilterCondition[] = [
+-            {
+-                friendlyName: "is equal to",
+-                sqlCommand: "="
+-            }, {
+-                friendlyName: "is not equal to",
+-                sqlCommand: "!="
+-            }, {
+-                friendlyName: "is greater than",
+-                sqlCommand: ">"
+-            }, {
+-                friendlyName: "is less than",
+-                sqlCommand: "<"
+-            }, {
+-                friendlyName: "is greater than or equal to",
+-                sqlCommand: ">="
+-            }
+-        ];
+-
+-        let conditionDropdown;
+-
+-        const thisConditionHandler = (e: React.BaseSyntheticEvent) => {
+-            const conditionIndexSelected = parseInt(e.target.getAttribute("data-cond-idx"));
+-            if (conditionIndexSelected > -1) {
+-                this.changedCondition(scalarConditions[conditionIndexSelected]);
+-            }
+-        };
+-        if (this.state.cachedFilterSelection) {
+-            const conditionCached = this.state.cachedFilterSelection.condition;
+-            conditionDropdown = (
+-                <div className="btn-group me-2">
+-                    <button type="button" className="btn btn-secondary">{conditionCached !== undefined ? conditionCached.friendlyName : "Select..."}</button>
+-                    <button type="button" className="btn btn-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+-                        <span className="visually-hidden">Toggle Dropdown</span>
+-                    </button>
+-                    <ul className="dropdown-menu">
+-                        {scalarConditions.map((cond, idx) => {
+-                            return (<li key={idx} data-cond-idx={idx}><a className="dropdown-item" href="#" data-cond-idx={idx} onClick={thisConditionHandler}>{cond.friendlyName}</a></li>);
+-                        })}
+-                    </ul>
+-                </div>
+-            );
+-        }
+-
+-        const equality = (
+-            <div className="me-2">
+-                is
+-            </div>
+-        );
+-
+-        const valueInput = (
+-            <div className="input-group" style={{ maxWidth: "20%" }}>
+-                <input ref={this.cachedFilterValueRef} type="number" className="form-control input-number-no-scroll" placeholder="Value" aria-label="Value" />
+-            </div>
+-        );
+-
+-        const cachedFilterSubmitButton = (
+-            <button type="button" className="btn btn-success" onClick={this.onConfirmCachedFilter}>Confirm</button>
+-        );
+ 
+         const cachedFilterElem = () => {
+-            const filter = this.state.cachedFilterSelection;
+-            if (!filter)
++            const cachedFilter = this.state.cachedFilterSelection;
++            if (!cachedFilter)
+                 return null;
+-            return (
+-                <div className="d-flex align-items-center justify-content-between">
+-                    <div className="d-flex align-items-center">
+-                        {filterRelatedAttButton(filter)} {equality} {conditionDropdown} {valueInput}
+-                    </div>
+-                    <div>
+-                        {cachedFilterSubmitButton}
+-                    </div>
+-                </div>
++            return (                
++                <FilterSelector 
++                    filter={this.state.cachedFilterSelection} 
++                    cachedFilterValueRef={this.cachedFilterValueRef}
++                    changedCondition={this.changedCondition}
++                    onConfirmCachedFilter={this.onConfirmCachedFilter} />
+             );
+         };
+ 
+@@ -294,8 +290,6 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
+                     {cachedFilterElem()}
+                     {savedFilters()}
+                 </div>
+-                {/* <div className="col-auto">
+-                </div> */}
+             </div>
+         );
+     };
+@@ -335,14 +329,23 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
+     }
+ 
+     filterFormElem = () => {
+-        return <h5>Filters</h5>
++        return (
++            <div>
++                <h5>Filters</h5>
++                <FilterSelector 
++                    filter={this.state.cachedFilterSelection} 
++                    cachedFilterValueRef={this.cachedFilterValueRef} 
++                    changedCondition={this.changedCondition}
++                    onConfirmCachedFilter={this.onConfirmCachedFilter} />
++            </div>
++        )
+     }
+ 
+     datasetFilteringElement = () => {
+         const dbSchemaContext: DBSchemaContextInterface = this.context;
+         const contextData = dbSchemaContext.data;
+ 
+-        let datasetStatisticsElem = null, filterDataVisElem = null;
++        let filterDataVisElem = null;
+ 
+         let thisTable: Table, thisAttr: Attribute, dataFiltered: number[];
+ 
+@@ -352,72 +355,6 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
+             dataFiltered = this.filterDataByAttribute(contextData, thisAttr);
+         }
+ 
+-        if (contextData) {
+-            let dataMin = null, dataMax = null, filteredDataLength = null, meanStd = null;
+-            if (this.state.cachedFilterSelection) {
+-                dataMin = (
+-                    <div>
+-                        <div className="small">
+-                            min
+-                        </div>
+-                        <div>
+-                            <strong>
+-                                {Math.min(...dataFiltered)}
+-                            </strong>
+-                        </div>
+-                    </div>
+-                );
+-                dataMax = (
+-                    <div className="text-end">
+-                        <div className="small">
+-                            max
+-                        </div>
+-                        <div>
+-                            <strong>
+-                                {Math.max(...dataFiltered)}
+-                            </strong>
+-                        </div>
+-                    </div>
+-                );
+-
+-                filteredDataLength = (
+-                    <div>
+-                        {dataFiltered.length}
+-                    </div>
+-                )
+-
+-                meanStd = (
+-                    <div className="text-center">
+-                        <div>
+-                            μ = <strong>{getAverage(dataFiltered).toFixed(2)}</strong>
+-                        </div>
+-                        <div>
+-                            σ = <strong>{getStandardDeviation(dataFiltered).toFixed(2)}</strong>
+-                        </div>
+-                    </div>
+-                )
+-                
+-                datasetStatisticsElem = (
+-                    <div className="card mt-2">
+-                        <div className="card-body d-flex justify-content-between align-items-center">
+-                            {dataMin} {meanStd} {dataMax}
+-                        </div>
+-                        <ul className="list-group list-group-flush">
+-                            <li className="list-group-item">
+-                                <div>
+-                                    # total dataset entries: {dbSchemaContext.data.length}
+-                                </div>
+-                                <div>
+-                                    # valid data entries for attribute: {dataFiltered.length}
+-                                </div>
+-                            </li>
+-                        </ul>
+-                    </div>
+-                )
+-            }
+-
+-        }
+-
+         if (this.state.cachedFilterSelection) {                
+             filterDataVisElem = (
+                 <div className="row">
+@@ -438,7 +375,11 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
+                     </div>
+                     <div className="row">
+                         <div className="col">
+-                            {datasetStatisticsElem}
++                            {contextData && dataFiltered ? 
++                                <DatasetStatsComponent
++                                    dataFiltered={dataFiltered}
++                                    totalDataLength={contextData.length} />
++                                : null}
+                         </div>
+                     </div>
+ 
+diff --git a/frontend/src/FilterSelector.tsx b/frontend/src/FilterSelector.tsx
+new file mode 100644
+index 0000000..8dd3ea5
+--- /dev/null
++++ b/frontend/src/FilterSelector.tsx
+@@ -0,0 +1,96 @@
++import * as React from 'react';
++import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
++import { FilterSelectorProps } from './ts/components';
++import { Filter, FilterCondition } from './ts/types';
++
++
++
++export class FilterSelector extends React.Component<FilterSelectorProps, {}> {
++    constructor(props) {
++        super(props);
++    }
++
++    filterRelatedAttListElem = (filter: Filter) => {
++        const dbSchemaContext: DBSchemaContextInterface = this.context;
++        const filterRelatedTable = dbSchemaContext.allEntitiesList[filter.tableIndex];
++        const filterRelatedAttName = filterRelatedTable.attr[filter.attNum - 1].attname;
++        return (
++            <a href="#" className="btn btn-secondary btn me-2" role="button" aria-disabled="true">
++                {filterRelatedTable.tableName}/{filterRelatedAttName}
++            </a>
++        );
++    };
++
++
++
++    thisConditionHandler = (e: React.BaseSyntheticEvent) => {
++        const conditionIndexSelected = parseInt(e.target.getAttribute("data-cond-idx"));
++        if (conditionIndexSelected > -1) {
++            this.props.changedCondition(this.scalarConditions[conditionIndexSelected]);
++        }
++    };
++
++    scalarConditions: FilterCondition[] = [
++        {
++            friendlyName: "is equal to",
++            sqlCommand: "="
++        }, {
++            friendlyName: "is not equal to",
++            sqlCommand: "!="
++        }, {
++            friendlyName: "is greater than",
++            sqlCommand: ">"
++        }, {
++            friendlyName: "is less than",
++            sqlCommand: "<"
++        }, {
++            friendlyName: "is greater than or equal to",
++            sqlCommand: ">="
++        }
++    ];
++
++    conditionDropdown = () => {
++        const conditionCached = this.props.filter.condition;
++        return (
++            <div className="btn-group me-2">
++                <button type="button" className="btn btn-secondary">{conditionCached !== undefined ? conditionCached.friendlyName : "Select..."}</button>
++                <button type="button" className="btn btn-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
++                    <span className="visually-hidden">Toggle Dropdown</span>
++                </button>
++                <ul className="dropdown-menu">
++                    {this.scalarConditions.map((cond, idx) => {
++                        return (<li key={idx} data-cond-idx={idx}><a className="dropdown-item" href="#" data-cond-idx={idx} onClick={this.thisConditionHandler}>{cond.friendlyName}</a></li>);
++                    })}
++                </ul>
++            </div>
++        );
++    }
++
++    equality = (
++        <div className="me-2">
++            is
++        </div>
++    );
++
++    valueInput = (
++        <div className="input-group" style={{ maxWidth: "20%" }}>
++            <input ref={this.props.cachedFilterValueRef} type="number" className="form-control input-number-no-scroll" placeholder="Value" aria-label="Value" />
++        </div>
++    );
++
++    cachedFilterSubmitButton = (
++        <button type="button" className="btn btn-success" onClick={this.props.onConfirmCachedFilter}>Confirm</button>
++    );
++
++    render() {
++        return (
++            <div className="d-flex align-items-center justify-content-between">
++                <div className="d-flex align-items-center">
++                    {this.filterRelatedAttListElem(this.props.filter)} {this.equality} {this.conditionDropdown()} {this.valueInput}
++                </div>
++                {this.cachedFilterSubmitButton}
++            </div>
++        )
++    }
++}
++FilterSelector.contextType = DBSchemaContext
+diff --git a/frontend/src/ts/components.d.ts b/frontend/src/ts/components.d.ts
+index f772bc3..bd507a0 100644
+--- a/frontend/src/ts/components.d.ts
++++ b/frontend/src/ts/components.d.ts
+@@ -141,4 +141,12 @@ export type VisualiserStates = {
+     renderedAttributesIndices?: PatternMatchAttribute[][],
+     renderedVisSchemaIndex?: number,
+     renderFailed: boolean,
++}
++
++/* FilterSelector.tsx */
++export type FilterSelectorProps = {
++    filter: Filter,
++    cachedFilterValueRef: React.RefObject<HTMLInputElement>,
++    changedCondition: Function,
++    onConfirmCachedFilter: React.MouseEventHandler
+ }
+\ No newline at end of file
+-- 
+2.31.1
+

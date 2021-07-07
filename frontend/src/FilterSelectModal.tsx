@@ -1,13 +1,14 @@
 import * as React from 'react';
 import bootstrap = require('bootstrap');
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
-import { Table, FilterCondition, Attribute, PatternMatchAttribute } from './ts/types';
+import { Table, FilterCondition, Attribute, PatternMatchAttribute, FilterType } from './ts/types';
 import { FilterSelectModalProps, FilterSelectModalStates } from './ts/components';
 import { getFilteredData } from './Connections';
 import { renderTips } from './ModalPublicElements';
 import { isAttributeScalar } from './TypeConstants';
 import * as d3 from 'd3';
 import { FilterSelector } from './FilterSelector';
+import { stdRangeCondition } from './ts/FilterConditions';
 
 export class FilterSelectModal extends React.Component<FilterSelectModalProps, FilterSelectModalStates> {
     cachedFilterValueRef: React.RefObject<HTMLInputElement>;
@@ -16,9 +17,10 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         super(props);
         this.state = {
             cachedFilterSelection: undefined,
+            cachedFilterType: FilterType.getAllFilterTypes()[0],
             filters: [],
             cachedForeignTableSelected: -1,
-            filterType: 0
+            filterRange: 0
         };
 
         this.cachedFilterValueRef = React.createRef();
@@ -98,6 +100,10 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
     onConfirmCachedFilter = (e: React.BaseSyntheticEvent) => {
         const filterInputValue = this.cachedFilterValueRef.current as HTMLInputElement;
         const cachedFilter = this.state.cachedFilterSelection;
+        if (this.state.cachedFilterType === FilterType.STD) {
+            cachedFilter.condition = stdRangeCondition;
+        }
+
         cachedFilter.value = filterInputValue.value;
         if (Object.keys(cachedFilter).every(key => {
             const val = cachedFilter[key];
@@ -188,8 +194,10 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 <FilterSelector 
                     filter={this.state.cachedFilterSelection} 
                     cachedFilterValueRef={this.cachedFilterValueRef}
+                    cachedFilterType={this.state.cachedFilterType}
                     changedCondition={this.changedCondition}
-                    onConfirmCachedFilter={this.onConfirmCachedFilter} />
+                    onConfirmCachedFilter={this.onConfirmCachedFilter}
+                    onChangeFilterType={this.onChangeFilterType} />
             );
         };
 
@@ -224,10 +232,10 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         );
     };
 
-    onFilterTypeChange = (e: React.BaseSyntheticEvent) => {
-        const newFilterType = parseInt(e.currentTarget.getAttribute("data-filter-type"));
+    onFilterRangeChange = (e: React.BaseSyntheticEvent) => {
+        const newFilterRange = parseInt(e.currentTarget.getAttribute("data-filter-range"));
         this.setState({
-            filterType: newFilterType,
+            filterRange: newFilterRange,
             cachedFilterSelection: undefined,
             cachedForeignTableFKIndex: -1,
             filters: [],
@@ -235,15 +243,22 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         });
     }
 
-    filterTypeRadioButtons = () => {
+    onChangeFilterType = (e: React.BaseSyntheticEvent) => {
+        const newFilterTypeIndex = parseInt(e.currentTarget.getAttribute("data-filter-range-id"));
+        this.setState({
+            cachedFilterType: FilterType.getAllFilterTypes()[newFilterTypeIndex]
+        });
+    }
+
+    filterRangeRadioButtons = () => {
         return (
             <div className="btn-group" role="group" aria-label="Filter type selection button group">
                 <input type="radio" className="btn-check" name="btnradio" id="filter-type-selection" autoComplete="off"
-                    data-filter-type={0} defaultChecked={this.state.filterType === 0} onChange={this.onFilterTypeChange} />
+                    data-filter-range={0} defaultChecked={this.state.filterRange === 0} onChange={this.onFilterRangeChange} />
                 <label className="btn btn-outline-primary" htmlFor="filter-type-selection">Filter query</label>
 
                 <input type="radio" className="btn-check" name="btnradio" id="filter-type-dataset" autoComplete="off"
-                    data-filter-type={1} defaultChecked={this.state.filterType === 1} onChange={this.onFilterTypeChange} />
+                    data-filter-range={1} defaultChecked={this.state.filterRange === 1} onChange={this.onFilterRangeChange} />
                 <label className="btn btn-outline-primary" htmlFor="filter-type-dataset">Filter dataset</label>
             </div>
         );
@@ -265,8 +280,10 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 <FilterSelector 
                     filter={this.state.cachedFilterSelection} 
                     cachedFilterValueRef={this.cachedFilterValueRef} 
+                    cachedFilterType={this.state.cachedFilterType}
                     changedCondition={this.changedCondition}
-                    onConfirmCachedFilter={this.onConfirmCachedFilter} />
+                    onConfirmCachedFilter={this.onConfirmCachedFilter}
+                    onChangeFilterType={this.onChangeFilterType} />
             </div>
         )
     }
@@ -378,6 +395,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 </div>
                 <div className="col-6">
                     {this.state.cachedFilterSelection ? this.filterFormElem() : null}
+                    {this.state.filters.length > 0 ? JSON.stringify(this.state.filters) : null}
                 </div>
             </div>
         );
@@ -408,10 +426,10 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
     tableAttributeListHandler = () => {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
         if (dbSchemaContext.selectedFirstTableIndex >= 0) {
-            if (this.state.filterType === 0) {
+            if (this.state.filterRange === 0) {
                 // Render the relation vis for the entire table
                 return this.getTableRelationVis(dbSchemaContext, dbSchemaContext.selectedFirstTableIndex);
-            } else if (this.state.filterType === 1) {
+            } else if (this.state.filterRange === 1) {
                 // Render the relation vis for the (potentially-retrieved) dataset
                 const contextData = dbSchemaContext.data;
                 if (contextData && contextData.length > 0) {
@@ -527,7 +545,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
 
-        if (this.state.filterType === 1) {
+        if (this.state.filterRange === 1) {
             const contextData = dbSchemaContext.data;
             if (this.state.cachedFilterSelection !== undefined && this.state.cachedFilterSelection.tableIndex !== undefined) {
                 const thisTable = dbSchemaContext.allEntitiesList[this.state.cachedFilterSelection.tableIndex]
@@ -567,7 +585,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                             </button>
                         </div>
                         <div className="modal-body">
-                            {this.filterTypeRadioButtons()}
+                            {this.filterRangeRadioButtons()}
                             {this.tableAttributeListHandler()}
                         </div>
                         <div className="modal-footer">
