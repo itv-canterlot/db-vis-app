@@ -265,27 +265,41 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
     }
 
     filterDataByAttribute = (data: object[], attr: Attribute) => {
+        let filteredData;
+
         const dataFilteredByAtt = data.filter(d => d[attr.attname] !== undefined && d[attr.attname] !== null)
             .map(d => d[attr.attname]);
+        const attrName = attr.attname;
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+
+        // Apply filter to objects
         if (this.state.filters && this.state.filters) {
-            return dataFilteredByAtt.filter(d => {
+            filteredData = data.filter(d => {
                 return this.state.filters.every(filter => {
+                    const filterAtt = dbSchemaContext.allEntitiesList[filter.tableIndex].attr[filter.attNum - 1];
                     let param = {
-                        baseVal: parseFloat(d),
+                        baseVal: parseFloat(d[filterAtt.attname]),
                         std: undefined,
                         mean: undefined
                     };
+
                     if (filter.condition.filterType === FilterType.STD) {
-                        param.std = getStandardDeviation(dataFilteredByAtt);
-                        param.mean = getAverage(dataFilteredByAtt);
+                        const thisFilterRelatedData =  data.filter(d => d[filterAtt.attname] !== undefined && d[filterAtt.attname] !== null)
+                        .map(d => d[filterAtt.attname]);
+
+                        param.std = getStandardDeviation(thisFilterRelatedData);
+                        param.mean = getAverage(thisFilterRelatedData);
                     }
                     
                     return FilterConditions.computeFilterCondition(param, filter)
                 })
             })
         } else {
-            return dataFilteredByAtt;
+            filteredData = data;
         }
+
+        return filteredData.filter(d => d[attr.attname] !== undefined && d[attr.attname] !== null)
+            .map(d => d[attr.attname]);
     }
 
     getDataExtremes = (data: any) => {
@@ -543,7 +557,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         svg.append("g")
             .call(yAxis);
 
-        let xmean = d3.mean(filteredData, (d) => d);
+        let xmean = d3.mean(filteredData, (d: number) => d);
 
         svg.append("line")
             .attr("class", "line")
