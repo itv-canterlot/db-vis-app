@@ -15,6 +15,7 @@ import { StartingTableSelectModal } from "./StartingTableSelectModal";
 
 import "../styles/app.scss"
 import { FilterSelectModal } from './FilterSelectModal';
+import { filterDataByFilters } from './DatasetUtils';
 
 let visSchema: VisSchema[] = [];
 
@@ -272,6 +273,12 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     onFilterChange = (filters: Filter[]) => {
         this.setState({
             filters: filters
+        }, () => {
+            const filteredData = filterDataByFilters(this.state.data, this.getProviderValues(), this.state.filters);
+            let selectedEntity = this.state.allEntitiesList[this.state.selectedFirstTableIndex];
+            let entityRel = SchemaParser.getRelationsInListByName(this.state.relationsList, selectedEntity.tableName);
+            
+            console.log(matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema, filteredData.length));
         });
     }
 
@@ -281,8 +288,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         this.getTableMetadata();
     }
 
-    render() {
-        const providerValues: DBSchemaContextInterface = {
+    getProviderValues = (): DBSchemaContextInterface => {
+        return {
             allEntitiesList: this.state.allEntitiesList, 
             relationsList: this.state.relationsList,
             data: this.state.data,
@@ -294,6 +301,10 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             selectedFirstTableIndex: this.state.selectedFirstTableIndex,
             selectedAttributesIndices: this.state.rendererSelectedAttributes
         };
+    }
+
+    render() {
+        const providerValues = this.getProviderValues();
 
         return (
             <DBSchemaContext.Provider value={providerValues}>
