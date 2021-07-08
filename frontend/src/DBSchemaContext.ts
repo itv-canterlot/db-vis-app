@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { PatternMatchAttribute, PatternMatchResult, RelationNode, Table, VisSchema } from './ts/types';
+import { Filter, PatternMatchAttribute, PatternMatchResult, RelationNode, Table, VisSchema } from './ts/types';
 
 export interface DBSchemaContextInterface {
     allEntitiesList: Table[],
     data: object[],
+    filters: Filter[],
     dataLoaded: boolean
     relationsList: RelationNode[],
     visSchema: VisSchema[],
@@ -17,6 +18,7 @@ export const DBSchemaContext = React.createContext<DBSchemaContextInterface>({
     allEntitiesList: [],
     data: [],
     dataLoaded: false,
+    filters: [],
     relationsList: [],
     visSchema: [],
     visSchemaMatchStatus: [],

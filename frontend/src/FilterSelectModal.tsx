@@ -8,6 +8,7 @@ import { renderTips } from './ModalPublicElements';
 import * as d3 from 'd3';
 import { FilterSelector } from './FilterSelector';
 import * as FilterConditions from './ts/FilterConditions';
+import * as DatasetUtils from './DatasetUtils';
 
 export class FilterSelectModal extends React.Component<FilterSelectModalProps, FilterSelectModalStates> {
     cachedFilterValueRef: React.RefObject<HTMLInputElement>;
@@ -17,7 +18,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         this.state = {
             cachedFilterSelection: undefined,
             cachedFilterType: FilterType.getAllFilterTypes()[0],
-            filters: [],
+            cachedFiltersList: [],
             cachedForeignTableSelected: -1,
             filterRange: 0
         };
@@ -28,6 +29,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
     modalComponent: bootstrap.Modal = undefined;
 
     onFilterSelectionConfirm = (e) => {
+        this.props.onFilterChange(this.state.cachedFiltersList);
         if (this.modalComponent) {
             this.modalComponent.hide();
         }
@@ -121,7 +123,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             return val !== "";
         })) {
             this.setState({
-                filters: [...this.state.filters, cachedFilter]
+                cachedFiltersList: [...this.state.cachedFiltersList, cachedFilter]
             }, () => {
                 if (this.state.cachedForeignTableFKIndex) {
                     this.setNewCachedFilterOnBaseTable(
@@ -132,7 +134,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 // Retrieve data (TODO: simplify this)
                 const dbSchemaContext: DBSchemaContextInterface = this.context;
                 const thisTable = dbSchemaContext.allEntitiesList[dbSchemaContext.selectedFirstTableIndex];
-                getFilteredData(thisTable, dbSchemaContext.allEntitiesList, this.state.filters);
+                getFilteredData(thisTable, dbSchemaContext.allEntitiesList, this.state.cachedFiltersList);
             });
         }
     };
@@ -218,7 +220,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         };
 
         const savedFilters = () => {
-            const filters = this.state.filters;
+            const filters = this.state.cachedFiltersList;
             if (!filters || filters.length === 0) {
                 return null;
             }
@@ -254,7 +256,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             filterRange: newFilterRange,
             cachedFilterSelection: undefined,
             cachedForeignTableFKIndex: -1,
-            filters: [],
+            cachedFiltersList: [],
             cachedForeignTableSelected: -1
         });
     }
@@ -278,48 +280,6 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 <label className="btn btn-outline-primary" htmlFor="filter-type-dataset">Filter dataset</label>
             </div>
         );
-    }
-
-    filterDataByAttribute = (data: object[], attr: Attribute) => {
-        let filteredData;
-
-        const dataFilteredByAtt = data.filter(d => d[attr.attname] !== undefined && d[attr.attname] !== null)
-            .map(d => d[attr.attname]);
-        const attrName = attr.attname;
-        const dbSchemaContext: DBSchemaContextInterface = this.context;
-
-        // Apply filter to objects
-        if (this.state.filters && this.state.filters) {
-            filteredData = data.filter(d => {
-                return this.state.filters.every(filter => {
-                    const filterAtt = dbSchemaContext.allEntitiesList[filter.tableIndex].attr[filter.attNum - 1];
-                    let param = {
-                        baseVal: parseFloat(d[filterAtt.attname]),
-                        std: undefined,
-                        mean: undefined
-                    };
-
-                    if (filter.condition.filterType === FilterType.STD) {
-                        const thisFilterRelatedData =  data.filter(d => d[filterAtt.attname] !== undefined && d[filterAtt.attname] !== null)
-                        .map(d => d[filterAtt.attname]);
-
-                        param.std = getStandardDeviation(thisFilterRelatedData);
-                        param.mean = getAverage(thisFilterRelatedData);
-                    }
-                    
-                    return FilterConditions.computeFilterCondition(param, filter)
-                })
-            })
-        } else {
-            filteredData = data;
-        }
-
-        return filteredData.filter(d => d[attr.attname] !== undefined && d[attr.attname] !== null)
-            .map(d => d[attr.attname]);
-    }
-
-    getDataExtremes = (data: any) => {
-        return [Math.min(...data), Math.max(...data)]
     }
 
     filterFormElem = () => {
@@ -348,7 +308,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         if (this.state.cachedFilterSelection) {
             thisTable = dbSchemaContext.allEntitiesList[this.state.cachedFilterSelection.tableIndex]
             thisAttr = thisTable.attr[this.state.cachedFilterSelection.attNum - 1];
-            dataFiltered = this.filterDataByAttribute(contextData, thisAttr);
+            dataFiltered = DatasetUtils.filterDataByAttribute(contextData, dbSchemaContext, thisAttr, this.state.cachedFiltersList, true);
         }
 
         if (contextData) {
@@ -388,10 +348,10 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 meanStd = (
                     <div className="text-center">
                         <div>
-                            μ = <strong>{getAverage(dataFiltered).toFixed(2)}</strong>
+                            μ = <strong>{DatasetUtils.getAverage(dataFiltered).toFixed(2)}</strong>
                         </div>
                         <div>
-                            σ = <strong>{getStandardDeviation(dataFiltered).toFixed(2)}</strong>
+                            σ = <strong>{DatasetUtils.getStandardDeviation(dataFiltered).toFixed(2)}</strong>
                         </div>
                     </div>
                 )
@@ -444,7 +404,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 </div>
                 <div className="col-6">
                     {this.state.cachedFilterSelection ? this.filterFormElem() : null}
-                    {this.state.filters.length > 0 ? JSON.stringify(this.state.filters) : null}
+                    {this.state.cachedFiltersList.length > 0 ? JSON.stringify(this.state.cachedFiltersList) : null}
                 </div>
             </div>
         );
@@ -504,12 +464,13 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
     }
 
     renderDataDistributionChart = (data: object[], attr: Attribute) => {
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
         var margin = ({top: 20, right: 20, bottom: 30, left: 40}),
         width = 500 - margin.left - margin.right,
         height = 300 - margin.top - margin.bottom, 
         color = "steelblue";
 
-        const filteredData = this.filterDataByAttribute(data, attr).map(d => parseFloat(d))
+        const filteredData = DatasetUtils.filterDataByAttribute(data, dbSchemaContext, attr, this.state.cachedFiltersList).map(d => parseFloat(d), true)
         const n_bins = d3.thresholdSturges(filteredData);
 
         let bins = d3.bin().thresholds(n_bins)(filteredData);
@@ -638,7 +599,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                             {this.tableAttributeListHandler()}
                         </div>
                         <div className="modal-footer">
-                            <button type="button" className={"btn btn-primary" + (this.state.filters.length === 0 ? " disabled" : "")} onClick={this.onFilterSelectionConfirm}>Confirm</button>
+                            <button type="button" className={"btn btn-primary" + (this.state.cachedFiltersList.length === 0 ? " disabled" : "")} onClick={this.onFilterSelectionConfirm}>Confirm</button>
                             <button type="button" className="btn btn-secondary" onClick={this.handleOnClose}>Cancel</button>
                         </div>
                     </div>
@@ -648,20 +609,3 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
     }
 }
 FilterSelectModal.contextType = DBSchemaContext;
-
-
-// Helper function
-const getStandardDeviation = (array) => {
-    if (array.length === 0) return NaN;
-    const n = array.length
-    const arrayToNums = array.map(a => parseFloat(a));
-    const mean = arrayToNums.reduce((a, b) => a + b) / n
-    return Math.sqrt(arrayToNums.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n)
-  }
-
-const getAverage = (arr) => {
-    if (arr.length === 0) return NaN;
-    return arr
-        .map(e => parseFloat(e))
-        .reduce( ( p, c ) => p + c, 0 ) / arr.length;
-}

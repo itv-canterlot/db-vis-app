@@ -1,7 +1,7 @@
 import * as React from 'react';
 import ReactDOM = require('react-dom');
 
-import { PatternMatchResult, VisSchema } from './ts/types'
+import { Filter, PatternMatchResult, VisSchema } from './ts/types'
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { AppMainCont } from './AppMainCont';
 
@@ -24,6 +24,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
         this.state = {
             allEntitiesList: [],
+            filters: [],
             selectedFirstTableIndex: -1,
             selectedPatternIndex: -1,
             rendererSelectedAttributes: [[], []],
@@ -268,6 +269,12 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         })
     }
 
+    onFilterChange = (filters: Filter[]) => {
+        this.setState({
+            filters: filters
+        });
+    }
+
     async componentDidMount() {
         // Can even do some loading screen stuff here
         readVisSchemaJSON();
@@ -280,6 +287,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             relationsList: this.state.relationsList,
             data: this.state.data,
             dataLoaded: this.state.dataLoaded,
+            filters: this.state.filters,
             visSchemaMatchStatus: this.state.visSchemaMatchStatus,
             visSchema: visSchema,
             selectedPatternIndex: this.state.selectedPatternIndex,
@@ -295,7 +303,9 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     : null}
                 {this.state.showFilterSelectModal ? 
                     <FilterSelectModal 
-                        onClose={this.onCloseShowFilterSelectModal} /> 
+                        onClose={this.onCloseShowFilterSelectModal}
+                        filters={this.state.filters}
+                        onFilterChange={this.onFilterChange} /> 
                     : null}
                 <div className="row" id="app-wrapper">
                     <AppSidebar 

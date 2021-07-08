@@ -6,6 +6,7 @@ import { getDataByMatchAttrs } from './Connections'
 
 import visTemplates from './visTemplates';
 import { VisualiserProps, VisualiserStates } from './ts/components';
+import { filterDataByFilters } from './DatasetUtils';
 
 export class Visualiser extends React.Component<VisualiserProps, VisualiserStates> {
     constructor(props) {
@@ -53,13 +54,101 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
             return;
         }
         
-        renderVisualisation(selectedPatternTemplateCode, context.data, attributeNames);
+        renderVisualisation(selectedPatternTemplateCode, filterDataByFilters(context.data, context, context.filters), attributeNames);
         this.setState({
             renderFailed: false,
             renderedAttributesIndices: context.selectedAttributesIndices,
             renderedTableIndex: context.selectedFirstTableIndex,
-            renderedVisSchemaIndex: selectedPattern
+            renderedVisSchemaIndex: selectedPattern,
+            renderedFilters: context.filters
         })
+    }
+
+    areFiltersChanged = () => {
+        let context: DBSchemaContextInterface = this.context;
+        const contextFilters = context.filters,
+              stateFilters = this.state.renderedFilters;
+
+        if (contextFilters && stateFilters) {
+            // If both filter sets exist...
+            if (contextFilters.length === stateFilters.length) {
+                for (let x = 0; x < contextFilters.length; x++) {
+                    // Compare objects?
+                    if (contextFilters[x] !== stateFilters[x]) {
+                        return true;
+                    }
+                }
+
+                // All filters identical
+                return false;
+            } else {
+                return true;
+            }
+
+        } else {
+            return contextFilters !== stateFilters;
+        }     
+    }
+
+    isAllAttributeSetChanged = () => {
+        // Check if the possible attribute set to be rendered has changed
+        let context: DBSchemaContextInterface = this.context;
+
+        if (context.selectedAttributesIndices.length !== this.state.renderedAttributesIndices.length) {
+            return true;
+        }
+
+        for (let x = 0; x < context.selectedAttributesIndices.length; x++) {
+            const newAttSet = context.selectedAttributesIndices[x];
+            const oldAttSet = this.state.renderedAttributesIndices[x];
+            
+            if (newAttSet.length === oldAttSet.length) {
+                for (let y = 0; y < newAttSet.length; y++) {
+                    if (newAttSet[y] !== oldAttSet[y]) {
+                        return true;
+                    }
+                }
+            } else {
+                return true;
+            };
+        }
+
+        return false;
+    }
+
+    renderStateDidChange = () => {
+        let context: DBSchemaContextInterface = this.context;
+        if (context.dataLoaded) {
+            // Data load status check
+            if (context.selectedPatternIndex === this.state.renderedVisSchemaIndex) {
+                // Pattern selection unchanged
+                if (context.selectedFirstTableIndex === this.state.renderedTableIndex) {
+                    // Table selection unchanged
+                    let allAttributeSetChanged = this.isAllAttributeSetChanged();
+                    
+                    if (allAttributeSetChanged) {
+                        if (context.allEntitiesList !== undefined && context.allEntitiesList.length !== 0) {
+                            // If the entity list is loaded
+                            // If no table is selected, do not render
+                            return context.selectedFirstTableIndex >= 0;
+                        } else {
+                            // Entity list not loaded, do not render
+                            return false;
+                        }
+                    } else {
+                        // Attribute set unchanged
+                        // Rerender if filter set is changed
+                        return this.areFiltersChanged();
+                    }
+                } else {
+                    return true;
+                }
+            } else {
+                return true;
+            }
+        } else {
+            return true;
+        }
     }
 
     componentDidMount() {
@@ -76,39 +165,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
         console.log("Vis component update")
         let context: DBSchemaContextInterface = this.context;
         if (this.state) {
-            if (context.dataLoaded) {
-                // this.visualisationHandler();
-                if (context.selectedPatternIndex === this.state.renderedVisSchemaIndex) {
-                    if (context.selectedFirstTableIndex === this.state.renderedTableIndex) {
-                        let allAttributeSetMatched = true;
-                        for (let x = 0; x < context.selectedAttributesIndices.length; x++) {
-                            const newAttSet = context.selectedAttributesIndices[x];
-                            const oldAttSet = this.state.renderedAttributesIndices[x];
-                            
-                            if (newAttSet.length === oldAttSet.length) {
-                                for (let y = 0; y < newAttSet.length; y++) {
-                                    if (newAttSet[y] !== oldAttSet[y]) {
-                                        allAttributeSetMatched = false;
-                                        break;
-                                    }
-                                }
-                            } else allAttributeSetMatched = false;
-                        }
-            
-                        if (!allAttributeSetMatched) {
-                            if (context.allEntitiesList !== undefined && context.allEntitiesList.length !== 0) {
-                                if (context.selectedFirstTableIndex < 0) return;
-                    
-                                this.visualisationHandler();
-                            }
-                        }
-                    } else {
-                        this.visualisationHandler();
-                    }
-                } else {
-                    this.visualisationHandler();
-                }
-            } else {
+            if (this.renderStateDidChange()) {
                 this.visualisationHandler();
             }
         }

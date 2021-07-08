@@ -53,6 +53,7 @@ export type ApplicationStates = {
     allEntitiesList?: Table[],
     data?: object[],
     dataLoaded?: boolean,
+    filters?: Filter[],
     relationsList?: RelationNode[],
     selectedFirstTableIndex?: number,
     selectedPatternIndex?: number,
@@ -92,13 +93,15 @@ export type StartingTableSelectModalStates = {
 }
 
 export type FilterSelectModalProps = {
-    onClose: Function
+    filters: Filter[]
+    onClose: Function,
+    onFilterChange: Function,
 }
 
 export type FilterSelectModalStates = {
     cachedFilterSelection?: Filter,
+    cachedFiltersList?: Filter[],
     cachedFilterType?: FilterType,
-    filters?: Filter[],
     cachedForeignTableSelected?: number,
     cachedForeignTableFKIndex?: number,
     filterRange?: number
@@ -141,6 +144,7 @@ export type VisualiserStates = {
     renderedTableIndex?: number,
     renderedAttributesIndices?: PatternMatchAttribute[][],
     renderedVisSchemaIndex?: number,
+    renderedFilters?: Filter[],
     renderFailed: boolean,
 }
 
