@@ -51,12 +51,14 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             fkTableSelected = dbSchemaContext.allEntitiesList.find(table => table.tableName === fk.pkTableName);
         }
 
+        const currentlyCachedFilter = this.state.cachedFilterSelection;
+
         this.setState({
             cachedFilterSelection: fkTableSelected ?
                 undefined : {
                     tableIndex: tableIdx,
                     attNum: attNum,
-                    condition: undefined,
+                    condition: currentlyCachedFilter ? currentlyCachedFilter.condition : undefined,
                     value: undefined
                 },
             cachedForeignTableFKIndex: fkTableSelected ? fkIndex : -1,
