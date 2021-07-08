@@ -520,7 +520,17 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
 
         let xAxis = g => g
             .attr("transform", `translate(0,${height - margin.bottom})`)
-            .call(d3.axisBottom(x).ticks(n_bins).tickSizeOuter(0))
+            .call(d3.axisBottom(x)
+                .ticks(n_bins)
+                .tickSizeOuter(0)
+                .tickFormat((d, i) => {
+                    if (Math.abs(d.valueOf()) >= 10000) {
+                        return d3.format(".1e")(d);
+                    } else if (Math.abs(d.valueOf()) < 0.001) {
+                        return d3.format(".1e")(d);
+                    }
+                    return d3.format("")(d);
+                }))
             .call(g => g.append("text")
                 .attr("x", width - margin.right)
                 .attr("y", -4)
