@@ -5,7 +5,6 @@ import { Table, FilterCondition, Attribute, PatternMatchAttribute, FilterType } 
 import { FilterSelectModalProps, FilterSelectModalStates } from './ts/components';
 import { getFilteredData } from './Connections';
 import { renderTips } from './ModalPublicElements';
-import { isAttributeScalar } from './TypeConstants';
 import * as d3 from 'd3';
 import { FilterSelector } from './FilterSelector';
 import * as FilterConditions from './ts/FilterConditions';
@@ -29,7 +28,6 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
     modalComponent: bootstrap.Modal = undefined;
 
     onFilterSelectionConfirm = (e) => {
-        // this.props.onTableSelectChange(this.state.cachedSelectedIndex);
         if (this.modalComponent) {
             this.modalComponent.hide();
         }
@@ -43,6 +41,42 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         this.props.onClose();
     };
 
+    setNewCachedFilterOnBaseTable = (tableIdx: number, attNum: number, fkIndex?: number) => {
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        let fkTableSelected: Table;
+        if (fkIndex !== undefined && fkIndex >= 0) {
+            const fk = dbSchemaContext.allEntitiesList[dbSchemaContext.selectedFirstTableIndex].fk[fkIndex];
+            fkTableSelected = dbSchemaContext.allEntitiesList.find(table => table.tableName === fk.pkTableName);
+        }
+
+        this.setState({
+            cachedFilterSelection: fkTableSelected ?
+                undefined : {
+                    tableIndex: tableIdx,
+                    attNum: attNum,
+                    condition: undefined,
+                    value: undefined
+                },
+            cachedForeignTableFKIndex: fkTableSelected ? fkIndex : -1,
+            cachedForeignTableSelected: fkTableSelected ? fkTableSelected.idx : -1
+        });
+    }
+
+    setNewCachedFilterOnForeignTable = (tableIdx: number, attNum: number) => {
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        const tableWithFk = dbSchemaContext.allEntitiesList[dbSchemaContext.selectedFirstTableIndex]; // TODO: other cases
+        const fk = tableWithFk.fk[this.state.cachedForeignTableFKIndex];
+        this.setState({
+            cachedFilterSelection: {
+                tableIndex: tableIdx,
+                attNum: attNum,
+                fk: fk,
+                condition: undefined,
+                value: undefined
+            },
+        });
+    }
+
     onTableAttributeClick = (e: React.BaseSyntheticEvent) => {
         const currentTarget = e.currentTarget;
         const dbSchemaContext: DBSchemaContextInterface = this.context;
@@ -50,46 +84,23 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             tableIdx = parseInt(currentTarget.getAttribute("data-table-idx")),
             attNum = parseInt(currentTarget.getAttribute("data-attnum"));
 
-        let fkIndex: number, fkTableSelected: Table;
         if (tableIdx === dbSchemaContext.selectedFirstTableIndex) {
             // Selected attribute is in the "base" table
             const foreignKeyAttElement = currentTarget.getElementsByClassName("att-to-fk");
+            let fkIndex: number;
+            
             if (foreignKeyAttElement && foreignKeyAttElement.length > 0) {
-                fkIndex = parseInt(foreignKeyAttElement[0].getAttribute("data-fk-id"));
-                if (fkIndex !== undefined) {
-                    const fk = dbSchemaContext.allEntitiesList[dbSchemaContext.selectedFirstTableIndex].fk[fkIndex];
-                    fkTableSelected = dbSchemaContext.allEntitiesList.find(table => table.tableName === fk.pkTableName);
-                }
+                fkIndex = parseInt(foreignKeyAttElement[0].getAttribute("data-fk-id")); // TODO: not the first index?
             }
-            this.setState({
-                cachedFilterSelection: fkTableSelected ?
-                    undefined : {
-                        tableIndex: tableIdx,
-                        attNum: attNum,
-                        condition: undefined,
-                        value: undefined
-                    },
-                cachedForeignTableFKIndex: fkTableSelected ? fkIndex : -1,
-                cachedForeignTableSelected: fkTableSelected ? fkTableSelected.idx : -1
-            });
+            this.setNewCachedFilterOnBaseTable(tableIdx, attNum, fkIndex);
+            
         } else {
             // Selected attribute is in the "foreign" table
-            const tableWithFk = dbSchemaContext.allEntitiesList[dbSchemaContext.selectedFirstTableIndex]; // TODO: other cases
-            const fk = tableWithFk.fk[this.state.cachedForeignTableFKIndex];
-            this.setState({
-                cachedFilterSelection: {
-                    tableIndex: tableIdx,
-                    attNum: attNum,
-                    fk: fk,
-                    condition: undefined,
-                    value: undefined
-                },
-            });
+            this.setNewCachedFilterOnForeignTable(tableIdx, attNum);
         }
-
     };
 
-    changedCondition = (cond: FilterCondition) => {
+    onFilterConditionChanged = (cond: FilterCondition) => {
         const cachedFilter = this.state.cachedFilterSelection;
         cachedFilter.condition = cond;
         this.setState({
@@ -110,9 +121,14 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             return val !== "";
         })) {
             this.setState({
-                cachedFilterSelection: cachedFilter,
                 filters: [...this.state.filters, cachedFilter]
             }, () => {
+                if (this.state.cachedForeignTableFKIndex) {
+                    this.setNewCachedFilterOnBaseTable(
+                        cachedFilter.tableIndex, cachedFilter.attNum, this.state.cachedForeignTableFKIndex);
+                } else {
+                    this.setNewCachedFilterOnBaseTable(cachedFilter.tableIndex, cachedFilter.attNum);
+                }
                 // Retrieve data (TODO: simplify this)
                 const dbSchemaContext: DBSchemaContextInterface = this.context;
                 const thisTable = dbSchemaContext.allEntitiesList[dbSchemaContext.selectedFirstTableIndex];
@@ -195,7 +211,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                     filter={this.state.cachedFilterSelection} 
                     cachedFilterValueRef={this.cachedFilterValueRef}
                     cachedFilterType={this.state.cachedFilterType}
-                    changedCondition={this.changedCondition}
+                    changedCondition={this.onFilterConditionChanged}
                     onConfirmCachedFilter={this.onConfirmCachedFilter}
                     onChangeFilterType={this.onChangeFilterType} />
             );
@@ -314,7 +330,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                     filter={this.state.cachedFilterSelection} 
                     cachedFilterValueRef={this.cachedFilterValueRef} 
                     cachedFilterType={this.state.cachedFilterType}
-                    changedCondition={this.changedCondition}
+                    changedCondition={this.onFilterConditionChanged}
                     onConfirmCachedFilter={this.onConfirmCachedFilter}
                     onChangeFilterType={this.onChangeFilterType} />
             </div>
