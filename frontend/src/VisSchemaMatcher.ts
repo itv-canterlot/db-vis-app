@@ -2,7 +2,7 @@ import * as SchemaParser from "./SchemaParser";
 import {Attribute, RelationNode, Table, VisKey, VisParam, VISPARAMTYPES, VisSchema, VISSCHEMATYPES, PatternMatchResult, PatternMatchAttribute, PatternMismatchReason, PATTERN_MISMATCH_REASON_TYPE} from "./ts/types";
 import * as TypeConstants from "./TypeConstants";
 
-const basicKeyConditionCheck = (table: Table, key: VisKey): PatternMismatchReason => {
+const basicKeyConditionCheck = (table: Table, key: VisKey, nPks?: number): PatternMismatchReason => {
     // Check if there *is* a key
     if (table.pk.columns.length < 1) {
         return {
@@ -12,7 +12,7 @@ const basicKeyConditionCheck = (table: Table, key: VisKey): PatternMismatchReaso
 
     const keyMinCount = key.minCount,
         keyMaxCount = key.maxCount,
-        tableKeyCount = table.pk.keyCount;
+        tableKeyCount = nPks ? nPks : table.pk.keyCount;
     // Count checks
     if (keyMaxCount) {
         if (tableKeyCount > keyMaxCount) {
@@ -182,12 +182,12 @@ const isRelationReflexive = (rel: RelationNode) => {
     return Object.values(reflexCounter).some(v => v >= 2);
 }
 
-export const matchTableWithAllVisPatterns = (table: Table, rels: RelationNode[], vss:VisSchema[]) => {
+export const matchTableWithAllVisPatterns = (table: Table, rels: RelationNode[], vss:VisSchema[], nKeys?: number) => {
     let out = [];
     // If the table is in a set, treat the set as a big table
     // getTablesWithinSet(rels, tablesWithinSet, relsWithoutSubset);
     vss.forEach((vs, idx) => {
-        const thisVisSchemaMatchResult = matchTableWithVisPattern(table, rels, vs)
+        const thisVisSchemaMatchResult = matchTableWithVisPattern(table, rels, vs, nKeys)
         if (thisVisSchemaMatchResult) {
             out.push(...thisVisSchemaMatchResult);
         } else {
@@ -198,14 +198,24 @@ export const matchTableWithAllVisPatterns = (table: Table, rels: RelationNode[],
     return out;
 }
 
+// export const matchFilteredDataWithAllVisPatterns = (data: Object[], attrs: PatternMatchAttribute[][], patternMatchResult: PatternMatchResult) => {
+//     // For the given dataset, find out which relation node the attributes reside on
+//     console.log(data);
+//     console.log(attrs);
+//     console.log(patternMatchResult.responsibleRelation);
+
+
+//     return undefined;
+// }
+
 const patternMatchSuccessful = (result: PatternMatchResult, vs: VisSchema) => {
     return result.mandatoryAttributes.every(ma => ma.length > 0);
 }
 
-const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSchema): PatternMatchResult[] => {
+const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSchema, nKeys?: number): PatternMatchResult[] => {
     if (!table.pk) return undefined; // Not suitable if there is no PK to use
 
-    const basicKeyConditionCheckResult = basicKeyConditionCheck(table, vs.localKey)
+    const basicKeyConditionCheckResult = basicKeyConditionCheck(table, vs.localKey, nKeys)
     if (basicKeyConditionCheckResult) {
         return [{
             vs: vs,

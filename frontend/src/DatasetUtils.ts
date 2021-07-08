@@ -2,7 +2,7 @@ import { Attribute, Filter, FilterType, FilterCondition } from "./ts/types";
 import { DBSchemaContextInterface } from "./DBSchemaContext"
 import * as FilterConditions from "./ts/FilterConditions";
 
-export const filterDataByFilters = (data: object[], dbSchemaContext: DBSchemaContextInterface, filters?: Filter[]) => {
+export const filterDataByFilters = (data: object[], dbSchemaContext: DBSchemaContextInterface, filters?: Filter[]): any[] => {
     let filteredData;
 
     if (filters) {
