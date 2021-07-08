@@ -3,34 +3,35 @@ import { Filter, FilterCondition, FilterType } from "./types";
 export const scalarConditions: FilterCondition[] = [
     {
         filterType: FilterType.SCALAR_COMPARISON,
-        friendlyName: "is equal to",
+        friendlyName: ["is equal to"],
         sqlCommand: "="
     }, {
         filterType: FilterType.SCALAR_COMPARISON,
-        friendlyName: "is not equal to",
+        friendlyName: ["is not equal to"],
         sqlCommand: "!="
     }, {
         filterType: FilterType.SCALAR_COMPARISON,
-        friendlyName: "is greater than",
+        friendlyName: ["is greater than"],
         sqlCommand: ">"
     }, {
         filterType: FilterType.SCALAR_COMPARISON,
-        friendlyName: "is less than",
+        friendlyName: ["is less than"],
         sqlCommand: "<"
     }, {
         filterType: FilterType.SCALAR_COMPARISON,
-        friendlyName: "is greater than or equal to",
+        friendlyName: ["is greater than or equal to"],
         sqlCommand: ">="
     }, {
         filterType: FilterType.SCALAR_COMPARISON,
-        friendlyName: "is less than or equal to",
+        friendlyName: ["is less than or equal to"],
         sqlCommand: "<="
     }
 ];
 
 export const stdRangeCondition: FilterCondition = {
     filterType: FilterType.STD,
-    friendlyName: "standard deviations"
+    friendlyName: ["is within", "standard deviation(s)"],
+    friendlyTextInfix: true
 }
 
 export const computeFilterCondition = (params: {[key: string]: number}, filter: Filter) => {

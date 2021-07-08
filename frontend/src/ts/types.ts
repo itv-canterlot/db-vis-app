@@ -223,7 +223,8 @@ export class FilterType {
 
 export type FilterCondition = {
     filterType: FilterType
-    friendlyName: string,
+    friendlyName: string[],
+    friendlyTextInfix?: boolean,
     sqlCommand?: string
 }
 

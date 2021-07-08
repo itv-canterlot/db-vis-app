@@ -29,7 +29,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
     modalComponent: bootstrap.Modal = undefined;
 
     onFilterSelectionConfirm = (e) => {
-        this.props.onFilterChange(this.state.cachedFiltersList);
+        this.props.onFilterChange([...this.props.filters, ...this.state.cachedFiltersList]);
         if (this.modalComponent) {
             this.modalComponent.hide();
         }
@@ -134,7 +134,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 // Retrieve data (TODO: simplify this)
                 const dbSchemaContext: DBSchemaContextInterface = this.context;
                 const thisTable = dbSchemaContext.allEntitiesList[dbSchemaContext.selectedFirstTableIndex];
-                getFilteredData(thisTable, dbSchemaContext.allEntitiesList, this.state.cachedFiltersList);
+                getFilteredData(thisTable, dbSchemaContext.allEntitiesList, [...this.props.filters, ...this.state.cachedFiltersList]);
             });
         }
     };
@@ -219,15 +219,6 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             );
         };
 
-        const savedFilters = () => {
-            const filters = this.state.cachedFiltersList;
-            if (!filters || filters.length === 0) {
-                return null;
-            }
-
-            return JSON.stringify(filters);
-        };
-
         return (
             <div className="row justify-content-center mt-4 mb-3">
                 <div className="col-4 mt-auto mb-auto">
@@ -244,7 +235,9 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 </div>
                 <div className="col-8 mt-auto mb-auto">
                     {cachedFilterElem()}
-                    {savedFilters()}
+                    <ul className="list-group">
+                        {this.currentFilterList()}
+                    </ul>
                 </div>
             </div>
         );
@@ -295,6 +288,40 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                     onChangeFilterType={this.onChangeFilterType} />
             </div>
         )
+    }
+
+    currentFilterList = () => {
+        const combinedList = [...this.props.filters, ...this.state.cachedFiltersList];
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        if (combinedList.length > 0) {
+            return combinedList.map((filter, idx) => {
+                const thisFilterTable = dbSchemaContext.allEntitiesList[filter.tableIndex];
+                const thisFilterAttribute = thisFilterTable.attr[filter.attNum - 1];
+                return (
+                <li className="list-group-item" key={idx}>
+                    <div className="type-tip bg-tip-grey">
+                        {filter.condition.filterType.toString()}
+                    </div>
+                    <div className="d-inline-flex">
+                        <div>{thisFilterTable.tableName}/{thisFilterAttribute.attname}</div>
+                        <div className="ms-1">
+                            {filter.condition.friendlyName[0]}
+                        </div>
+                        <div className="ms-1">
+                            {filter.value}
+                        </div>
+                        {
+                            filter.condition.friendlyTextInfix ? 
+                            <div className="ms-1">
+                                {filter.condition.friendlyName[1]}
+                            </div> : null
+                        }
+                    </div>
+                </li>);
+            });
+        } else {
+            return null;
+        }
     }
 
     datasetFilteringElement = () => {
@@ -404,7 +431,9 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 </div>
                 <div className="col-6">
                     {this.state.cachedFilterSelection ? this.filterFormElem() : null}
-                    {this.state.cachedFiltersList.length > 0 ? JSON.stringify(this.state.cachedFiltersList) : null}
+                    <ul className="list-group">
+                        {this.currentFilterList()}
+                    </ul>
                 </div>
             </div>
         );
@@ -470,7 +499,9 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         height = 300 - margin.top - margin.bottom, 
         color = "steelblue";
 
-        const filteredData = DatasetUtils.filterDataByAttribute(data, dbSchemaContext, attr, this.state.cachedFiltersList).map(d => parseFloat(d), true)
+        const combinedFilterList = [...this.props.filters, ...this.state.cachedFiltersList]
+
+        const filteredData = DatasetUtils.filterDataByAttribute(data, dbSchemaContext, attr, combinedFilterList).map(d => parseFloat(d), true)
         const n_bins = d3.thresholdSturges(filteredData);
 
         let bins = d3.bin().thresholds(n_bins)(filteredData);
@@ -584,6 +615,8 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
 
             return baseClassList;
         };
+
+        const combinedFilterList = [...this.props.filters, ...this.state.cachedFiltersList]
         return (
             <div className="modal fade d-block" role="dialog" id="starting-table-select-modal">
                 <div className="modal-dialog modal-dialog-centered" role="document" style={{ maxWidth: "80%" }}>
@@ -599,7 +632,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                             {this.tableAttributeListHandler()}
                         </div>
                         <div className="modal-footer">
-                            <button type="button" className={"btn btn-primary" + (this.state.cachedFiltersList.length === 0 ? " disabled" : "")} onClick={this.onFilterSelectionConfirm}>Confirm</button>
+                            <button type="button" className={"btn btn-primary" + (combinedFilterList.length === 0 ? " disabled" : "")} onClick={this.onFilterSelectionConfirm}>Confirm</button>
                             <button type="button" className="btn btn-secondary" onClick={this.handleOnClose}>Cancel</button>
                         </div>
                     </div>

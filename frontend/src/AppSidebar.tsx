@@ -200,12 +200,13 @@ export class AppSidebar extends React.Component<ComponentTypes.AppSidebarProps, 
                     <i className="fas fa-filter me-2" />Filter
                 </div>
             </div>);
+
     
         const filterDatasetBody = (
             <div className="row">
                 <div className="col overflow-ellipses overflow-hidden">
                     <strong>
-                        {context.selectedFirstTableIndex >= 0 ? "TODO" : <em>Not available</em>}
+                        {context.selectedFirstTableIndex >= 0 ? context.filters.length + (" filter(s) applied") : <em>Not available</em>}
                     </strong>
                 </div>
             </div>
