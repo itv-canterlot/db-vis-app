@@ -49,6 +49,17 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                 }
             }));
 
+        const firstTablePrimaryKeyNames = 
+            context.allEntitiesList[context.selectedFirstTableIndex]
+                .pk.columns.map(col => col.colName);
+
+        const params = {
+            attributeNames: attributeNames,
+            firstTablePrimaryKeyNames: firstTablePrimaryKeyNames,
+            xLogScale: true,
+            yLogScale: true
+        }
+
         if (!context.data || context.data.length === 0) {
             this.setState({
                 renderFailed: true,
@@ -61,7 +72,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
             return;
         }
         
-        renderVisualisation(selectedPatternTemplateCode, filterDataByFilters(context.data, context, context.filters), attributeNames);
+        renderVisualisation(selectedPatternTemplateCode, filterDataByFilters(context.data, context, context.filters), params);
         this.setState({
             renderFailed: false,
             renderedAttributesIndices: context.selectedAttributesIndices,
