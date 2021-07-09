@@ -212,7 +212,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
         this.setState({
             dataLoaded: false,
-            data: undefined
+            data: undefined,
+            filters: []
         }, () => {
             const {
                 visSchemaMatchStatus, 
