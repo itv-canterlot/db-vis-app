@@ -121,11 +121,29 @@ const getFkColsQueriesByRels = (rel: RelationNode, queryAttributeGroup: QueryAtt
         });
 }
 
-export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patternMatchResult: PatternMatchResult) {
+export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patternMatchResult: PatternMatchResult, filterMatchAttributes?: PatternMatchAttribute[]) {
     const [mandatoryAttrs, optionalAttrs] = attrs;
     const responsibleRelation = patternMatchResult.responsibleRelation;
+    let standaloneFilterAttribute: PatternMatchAttribute[] = [];
+    // For the filter match attributes, remove if any of the specified filter attributes are already in attrs
+    if (filterMatchAttributes) {
+        filterMatchAttributes.forEach(fma => {
+            const mandatoryAttrsMatchResult = mandatoryAttrs.some(ma => {
+                return ma && (ma.table.idx === fma.table.idx && ma.attributeIndex === fma.attributeIndex);
+            });
 
-    const allDefinedAttrs = [...mandatoryAttrs, ...optionalAttrs].filter(attr => attr !== undefined && attr !== null);
+            const optionalAttrsMatchResult = optionalAttrs.some(oa => {
+                return oa && (oa.table.idx === fma.table.idx && oa.attributeIndex === fma.attributeIndex);
+            })
+
+            if (!(mandatoryAttrsMatchResult || optionalAttrsMatchResult)) {
+                standaloneFilterAttribute.push(fma);
+            }
+        })
+    }
+
+
+    const allDefinedAttrs = [...mandatoryAttrs, ...optionalAttrs, ...standaloneFilterAttribute].filter(attr => attr !== undefined && attr !== null);
 
     // Find the foreign keys that links the selected attributes
     // First group the attributes by their table

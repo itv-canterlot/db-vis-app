@@ -2,7 +2,6 @@ import * as React from 'react';
 import * as d3 from 'd3';
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext'
 import { VisTemplateBuilder } from './ts/types'
-import { getDataByMatchAttrs } from './Connections'
 
 import visTemplates from './visTemplates';
 import { VisualiserProps, VisualiserStates } from './ts/components';
@@ -31,7 +30,11 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
 
         if (!patternMatchStatus || !patternMatchStatus.matched) {
             this.setState({
-                renderFailed: true
+                renderFailed: true,
+                renderedAttributesIndices: context.selectedAttributesIndices,
+                renderedTableIndex: context.selectedFirstTableIndex,
+                renderedVisSchemaIndex: selectedPattern,
+                renderedFilters: context.filters
             })
             renderEmptyChart();
             return;
@@ -48,7 +51,11 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
 
         if (!context.data || context.data.length === 0) {
             this.setState({
-                renderFailed: true
+                renderFailed: true,
+                renderedAttributesIndices: context.selectedAttributesIndices,
+                renderedTableIndex: context.selectedFirstTableIndex,
+                renderedVisSchemaIndex: selectedPattern,
+                renderedFilters: context.filters
             });
             renderEmptyChart();
             return;

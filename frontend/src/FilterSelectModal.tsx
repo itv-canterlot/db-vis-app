@@ -337,7 +337,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         if (this.state.cachedFilterSelection) {
             thisTable = dbSchemaContext.allEntitiesList[this.state.cachedFilterSelection.tableIndex]
             thisAttr = thisTable.attr[this.state.cachedFilterSelection.attNum - 1];
-            dataFiltered = DatasetUtils.filterDataByAttribute(contextData, dbSchemaContext, thisAttr, this.state.cachedFiltersList, true);
+            dataFiltered = DatasetUtils.filterDataByAttribute(contextData, dbSchemaContext, thisAttr, [...this.props.filters, ...this.state.cachedFiltersList], true);
         }
 
         if (contextData) {

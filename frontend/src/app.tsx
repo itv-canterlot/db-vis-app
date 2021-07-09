@@ -1,7 +1,7 @@
 import * as React from 'react';
 import ReactDOM = require('react-dom');
 
-import { Filter, PatternMatchResult, VisSchema } from './ts/types'
+import { Filter, PatternMatchAttribute, PatternMatchResult, VisSchema } from './ts/types'
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { AppMainCont } from './AppMainCont';
 
@@ -70,7 +70,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     }
 
 
-    getAllMatchableVisSchemaPatterns = (selectedFirstTableIndex) => {
+    getAllMatchableVisSchemaPatterns = (selectedFirstTableIndex: number, pkNum?: number, getFirstIndices?: boolean) => {
         // Break if not all the components had been initiated
         if (this.state.relationsList === undefined) return;
         if (visSchema === undefined) return;
@@ -79,13 +79,19 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         let selectedEntity = this.state.allEntitiesList[selectedFirstTableIndex];
         let entityRel = SchemaParser.getRelationsInListByName(this.state.relationsList, selectedEntity.tableName);
     
-        const matchStatusForAllSchema: PatternMatchResult[] = matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema);
+        const matchStatusForAllSchema: PatternMatchResult[] = matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema, pkNum);
+
+        if (!getFirstIndices) return {
+            visSchemaMatchStatus: matchStatusForAllSchema,
+            selectedPatternIndex: undefined,
+            rendererSelectedAttributes: undefined
+        };;
+        
         const firstValidPatternIndex = matchStatusForAllSchema.findIndex(res => this.isPatternMatchResultValid(res));
         if (!firstValidPatternIndex) return;
 
         // Find the first pattern-matching result that resulted in a match
         const firstValidPatternMatchStatus: PatternMatchResult = matchStatusForAllSchema[firstValidPatternIndex];
-        console.log(firstValidPatternIndex)
         if (!firstValidPatternMatchStatus) return;
         
         const mandatoryParamInitIndices = firstValidPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {
@@ -150,7 +156,9 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
             Connections.getDataByMatchAttrs(
                 newParamAttrs, 
-                this.state.visSchemaMatchStatus[newIndex]).then(getDataCallback.bind(this))
+                this.state.visSchemaMatchStatus[newIndex],
+                this.getFilterMappedPMAttributes(this.state.filters))
+                    .then(getDataCallback.bind(this))
         })
 
     }
@@ -186,7 +194,10 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     rendererSelectedAttributes: newAttsObject
                 });
             }
-            Connections.getDataByMatchAttrs(newAttsObject, this.state.visSchemaMatchStatus[this.state.selectedPatternIndex]).then(getDataCallback.bind(this))
+            Connections.getDataByMatchAttrs(newAttsObject, 
+                this.state.visSchemaMatchStatus[this.state.selectedPatternIndex], 
+                this.getFilterMappedPMAttributes(this.state.filters))
+                .then(getDataCallback.bind(this))
         })
     }
 
@@ -218,7 +229,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             const {
                 visSchemaMatchStatus, 
                 selectedPatternIndex, 
-                rendererSelectedAttributes} = this.getAllMatchableVisSchemaPatterns(tableIndex);
+                rendererSelectedAttributes} = this.getAllMatchableVisSchemaPatterns(tableIndex, undefined, true);
 
             const getDataCallback = (data: object[]) => {
                 this.setState({
@@ -232,7 +243,11 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 });
             }
 
-            Connections.getDataByMatchAttrs(rendererSelectedAttributes, visSchemaMatchStatus[selectedPatternIndex]).then(getDataCallback.bind(this));
+            Connections.getDataByMatchAttrs(
+                rendererSelectedAttributes, 
+                visSchemaMatchStatus[selectedPatternIndex],
+                this.getFilterMappedPMAttributes(this.state.filters))
+                    .then(getDataCallback.bind(this));
         })
     }
 
@@ -265,6 +280,16 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         });
     }
 
+    getFilterMappedPMAttributes = (filters: Filter[]): PatternMatchAttribute[] => {
+        if (!filters) return [];
+        return filters.map(filter => {
+            return {
+                table: this.state.allEntitiesList[filter.tableIndex],
+                attributeIndex: filter.attNum - 1
+            }
+        });
+    }
+
     onDataChange = (data) => {
         this.setState({
             data: data
@@ -276,10 +301,24 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             filters: filters
         }, () => {
             const filteredData = filterDataByFilters(this.state.data, this.getProviderValues(), this.state.filters);
-            let selectedEntity = this.state.allEntitiesList[this.state.selectedFirstTableIndex];
-            let entityRel = SchemaParser.getRelationsInListByName(this.state.relationsList, selectedEntity.tableName);
-            
-            console.log(matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema, filteredData.length));
+
+            const {
+                visSchemaMatchStatus, 
+                selectedPatternIndex, 
+                rendererSelectedAttributes} = this.getAllMatchableVisSchemaPatterns(this.state.selectedFirstTableIndex, filteredData.length, false);
+
+            const getDataCallback = (data: object[]) => {
+                this.setState({
+                    data: data,
+                    visSchemaMatchStatus: visSchemaMatchStatus,
+                });
+            }
+
+            Connections.getDataByMatchAttrs(
+                this.state.rendererSelectedAttributes, 
+                visSchemaMatchStatus[this.state.selectedPatternIndex], 
+                this.getFilterMappedPMAttributes(filters))
+                    .then(getDataCallback.bind(this));
         });
     }
 

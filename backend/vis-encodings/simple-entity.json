@@ -53,7 +53,8 @@
                 {
                     "scalar": true
                 }
-            ]
+            ],
+            "template": "bar"
         }, {
             "name": "Calendar",
             "type": 0,
