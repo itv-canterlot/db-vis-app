@@ -11,7 +11,9 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
     constructor(props) {
         super(props);
         this.state = {
-            renderFailed: false
+            renderFailed: false,
+            axisScales: {
+            }
         }
     }
 
@@ -169,6 +171,23 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
         }
     }
 
+    onAxisScaleChange = (e: React.BaseSyntheticEvent) => {
+        const currentTarget = e.currentTarget;
+        const attIndex = currentTarget.getAttribute("data-att-index");
+        const isLog = currentTarget.getAttribute("data-is-log");
+
+        let axisScales = this.state.axisScales;
+        if (isLog === "true") {
+            axisScales[attIndex] = true;
+        } else if (isLog === "false") {
+            axisScales[attIndex] = false;
+        }
+
+        this.setState({
+            axisScales: axisScales
+        })
+    }
+
     componentDidMount() {
         let context: DBSchemaContextInterface = this.context;
         if (context.allEntitiesList !== undefined && context.allEntitiesList.length !== 0) {
@@ -181,6 +200,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
     
     componentDidUpdate() {
         console.log("Vis component update")
+        console.log(this.state.axisScales)
         let context: DBSchemaContextInterface = this.context;
         if (this.state) {
             if (this.renderStateDidChange()) {
@@ -193,6 +213,15 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
         return (
             <div className="row" id="main-vis-cont">
                 <div className="col">
+                    <div className="btn-group btn-group-sm" id="a1-scale-btn-group" role="group" aria-label="Axis log scale radio buttons">
+                        <input type="radio" className="btn-check" name="btnradio" id="btnradio1" autoComplete="off"
+                            data-att-index="a1" data-is-log={false} onChange={this.onAxisScaleChange} />
+                        <label className="btn btn-outline-primary" htmlFor="btnradio1">Linear scale</label>
+
+                        <input type="radio" className="btn-check" name="btnradio" id="btnradio2" autoComplete="off" 
+                            data-att-index="a1" data-is-log={true}  onChange={this.onAxisScaleChange}/>
+                        <label className="btn btn-outline-primary" htmlFor="btnradio2">Log scale</label>
+                    </div>
                     <div id="graph-cont">
                     </div>
                 {/* {this.filterButton()} */}

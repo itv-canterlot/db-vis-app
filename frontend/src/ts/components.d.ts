@@ -146,6 +146,7 @@ export type VisualiserStates = {
     renderedVisSchemaIndex?: number,
     renderedFilters?: Filter[],
     renderFailed: boolean,
+    axisScales?: object
 }
 
 /* FilterSelector.tsx */
