@@ -1,4 +1,5 @@
 
+import { DBSchemaContextInterface } from "./DBSchemaContext";
 import { Filter, ForeignKey, PatternMatchAttribute, PatternMatchResult, Query, QueryAttribute, QueryAttributeGroup, QueryForeignKeys, RelationNode, Table, VISSCHEMATYPES } from "./ts/types";
 
 export const getAllTableMetadata = () => {
@@ -65,7 +66,7 @@ export async function getDataFromSingleTableByName(tableName:string, columnNames
     });
 }
 
-const mapTablePublicKeyColumnsToQuery = (table: Table) => {
+const mapTablePrimaryKeyColumnsToQuery = (table: Table) => {
     return table.pk.columns
         .map(col => {
             return {
@@ -76,12 +77,12 @@ const mapTablePublicKeyColumnsToQuery = (table: Table) => {
 }
 
 const getSingleTableQuery = (table: Table, attQueries: QueryAttribute[], params?: object) => {
-    const tablePublicKeyColumnQueries = 
-        mapTablePublicKeyColumnsToQuery(table);
+    const tablePrimaryKeyColumnQueries = 
+        mapTablePrimaryKeyColumnsToQuery(table);
     return {
         attrs: attQueries,
         parentTableName: table.tableName,
-        primaryKeys: tablePublicKeyColumnQueries,
+        primaryKeys: tablePrimaryKeyColumnQueries,
         params: params
     };
 }
@@ -89,7 +90,7 @@ const getSingleTableQuery = (table: Table, attQueries: QueryAttribute[], params?
 const getMultiTableQuery = (parentTableName: string, tables: Table[], attQueries: QueryAttribute[], queryFks: QueryForeignKeys[], params?: object) => {
     const primaryKeyCols = Object.keys(tables).map(tableName => {
         const thisTable = tables[tableName];
-        return mapTablePublicKeyColumnsToQuery(thisTable);
+        return mapTablePrimaryKeyColumnsToQuery(thisTable);
     })
     return {
         attrs: attQueries,
@@ -113,20 +114,29 @@ const getFkColsQueriesByTables = (pkTable: Table, fkTable: Table, fk: ForeignKey
     )}
 }
 
-const getFkColsQueriesByRels = (rel: RelationNode, queryAttributeGroup: QueryAttributeGroup[]) => {
-    return rel.childRelations
-        .filter(childRels => childRels.table.tableName in queryAttributeGroup)
-        .map(childRels => {
-            return getFkColsQueriesByTables(rel.parentEntity, childRels.table, childRels.table.fk[childRels.fkIndex]);
-        });
+const getFkColsQueriesByRels = (rels: RelationNode[], queryAttributeGroup: QueryAttributeGroup[]): QueryForeignKeys[] => {
+    let queryFks: QueryForeignKeys[] = [];
+    rels.forEach(rel => {
+        // For each rel passed...
+        queryFks.push(...
+            rel.childRelations
+                .filter(childRels => childRels.table.tableName in queryAttributeGroup)
+                .map(childRels => {
+                    return getFkColsQueriesByTables(rel.parentEntity, childRels.table, childRels.table.fk[childRels.fkIndex]);
+                }));
+    })
+
+    return queryFks;
 }
 
-export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patternMatchResult: PatternMatchResult, filterMatchAttributes?: PatternMatchAttribute[]) {
+export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patternMatchResult: PatternMatchResult, context?: DBSchemaContextInterface) {
     const [mandatoryAttrs, optionalAttrs] = attrs;
     const responsibleRelation = patternMatchResult.responsibleRelation;
     let standaloneFilterAttribute: PatternMatchAttribute[] = [];
     // For the filter match attributes, remove if any of the specified filter attributes are already in attrs
-    if (filterMatchAttributes) {
+    if (context.filters && context.filters.length > 0) {
+        let filterMatchAttributes = getFilterMappedPMAttributes(context.allEntitiesList, context.filters)
+        // const filterMatchAttributes = getFilterMappedPMAttributes(filters)
         filterMatchAttributes.forEach(fma => {
             const mandatoryAttrsMatchResult = mandatoryAttrs.some(ma => {
                 return ma && (ma.table.idx === fma.table.idx && ma.attributeIndex === fma.attributeIndex);
@@ -143,7 +153,8 @@ export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patt
     }
 
 
-    const allDefinedAttrs = [...mandatoryAttrs, ...optionalAttrs, ...standaloneFilterAttribute].filter(attr => attr !== undefined && attr !== null);
+    // const allDefinedAttrs = [...mandatoryAttrs, ...optionalAttrs, ...standaloneFilterAttribute].filter(attr => attr !== undefined && attr !== null);
+    const allDefinedAttrs = [...mandatoryAttrs, ...standaloneFilterAttribute].filter(attr => attr !== undefined && attr !== null);
 
     // Find the foreign keys that links the selected attributes
     // First group the attributes by their table
@@ -175,7 +186,7 @@ export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patt
     } else {
         // For each of the grouped tables, find the foreign keys connecting each of the tables
         if (responsibleRelation && responsibleRelation.type === VISSCHEMATYPES.SUBSET) {
-            const childEntityFkCols = getFkColsQueriesByRels(responsibleRelation, queryGroupedByTableName);
+            const childEntityFkCols = getFkColsQueriesByRels([responsibleRelation], queryGroupedByTableName);
             query = 
                 getMultiTableQuery(
                     responsibleRelation.parentEntity.tableName, 
@@ -183,8 +194,21 @@ export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patt
                     attrsMappedToQuery, 
                     childEntityFkCols
                 )
+        } else if (responsibleRelation) {
+            console.log(responsibleRelation)
+            console.log(queryGroupedByTableName)
+            console.log(context.filters.map(filter => filter.relatedPatternMatchResult.responsibleRelation))
+            query = getMultiTableQuery(
+                responsibleRelation.parentEntity.tableName,
+                Object.keys(queryInvolvedTables).map(key => queryInvolvedTables[key]),
+                attrsMappedToQuery,
+                getFkColsQueriesByRels([responsibleRelation, 
+                    ...context.filters.map(filter => filter.relatedPatternMatchResult.responsibleRelation)], queryGroupedByTableName)
+            );
+            console.log(query);
+            // TEST
         } else {
-            throw new Error("Not implemented")
+            throw new Error("responsibleRelation not found")
         }
     }
 
@@ -250,3 +274,13 @@ let groupBy = function(xs, key) {
       return rv;
     }, {});
 };
+
+const getFilterMappedPMAttributes = (tables: Table[], filters: Filter[]): PatternMatchAttribute[] => {
+    if (!filters) return [];
+    return filters.map(filter => {
+        return {
+            table: tables[filter.tableIndex],
+            attributeIndex: filter.attNum - 1
+        }
+    });
+}

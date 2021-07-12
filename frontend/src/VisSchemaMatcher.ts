@@ -299,6 +299,7 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
                 if (vs.complete) {
                     // Complete path - TODO
                     // if (!isRelationComplete(rel)) return;
+                    return;
                 }
                 
                 // Perform key condition check for the two involved entities
@@ -348,9 +349,8 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
                             thisPatternMatchResult.optionalAttributes = thisChildRelOptionalParameters;
                         }
 
-                        console.log(thisPatternMatchResult);
+                        allPatternMatches.push(thisPatternMatchResult);
                     })
-
                 } else if (rel.childRelations.some(cr => cr.table.idx === table.idx)) {
                     // If any of the child tables of this relation node is exactly the provided table
                     const parentTableBasicCheckResult = basicKeyConditionCheck(rel.parentEntity, vs.localKey, nKeys)
@@ -363,8 +363,37 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
                         return;
                     }
 
-                }
+                    // Construct the pattern match result
+                    thisPatternMatchResult = {
+                        vs: vs,
+                        mandatoryAttributes: [],
+                        optionalAttributes: [],
+                        responsibleRelation: rel,
+                        matched: false
+                    };
+
+                    // Both a1 and a2 are located in the WE table
+                    let thisChildRelMandatoryParameters =
+                        getAllMatchingAttributesFromListOfParams(table, vs.mandatoryParameters);
+                    thisPatternMatchResult.mandatoryAttributes = thisChildRelMandatoryParameters;
+
+                    if (patternMatchSuccessful(thisPatternMatchResult, vs)) {
+                        thisPatternMatchResult.matched = true;
+                    } else {
+                        return;
+                    }
+
+                    if (vs.optionalParameters) {
+                        let thisChildRelOptionalParameters = 
+                            getAllMatchingAttributesFromListOfParams(table, vs.optionalParameters);
+
+                        thisPatternMatchResult.optionalAttributes = thisChildRelOptionalParameters;
+                    }
+
+                    allPatternMatches.push(thisPatternMatchResult);
+                } else return;
             })
+
             break;
 
         case VISSCHEMATYPES.MANYMANY:

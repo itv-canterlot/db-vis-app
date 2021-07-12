@@ -233,7 +233,8 @@ export type Filter = {
     attNum: number,
     condition: FilterCondition,
     fk?: ForeignKey,
-    value: any
+    value: any,
+    relatedPatternMatchResult: PatternMatchResult
 }
 
 export type Query = {

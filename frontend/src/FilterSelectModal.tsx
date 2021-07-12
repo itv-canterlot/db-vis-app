@@ -59,7 +59,8 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                     tableIndex: tableIdx,
                     attNum: attNum,
                     condition: currentlyCachedFilter ? currentlyCachedFilter.condition : undefined,
-                    value: undefined
+                    value: undefined,
+                    relatedPatternMatchResult: dbSchemaContext.visSchemaMatchStatus[dbSchemaContext.selectedPatternIndex][dbSchemaContext.selectedMatchResultIndexInPattern]
                 },
             cachedForeignTableFKIndex: fkTableSelected ? fkIndex : -1,
             cachedForeignTableSelected: fkTableSelected ? fkTableSelected.idx : -1
@@ -76,7 +77,8 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 attNum: attNum,
                 fk: fk,
                 condition: undefined,
-                value: undefined
+                value: undefined,
+                relatedPatternMatchResult: dbSchemaContext.visSchemaMatchStatus[dbSchemaContext.selectedPatternIndex][dbSchemaContext.selectedMatchResultIndexInPattern]
             },
         });
     }

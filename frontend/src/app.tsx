@@ -171,7 +171,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             Connections.getDataByMatchAttrs(
                 newParamAttrs, 
                 this.state.visSchemaMatchStatus[newIndex][newSelectedMatchResultIndexInPattern],
-                this.getFilterMappedPMAttributes(this.state.filters))
+                this.getProviderValues())
                     .then(getDataCallback.bind(this))
         })
 
@@ -210,7 +210,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             }
             Connections.getDataByMatchAttrs(newAttsObject, 
                 currentPatternMatchResult, 
-                this.getFilterMappedPMAttributes(this.state.filters))
+                this.getProviderValues())
                 .then(getDataCallback.bind(this))
         })
     }
@@ -262,7 +262,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             Connections.getDataByMatchAttrs(
                 rendererSelectedAttributes, 
                 visSchemaMatchStatus[selectedPatternIndex][0],
-                this.getFilterMappedPMAttributes(this.state.filters))
+                this.getProviderValues())
                     .then(getDataCallback.bind(this));
         })
     }
@@ -296,15 +296,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         });
     }
 
-    getFilterMappedPMAttributes = (filters: Filter[]): PatternMatchAttribute[] => {
-        if (!filters) return [];
-        return filters.map(filter => {
-            return {
-                table: this.state.allEntitiesList[filter.tableIndex],
-                attributeIndex: filter.attNum - 1
-            }
-        });
-    }
+    
 
     onDataChange = (data) => {
         this.setState({
@@ -334,7 +326,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             Connections.getDataByMatchAttrs(
                 this.state.rendererSelectedAttributes, 
                 visSchemaMatchStatus[this.state.selectedPatternIndex][this.state.selectedMatchResultIndexInPattern], 
-                this.getFilterMappedPMAttributes(filters))
+                this.getProviderValues())
                     .then(getDataCallback.bind(this));
         });
     }
