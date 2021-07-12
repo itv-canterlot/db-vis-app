@@ -5,11 +5,11 @@
             "type": 1,
             "localKey": {
                 "minCount": 1,
-                "scalar": true
+                "maxCount": 20
             },
             "foreignKey": {
                 "minCount": 1,
-                "maxCount": 20
+                "scalar": true
             },
             "complete": false,
             "mandatoryParameters": [
@@ -60,11 +60,11 @@
             "name": "Spider Chart",
             "type": 1,
             "localKey": {
-                "minCount": 1,
+                "minCount": 3,
                 "maxCount": 20
             },
             "foreignKey": {
-                "minCount": 3,
+                "minCount": 1,
                 "maxCount": 10
             },
             "complete": true,

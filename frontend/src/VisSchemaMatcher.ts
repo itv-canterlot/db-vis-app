@@ -1,5 +1,5 @@
 import * as SchemaParser from "./SchemaParser";
-import {Attribute, RelationNode, Table, VisKey, VisParam, VISPARAMTYPES, VisSchema, VISSCHEMATYPES, PatternMatchResult, PatternMatchAttribute, PatternMismatchReason, PATTERN_MISMATCH_REASON_TYPE} from "./ts/types";
+import {Attribute, RelationNode, Table, VisKey, VisParam, VISPARAMTYPES, VisSchema, VISSCHEMATYPES, PatternMatchResult, PatternMatchAttribute, PatternMismatchReason, PATTERN_MISMATCH_REASON_TYPE, ChildRelation} from "./ts/types";
 import * as TypeConstants from "./TypeConstants";
 
 const basicKeyConditionCheck = (table: Table, key: VisKey, nPks?: number): PatternMismatchReason => {
@@ -133,6 +133,16 @@ const getMatchingAttributesByParameter = (table: Table, param: VisParam) => {
     return paramMatchableIndices;
 }
 
+const getAllMatchingAttributesFromListOfParams = (table: Table, params: VisParam[]) => {
+    let attrMatchResult: PatternMatchAttribute[][] = [];
+    for (let param of params) {
+        let thisParamMatchResult = getMatchingAttributesByParameter(table, param);
+        attrMatchResult.push(thisParamMatchResult);
+    }
+
+    return attrMatchResult;
+}
+
 // For simple entity checks, consider the entire set of tables in the subset relation
 const getMatchAttributesFromSet = (rel: RelationNode, param: VisParam) => {
     let matchResult: PatternMatchAttribute[] = [];
@@ -212,19 +222,18 @@ const patternMatchSuccessful = (result: PatternMatchResult, vs: VisSchema) => {
     return result.mandatoryAttributes.every(ma => ma.length > 0);
 }
 
+const failedPatternMatchObject = (vs: VisSchema, mismatchReason?: PatternMismatchReason): PatternMatchResult => {
+    return {
+        vs: vs,
+        mandatoryAttributes: [],
+        optionalAttributes: [],
+        matched: false,
+        mismatchReason: mismatchReason
+    };
+}
+
 const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSchema, nKeys?: number): PatternMatchResult[] => {
     if (!table.pk) return undefined; // Not suitable if there is no PK to use
-
-    const basicKeyConditionCheckResult = basicKeyConditionCheck(table, vs.localKey, nKeys)
-    if (basicKeyConditionCheckResult) {
-        return [{
-            vs: vs,
-            mandatoryAttributes: [],
-            optionalAttributes: [],
-            matched: false,
-            mismatchReason: basicKeyConditionCheckResult
-        }];
-    }
 
     let subsetRel = rels.find(rel => rel.type === VISSCHEMATYPES.SUBSET); // TODO: multiple subsets?
     let relsInvolvedWithTable = SchemaParser.getRelationsInListByName(rels, table.tableName);
@@ -232,8 +241,15 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
 
     let allPatternMatches: PatternMatchResult[] = [];
     let thisPatternMatchResult: PatternMatchResult;
+    let basicKeyConditionCheckResult: PatternMismatchReason;
     switch (vs.type) {
         case VISSCHEMATYPES.BASIC:
+            // Check base condition of the table - use the one specified
+            basicKeyConditionCheckResult = basicKeyConditionCheck(table, vs.localKey, nKeys)
+            if (basicKeyConditionCheckResult) {
+                return [failedPatternMatchObject(vs, basicKeyConditionCheckResult)];
+            }
+            
             // Find combinations of attributes that match the requirements
             thisPatternMatchResult = {
                 vs: vs,
@@ -277,15 +293,85 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
 
         case VISSCHEMATYPES.WEAKENTITY:
             // Find combinations of attributes that match the requirements
-            thisPatternMatchResult = {
-                vs: vs,
-                mandatoryAttributes: [],
-                optionalAttributes: [],
-                matched: false
-            };
+            // For each of the involved relation...
+            relsInvolvedWithTable.forEach(rel => {
+                if (rel.type !== VISSCHEMATYPES.WEAKENTITY) return;
+                if (vs.complete) {
+                    // Complete path - TODO
+                    // if (!isRelationComplete(rel)) return;
+                }
+                
+                // Perform key condition check for the two involved entities
+                // Is this table the parent or the child?
+                if (rel.parentEntity.idx === table.idx) {
+                    // table is the parent table
+                    const parentTableBasicCheckResult = basicKeyConditionCheck(table, vs.localKey, nKeys);
+                    if (parentTableBasicCheckResult) {
+                        return;
+                    }
+
+                    let childRelationsAvailableForMatching: ChildRelation[] = []
+                    // For each child entity in the WE relation (?)
+                    rel.childRelations.forEach(cr => {
+                        const weTableBasicCheckResult = basicKeyConditionCheck(cr.table, vs.foreignKey, nKeys);
+                        // If no error returned, push this child relation to the list
+                        if (!weTableBasicCheckResult) {
+                            childRelationsAvailableForMatching.push(cr);
+                        }
+                    });
+
+                    // For each of the possible child relations, find possible attributes and store them
+                    childRelationsAvailableForMatching.forEach(cr => {
+                        thisPatternMatchResult = {
+                            vs: vs,
+                            mandatoryAttributes: [],
+                            optionalAttributes: [],
+                            responsibleRelation: rel,
+                            matched: false
+                        };
+
+                        // Both a1 and a2 are located in the WE table
+                        let thisChildRelMandatoryParameters =
+                            getAllMatchingAttributesFromListOfParams(cr.table, vs.mandatoryParameters);
+                        thisPatternMatchResult.mandatoryAttributes = thisChildRelMandatoryParameters;
+
+                        if (patternMatchSuccessful(thisPatternMatchResult, vs)) {
+                            thisPatternMatchResult.matched = true;
+                        } else {
+                            return;
+                        }
+
+                        if (vs.optionalParameters) {
+                            let thisChildRelOptionalParameters = 
+                                getAllMatchingAttributesFromListOfParams(cr.table, vs.optionalParameters);
+
+                            thisPatternMatchResult.optionalAttributes = thisChildRelOptionalParameters;
+                        }
+
+                        console.log(thisPatternMatchResult);
+                    })
+
+                } else if (rel.childRelations.some(cr => cr.table.idx === table.idx)) {
+                    // If any of the child tables of this relation node is exactly the provided table
+                    const parentTableBasicCheckResult = basicKeyConditionCheck(rel.parentEntity, vs.localKey, nKeys)
+                    if (parentTableBasicCheckResult) {
+                        return;
+                    }
+
+                    const weTableBasicCheckResult = basicKeyConditionCheck(table, vs.foreignKey, nKeys);
+                    if (weTableBasicCheckResult) {
+                        return;
+                    }
+
+                }
+            })
             break;
 
         case VISSCHEMATYPES.MANYMANY:
+            basicKeyConditionCheckResult = basicKeyConditionCheck(table, vs.localKey, nKeys)
+            if (basicKeyConditionCheckResult) {
+                return [failedPatternMatchObject(vs, basicKeyConditionCheckResult)];
+            }
             // Find combinations of attributes that match the requirements
             relsInvolvedWithTable.forEach(rel => {
                 if (rel.type !== VISSCHEMATYPES.MANYMANY) return;
@@ -308,8 +394,6 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
                         thisPatternMatchResult.mandatoryAttributes.push(thisConstMatchableIndices);
                     }
     
-                    console.log(patternMatchSuccessful(thisPatternMatchResult, vs))
-        
                     if (patternMatchSuccessful(thisPatternMatchResult, vs)) {
                         thisPatternMatchResult.matched = true;
                     } else {
@@ -333,66 +417,6 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
             
             break;
 
-        // case VISSCHEMATYPES.MANYMANY:
-        //     if (!rels) return;
-        //     if (rel.type === VISSCHEMATYPES.MANYMANY) {
-        //         if (vs.reflexive && !isRelationReflexive(rel)) return undefined; // Check reflexibility
-
-        //         // Get the indices on the weak entity table that can be used to match foreign tables
-        //         let thisTableValidAttIdx: number[] = getMatchingAttributesByParameter(table, vs.localKey);
-        //         let foreignTablesValidAttIdx: number[][] = [];
-        //         if (thisTableValidAttIdx.length > 0) {
-        //             // For each neighbour, for each attribute in each neighbour, check key count attribute properties
-        //             for (let childRel of rel.childRelations) {
-        //                 const ft = childRel.table;
-        //                 if (!basicKeyConditionCheck(ft, vs.foreignKey)) continue;
-        //                 foreignTablesValidAttIdx.push(getMatchingAttributesByParameter(ft, vs.foreignKey));
-        //             }
-        //             if (foreignTablesValidAttIdx.length > 0 && foreignTablesValidAttIdx.every(idxes => idxes.length > 0)) {
-        //                 return true;
-        //             } else {
-        //                 return undefined;
-        //             }
-        //         } else {
-        //             return undefined;
-        //         }
-        //     } else {
-        //         return undefined;
-        //         // const neighbourJunctionIndices = getNeighbourJunctionTableIdx(rel);
-        //         // if (neighbourJunctionIndices.length === 0) return undefined;
-
-        //         // // Some of the neighbour relation is a junction table - out to where
-        //     }
-        // case VISSCHEMATYPES.WEAKENTITY:
-        //     if (!rel) return;
-        //     if (rel.type === VISSCHEMATYPES.WEAKENTITY)  {
-        //         // Get the indices on the weak entity table that can be used to match foreign tables
-        //         let thisTableValidAttIdx: number[] = getMatchingAttributesByParameter(table, vs.localKey);
-        //         let foreignTablesValidAttIdx: number[][] = [];
-        //         if (thisTableValidAttIdx.length > 0) {
-        //             // For each neighbour, for each attribute in each neighbour, check key count attribute properties
-        //             for (let childRel of rel.childRelations) {
-        //                 const ft = childRel.table;
-        //                 if (!basicKeyConditionCheck(ft, vs.foreignKey)) continue;
-        //                 foreignTablesValidAttIdx.push(getMatchingAttributesByParameter(ft, vs.foreignKey));
-        //             }
-        //             if (foreignTablesValidAttIdx.length > 0 && foreignTablesValidAttIdx.every(idxes => idxes.length > 0)) {
-        //                 return true;
-        //             } else {
-        //                 return undefined;
-        //             }
-        //         } else {
-        //             return undefined;
-        //         }
-        //     } else {
-        //         return undefined;
-        //         // const neighbourJunctionIndices = getNeighbourJunctionTableIdx(rel);
-        //         // if (neighbourJunctionIndices.length === 0) return undefined;
-
-        //         // // Some of the neighbour relation is a junction table - out to where
-        //     }
-        // case VISSCHEMATYPES.ONEMANY:
-        //     return undefined;
         default:
             break; // TODO
 
