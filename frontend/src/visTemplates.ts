@@ -91,7 +91,8 @@ function renderScatterPlot(parameters: VisTemplateBuilder) {
         }
         
         x = d3.scaleLog()
-            .domain([Math.max(xSmallNumber, xmin), xmax])
+            // .domain([Math.max(xSmallNumber, xmin), xmax])
+            .domain([xmin + xShiftValue, xmax + xShiftValue])
             .range([ width / 50, width - (width / 50) ]);
 
 
@@ -99,7 +100,15 @@ function renderScatterPlot(parameters: VisTemplateBuilder) {
             .attr("transform", "translate(0," + height + ")")
             .call(d3.axisBottom(x)
                 .tickFormat((d, i) => {
-                    return x.tickFormat()(d.valueOf() - xShiftValue);
+                    const unShiftedValue = d.valueOf() - xShiftValue;
+                    const defaultTick = x.tickFormat()(d);
+
+                    if (defaultTick.length > 0) {
+                        // This needs to be shifted
+                        return formatNumberAsExponential(unShiftedValue);
+                    } else {
+                        return "";
+                    }
                 })
             );
     } else {
@@ -123,13 +132,22 @@ function renderScatterPlot(parameters: VisTemplateBuilder) {
         }
 
         y = d3.scaleLog()
-            .domain([Math.max(ySmallNumber, ymin), ymax])
+            // .domain([Math.max(ySmallNumber, ymin), ymax])
+            .domain([ymin + yShiftValue, ymax + yShiftValue])
             .range([ height - (height / 50), height / 50]);
 
         svg.append("g")
             .call(d3.axisLeft(y)
                 .tickFormat((d, i) => {
-                    return x.tickFormat()(d.valueOf() - yShiftValue)
+                    const unShiftedValue = d.valueOf() - yShiftValue;
+                    const defaultTick = y.tickFormat()(d);
+
+                    if (defaultTick.length > 0) {
+                        // This needs to be shifted
+                        return formatNumberAsExponential(unShiftedValue);
+                    } else {
+                        return "";
+                    }
                 })
             );
     } else {
@@ -383,4 +401,9 @@ const getSecondSmallestNumberInArray = (min: number, array: number[]) => {
         }
     })
     return targetNumber;
+}
+
+const formatNumberAsExponential = (n: number): string => {
+    const expFormat = d3.format(".0e");
+    return expFormat(n);
 }
