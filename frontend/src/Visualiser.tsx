@@ -30,7 +30,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
             return;
         }
 
-        if (!patternMatchStatus || !patternMatchStatus.matched) {
+        if (!patternMatchStatus || !patternMatchStatus[0].matched) {
             this.setState({
                 renderFailed: true,
                 renderedAttributesIndices: context.selectedAttributesIndices,

@@ -192,14 +192,14 @@ const isRelationReflexive = (rel: RelationNode) => {
     return Object.values(reflexCounter).some(v => v >= 2);
 }
 
-export const matchTableWithAllVisPatterns = (table: Table, rels: RelationNode[], vss:VisSchema[], nKeys?: number) => {
+export const matchTableWithAllVisPatterns = (table: Table, rels: RelationNode[], vss:VisSchema[], nKeys?: number): PatternMatchResult[][] => {
     let out = [];
     // If the table is in a set, treat the set as a big table
     // getTablesWithinSet(rels, tablesWithinSet, relsWithoutSubset);
     vss.forEach((vs, idx) => {
         const thisVisSchemaMatchResult = matchTableWithVisPattern(table, rels, vs, nKeys)
         if (thisVisSchemaMatchResult) {
-            out.push(...thisVisSchemaMatchResult);
+            out.push(thisVisSchemaMatchResult);
         } else {
             out.push(undefined);
         }

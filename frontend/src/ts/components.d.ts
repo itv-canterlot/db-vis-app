@@ -57,6 +57,7 @@ export type ApplicationStates = {
     relationsList?: RelationNode[],
     selectedFirstTableIndex?: number,
     selectedPatternIndex?: number,
+    selectedMatchResultIndexInPattern?: number,
     rendererSelectedAttributes?: PatternMatchAttribute[][], // TODO: expand if needed
     rerender?: boolean,
     load?: boolean,
@@ -65,7 +66,7 @@ export type ApplicationStates = {
     showStartingTableSelectModal?: boolean,
     showMatchedSchemasModal?: boolean,
     showFilterSelectModal?: boolean,
-    visSchemaMatchStatus?: PatternMatchResult[]
+    visSchemaMatchStatus?: PatternMatchResult[][]
 }
 
 export type AppSidebarProps = {

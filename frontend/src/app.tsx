@@ -79,7 +79,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         let selectedEntity = this.state.allEntitiesList[selectedFirstTableIndex];
         let entityRel = SchemaParser.getRelationsInListByName(this.state.relationsList, selectedEntity.tableName);
     
-        const matchStatusForAllSchema: PatternMatchResult[] = matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema, pkNum);
+        const matchStatusForAllSchema: PatternMatchResult[][] = matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema, pkNum);
 
         if (!getFirstIndices) return {
             visSchemaMatchStatus: matchStatusForAllSchema,
@@ -87,11 +87,13 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             rendererSelectedAttributes: undefined
         };;
         
-        const firstValidPatternIndex = matchStatusForAllSchema.findIndex(res => this.isPatternMatchResultValid(res));
+        const firstValidPatternIndex = matchStatusForAllSchema.findIndex(res => res.length > 0 && this.isPatternMatchResultValid(res[0]));
         if (!firstValidPatternIndex) return;
 
+        const firstMatchResultIndex = 0;
+
         // Find the first pattern-matching result that resulted in a match
-        const firstValidPatternMatchStatus: PatternMatchResult = matchStatusForAllSchema[firstValidPatternIndex];
+        const firstValidPatternMatchStatus: PatternMatchResult = matchStatusForAllSchema[firstValidPatternIndex][firstMatchResultIndex];
         if (!firstValidPatternMatchStatus) return;
         
         const mandatoryParamInitIndices = firstValidPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {
@@ -113,6 +115,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         return {
             visSchemaMatchStatus: matchStatusForAllSchema,
             selectedPatternIndex: firstValidPatternIndex ? firstValidPatternIndex : -1,
+            selectedMatchResultIndexInPattern: firstMatchResultIndex,
             rendererSelectedAttributes: [mandatoryParamInitAtts, optionalParamInitAtts]
         };
 
@@ -120,8 +123,18 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     }
 
     onVisPatternIndexChange = (newIndex: number) => {
-        const newPatternMatchStatus: PatternMatchResult = 
+        const newPatternMatchStatusesByIndex: PatternMatchResult[] =
             this.state.visSchemaMatchStatus[newIndex];
+        let newSelectedMatchResultIndexInPattern = 0;
+        let newPatternMatchStatus: PatternMatchResult;
+
+        if (newPatternMatchStatusesByIndex.length > 0) {
+            newSelectedMatchResultIndexInPattern = 0; // Default to the first one?
+            newPatternMatchStatus = 
+                newPatternMatchStatusesByIndex[newSelectedMatchResultIndexInPattern];
+        } else {
+            return;
+        }
 
         let mandatoryParamInitIndices, optionalParamInitIndices;
         if (!newPatternMatchStatus) {
@@ -150,13 +163,14 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     dataLoaded: true,
                     data: data,
                     selectedPatternIndex: newIndex,
+                    selectedMatchResultIndexInPattern: newSelectedMatchResultIndexInPattern,
                     rendererSelectedAttributes: newParamAttrs
                 })
             };
 
             Connections.getDataByMatchAttrs(
                 newParamAttrs, 
-                this.state.visSchemaMatchStatus[newIndex],
+                this.state.visSchemaMatchStatus[newIndex][newSelectedMatchResultIndexInPattern],
                 this.getFilterMappedPMAttributes(this.state.filters))
                     .then(getDataCallback.bind(this))
         })
@@ -169,7 +183,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         const isMandatoryIdx = isMandatory ? 0 : 1;
         const patternAttIdx = parseInt(target.getAttribute("data-pattern-att-idx"));
         const matchIdx = parseInt(target.getAttribute("data-match-idx"));
-        const currentPatternMatchResult = this.state.visSchemaMatchStatus[this.state.selectedPatternIndex];
+        const currentPatternMatchResult = this.state.visSchemaMatchStatus[this.state.selectedPatternIndex][this.state.selectedMatchResultIndexInPattern];
         const newMatchAttr = currentPatternMatchResult.mandatoryAttributes[patternAttIdx][matchIdx]
 
         let newAttsObject = [], editedAtts = [];
@@ -195,7 +209,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 });
             }
             Connections.getDataByMatchAttrs(newAttsObject, 
-                this.state.visSchemaMatchStatus[this.state.selectedPatternIndex], 
+                currentPatternMatchResult, 
                 this.getFilterMappedPMAttributes(this.state.filters))
                 .then(getDataCallback.bind(this))
         })
@@ -229,6 +243,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             const {
                 visSchemaMatchStatus, 
                 selectedPatternIndex, 
+                selectedMatchResultIndexInPattern,
                 rendererSelectedAttributes} = this.getAllMatchableVisSchemaPatterns(tableIndex, undefined, true);
 
             const getDataCallback = (data: object[]) => {
@@ -236,6 +251,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     dataLoaded: true,
                     data: data,
                     selectedFirstTableIndex: tableIndex,
+                    selectedMatchResultIndexInPattern: selectedMatchResultIndexInPattern,
                     rerender: tableIndexChanged,
                     visSchemaMatchStatus: visSchemaMatchStatus,
                     selectedPatternIndex: selectedPatternIndex ? selectedPatternIndex : -1,
@@ -245,7 +261,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
             Connections.getDataByMatchAttrs(
                 rendererSelectedAttributes, 
-                visSchemaMatchStatus[selectedPatternIndex],
+                visSchemaMatchStatus[selectedPatternIndex][0],
                 this.getFilterMappedPMAttributes(this.state.filters))
                     .then(getDataCallback.bind(this));
         })
@@ -305,6 +321,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             const {
                 visSchemaMatchStatus, 
                 selectedPatternIndex, 
+                selectedMatchResultIndexInPattern, 
                 rendererSelectedAttributes} = this.getAllMatchableVisSchemaPatterns(this.state.selectedFirstTableIndex, filteredData.length, false);
 
             const getDataCallback = (data: object[]) => {
@@ -316,7 +333,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
             Connections.getDataByMatchAttrs(
                 this.state.rendererSelectedAttributes, 
-                visSchemaMatchStatus[this.state.selectedPatternIndex], 
+                visSchemaMatchStatus[this.state.selectedPatternIndex][this.state.selectedMatchResultIndexInPattern], 
                 this.getFilterMappedPMAttributes(filters))
                     .then(getDataCallback.bind(this));
         });
@@ -338,6 +355,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             visSchemaMatchStatus: this.state.visSchemaMatchStatus,
             visSchema: visSchema,
             selectedPatternIndex: this.state.selectedPatternIndex,
+            selectedMatchResultIndexInPattern: this.state.selectedMatchResultIndexInPattern,
             selectedFirstTableIndex: this.state.selectedFirstTableIndex,
             selectedAttributesIndices: this.state.rendererSelectedAttributes
         };

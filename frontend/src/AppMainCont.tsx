@@ -13,6 +13,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
         const context: DBSchemaContextInterface = this.context;
         const selectedIndex = parseInt(e.target.getAttribute("data-index"));
         if (selectedIndex === context.selectedPatternIndex) return;
+        if (context.visSchemaMatchStatus[selectedIndex].length === 0) return;
 
         this.props.onVisPatternIndexChange(selectedIndex);
     }
@@ -46,7 +47,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
 
             dbSchemaContext.visSchema.map((visSchema, idx) => {
                 const schemaMatchResult = patternMatchResult[idx];
-                if (!this.props.expanded && (!schemaMatchResult || !schemaMatchResult.matched)) {
+                if (!this.props.expanded && (!schemaMatchResult || !schemaMatchResult.some(result => result.matched))) {
                     return;
                 }
 
@@ -60,7 +61,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
                     </li>
                 );
 
-                if (schemaMatchResult && schemaMatchResult.matched) {
+                if (schemaMatchResult && schemaMatchResult.some(result => result.matched)) {
                     // If this item had been matched:
                     matchedItems.push(listElem);
                 } else {
@@ -206,7 +207,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
         if (!this.props.expanded) return null;
         const context: DBSchemaContextInterface = this.context;
         const thisPatternSchema = context.visSchema[context.selectedPatternIndex];
-        const thisPatternMatchResult = context.visSchemaMatchStatus[context.selectedPatternIndex];
+        const thisPatternMatchResult = context.visSchemaMatchStatus[context.selectedPatternIndex][context.selectedMatchResultIndexInPattern];
         let minCount, maxCount;
         const patternSchemaTextSeparated = Object.keys(thisPatternSchema).map((key, ki) => {
             
@@ -309,9 +310,9 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
 
     render() {
         const context: DBSchemaContextInterface = this.context;
-        const thisTable = context.allEntitiesList[context.selectedFirstTableIndex];
         const patternIndex = context.selectedPatternIndex;
-        const thisPattern = context.visSchema[patternIndex];
+        const matchIndex = context.selectedMatchResultIndexInPattern;
+        const thisPattern = context.visSchema ? context.visSchema[patternIndex] : undefined;
         if (context.selectedFirstTableIndex < 0) {
             return (
                 <div className="d-flex justify-content-center">
@@ -321,7 +322,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
                 </div>
             )
         } else {
-            const thisPatternMatchResult: PatternMatchResult = patternIndex < 0 ? undefined : context.visSchemaMatchStatus[patternIndex];
+            const thisPatternMatchResult: PatternMatchResult = (patternIndex < 0 && matchIndex < 0) ? undefined : context.visSchemaMatchStatus[patternIndex][matchIndex];
 
             return (
                 <div>
