@@ -27,7 +27,14 @@ const getKeyPosFromFK = (fk: ForeignKey) => fk.columns.map(key => key.fkColPos);
         } else {
             if (fkKeys.every(val => getKeyPosFromPK(table.pk).includes(val))) {
                 // This is a proper subset
-                subsetKeyIdx.push(i);
+                // Check if any of the already-added foreign keys is identical to this key
+                if (subsetKeyIdx.every(fkIdx => {
+                    const existingKey = table.fk[fkIdx];
+                    return JSON.stringify(existingKey.columns) !== JSON.stringify(fkElem.columns)
+                        && JSON.stringify(existingKey.pkTableName !== JSON.stringify(fkElem.pkTableName))
+                })) {
+                    subsetKeyIdx.push(i);
+                }
             }
         }
     }
