@@ -26,7 +26,6 @@ const basicKeyConditionCheck = (table: Table, key: VisKey, nPks?: number): Patte
             reason: PATTERN_MISMATCH_REASON_TYPE.KEY_COUNT_MISMATCH
         }
     };
-    
 
     // Key type check
     if (key.type) {
@@ -315,6 +314,34 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
                     // For each child entity in the WE relation (?)
                     rel.childRelations.forEach(cr => {
                         const weTableBasicCheckResult = basicKeyConditionCheck(cr.table, vs.foreignKey, nKeys);
+                        // Check the scalar requirement of k2
+                        if (vs.foreignKey.scalar) {
+                            const thisPrimaryKeyColumns = cr.table.pk.columns;
+                            // Find key attributes that are outside of the public key subset
+                            if (vs.foreignKey.scalar) {
+                                const pkColsNotInFk = thisPrimaryKeyColumns.filter(pkCol => {
+                                    // Return PK columns that does not match any FK cols
+                                    return !cr.table.fk.some(fk => {
+                                        return fk.columns.some(fkCol => {
+                                            return fkCol.fkColPos === pkCol.colPos
+                                        })
+                                    })
+                                })
+
+                                if (!pkColsNotInFk || pkColsNotInFk.length === 0) {
+                                    return;
+                                }
+
+                                const allRequiredScalarAttributesValid = pkColsNotInFk.every(pkCol => {
+                                    const thisAttr = cr.table.attr[pkCol.colPos - 1];
+                                    return TypeConstants.isAttributeScalar(thisAttr);
+                                })
+
+                                if (!allRequiredScalarAttributesValid) {
+                                    return;
+                                }
+                            }
+                        }
                         // If no error returned, push this child relation to the list
                         if (!weTableBasicCheckResult) {
                             childRelationsAvailableForMatching.push(cr);
@@ -335,6 +362,7 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
                         let thisChildRelMandatoryParameters =
                             getAllMatchingAttributesFromListOfParams(cr.table, vs.mandatoryParameters);
                         thisPatternMatchResult.mandatoryAttributes = thisChildRelMandatoryParameters;
+                        // TODO: mirror the scalar key check above
 
                         if (patternMatchSuccessful(thisPatternMatchResult, vs)) {
                             thisPatternMatchResult.matched = true;
@@ -349,7 +377,12 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
                             thisPatternMatchResult.optionalAttributes = thisChildRelOptionalParameters;
                         }
 
-                        allPatternMatches.push(thisPatternMatchResult);
+                        // Push the match result into the list if the relation involved had not already been matched
+                        if (allPatternMatches.every(matches => matches.responsibleRelation !== thisPatternMatchResult.responsibleRelation)) {
+                            allPatternMatches.push(thisPatternMatchResult);
+                        } else {
+                            return;
+                        }
                     })
                 } else if (rel.childRelations.some(cr => cr.table.idx === table.idx)) {
                     // If any of the child tables of this relation node is exactly the provided table
@@ -390,7 +423,14 @@ const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSche
                         thisPatternMatchResult.optionalAttributes = thisChildRelOptionalParameters;
                     }
 
-                    allPatternMatches.push(thisPatternMatchResult);
+                    // Push the match result into the list if the relation involved had not already been matched
+                    if (allPatternMatches.every(matches => matches.responsibleRelation !== thisPatternMatchResult.responsibleRelation &&
+                            matches.mandatoryAttributes !== thisPatternMatchResult.mandatoryAttributes)) {
+                        allPatternMatches.push(thisPatternMatchResult);
+                    } else {
+                        return;
+                    }
+
                 } else return;
             })
 

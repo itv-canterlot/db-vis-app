@@ -122,6 +122,35 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         
     }
 
+    onMatchResultIndexChange = (newIndex: number) => {
+        const newPatternMatchStatusesByIndex: PatternMatchResult[] =
+            this.state.visSchemaMatchStatus[this.state.selectedPatternIndex];
+        let newPatternMatchStatus = newPatternMatchStatusesByIndex[newIndex]
+
+        let mandatoryParamInitIndices, optionalParamInitIndices;
+        if (!newPatternMatchStatus) {
+            mandatoryParamInitIndices = [];
+            optionalParamInitIndices = [];
+        } else {
+            mandatoryParamInitIndices = newPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {
+                return Math.floor(Math.random() * mandMatch.length);
+            });
+            
+            optionalParamInitIndices = newPatternMatchStatus.optionalAttributes.map((mandMatch, idx) => {
+                return Math.floor(Math.random() * mandMatch.length);
+            });
+        }
+
+        const mandatoryParamAttrs = mandatoryParamInitIndices.map((attIdx, listIdx) => newPatternMatchStatus.mandatoryAttributes[listIdx][attIdx])
+        const optionalParamAttrs = optionalParamInitIndices.map((attIdx, listIdx) => newPatternMatchStatus.optionalAttributes[listIdx][attIdx])
+        const newParamAttrs = [mandatoryParamAttrs, optionalParamAttrs];
+
+        this.setState({
+            selectedMatchResultIndexInPattern: newIndex,
+            rendererSelectedAttributes: newParamAttrs
+        });
+    }
+
     onVisPatternIndexChange = (newIndex: number) => {
         const newPatternMatchStatusesByIndex: PatternMatchResult[] =
             this.state.visSchemaMatchStatus[newIndex];
@@ -379,6 +408,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                         load={this.state.load}
                         rerender={this.state.rerender}
                         onVisPatternIndexChange={this.onVisPatternIndexChange}
+                        onMatchResultIndexChange={this.onMatchResultIndexChange}
                         onSelectedAttributeIndicesChange={this.onSelectedAttributeIndicesChange}
                         onClickShowFilterSelectModal={this.onClickShowFilterSelectModal}
                          />

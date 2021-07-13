@@ -112,6 +112,7 @@ export type FilterSelectModalStates = {
 export type SchemaExplorerProps = {
     expanded: boolean, 
     onVisPatternIndexChange: Function,
+    onMatchResultIndexChange: Function,
     onSelectedAttributeIndicesChange: React.MouseEventHandler,
     onClickShowFilterSelectModal: React.MouseEventHandler,
     onExpansionClick?: Function
@@ -124,6 +125,7 @@ export type AppMainContProps = {
     load: boolean,
     rerender: boolean,
     onVisPatternIndexChange: Function,
+    onMatchResultIndexChange: Function,
     onSelectedAttributeIndicesChange: React.MouseEventHandler,
     onClickShowFilterSelectModal: React.MouseEventHandler,
     onDataChange?: Function
@@ -143,6 +145,7 @@ export type VisualiserProps = {
 export type VisualiserStates = {
     load?: boolean,
     renderedTableIndex?: number,
+    renderedMatchResultIndex?: number
     renderedAttributesIndices?: PatternMatchAttribute[][],
     renderedVisSchemaIndex?: number,
     renderedFilters?: Filter[],

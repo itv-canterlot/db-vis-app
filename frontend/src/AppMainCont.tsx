@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { AppMainContProps, AppMainContStates, SchemaExplorerProps, SchemaExplorerStates } from './ts/components';
-import { CONFIRMATION_STATUS, PatternMatchAttribute, PatternMatchResult, PATTERN_MISMATCH_REASON_TYPE, VisParam, VISSCHEMATYPES, visSchemaTypeToReadableString } from './ts/types';
+import { CONFIRMATION_STATUS, PatternMatchAttribute, PatternMatchResult, PATTERN_MISMATCH_REASON_TYPE, RelationNode, VisParam, VISSCHEMATYPES, visSchemaTypeToReadableString } from './ts/types';
 import { Visualiser } from './Visualiser';
 
 class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorerStates> {
@@ -16,6 +16,14 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
         if (context.visSchemaMatchStatus[selectedIndex].length === 0) return;
 
         this.props.onVisPatternIndexChange(selectedIndex);
+    }
+
+    onResultIndexInPatternClick = (e: React.BaseSyntheticEvent) => {
+        const context: DBSchemaContextInterface = this.context;
+        const selectedIndex = parseInt(e.target.getAttribute("data-pattern-index"));
+        if (selectedIndex === context.selectedMatchResultIndexInPattern) return;
+        
+        this.props.onMatchResultIndexChange(selectedIndex);
     }
 
     getMatchCount = (visStatus) => visStatus.reduce(
@@ -124,6 +132,88 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
                 </li>
             )
         });
+    }
+
+    relationNodeDropdownGroup = (thisPatternMatchResultGroup: PatternMatchResult[]) => {
+        const context: DBSchemaContextInterface = this.context;
+        if (!thisPatternMatchResultGroup) return null;
+        const currentlySelectedPatternMatchResult = 
+            thisPatternMatchResultGroup[context.selectedMatchResultIndexInPattern];
+
+        const getRelReadableText = (selectedRelation: RelationNode) => {
+            if (!selectedRelation) {
+                return "";
+            }
+            return selectedRelation.parentEntity.tableName + "↔" + selectedRelation.childRelations.map(cr => cr.table.tableName).join("/");
+        };
+        
+        let patternMatchSelections = thisPatternMatchResultGroup.map((patternMatchResult, patternMatchSelIndex) => {
+            const selectedRelation = patternMatchResult.responsibleRelation;
+            if (!selectedRelation || !patternMatchResult.matched) return;
+            let relTypeTip;
+            switch (selectedRelation.type) {
+                case VISSCHEMATYPES.WEAKENTITY:
+                    relTypeTip = (
+                        <div className="type-tip bg-tip-we">
+                            Weak entity
+                        </div>
+                    );
+                    break;
+                case VISSCHEMATYPES.MANYMANY:
+                    relTypeTip = (
+                        <div className="type-tip bg-tip-junc">
+                            Many-to-many
+                        </div>
+                    );
+                    break;
+                case VISSCHEMATYPES.SUBSET:
+                    relTypeTip = (
+                        <div className="type-tip bg-tip-subset">
+                            Subset
+                        </div>
+                    );
+                    break;
+                case VISSCHEMATYPES.ONEMANY:
+                    relTypeTip = (
+                        <div className="type-tip bg-tip-onemany">
+                            One-to-many
+                        </div>
+                    );
+                    break;
+                default:
+                    break;
+            }
+
+            // If there are more than one table involved, render the attribute list grouped by table names
+            return (
+                <li key={patternMatchSelIndex} >
+                    <a className="dropdown-item" href="#" data-pattern-index={patternMatchSelIndex} onClick={this.onResultIndexInPatternClick}>
+                        {getRelReadableText(selectedRelation)}
+                    </a>
+                </li>
+            );
+        });
+
+        if (patternMatchSelections.length === 0 || (patternMatchSelections.length === 1 && !patternMatchSelections[0])) {
+            return (
+                <div className="btn-group ms-2 attribute-list-dropdown">
+                    <button className="btn btn-secondary btn-sm dropdown-toggle disabled" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <em>Not applicable</em>
+                    </button>
+                </div>
+            );
+        }
+       
+        return (
+            <div className="btn-group ms-2 attribute-list-dropdown">
+                <button className="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    {getRelReadableText(currentlySelectedPatternMatchResult.responsibleRelation)}
+                </button>
+                <ul className="dropdown-menu">
+                    {patternMatchSelections}
+                </ul>
+            </div>
+        )
     }
 
     mandatoryAttributeDropdownGroup = (thisPatternMatchResult: PatternMatchResult) => {
@@ -322,7 +412,8 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
                 </div>
             )
         } else {
-            const thisPatternMatchResult: PatternMatchResult = (patternIndex < 0 && matchIndex < 0) ? undefined : context.visSchemaMatchStatus[patternIndex][matchIndex];
+            const thisPatternMatchResultGroup: PatternMatchResult[] = (patternIndex < 0) ? undefined : context.visSchemaMatchStatus[patternIndex]
+            const thisPatternMatchResult: PatternMatchResult = (matchIndex < 0) ? undefined : thisPatternMatchResultGroup[matchIndex];
 
             return (
                 <div>
@@ -342,9 +433,15 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
                     </div>
                     <div className="mt-2">
                         <div className="row">
+                                <div className="col">
+                                    Relation:
+                                    {this.relationNodeDropdownGroup(thisPatternMatchResultGroup)}
+                                </div>
+                            </div>
+                        <div className="row">
                             <div className="col">
                                 Mandatory attributes:
-                                {this.mandatoryAttributeDropdownGroup(thisPatternMatchResult)}
+                                {this.mandatoryAttributeDropdownGroup(thisPatternMatchResultGroup[context.selectedMatchResultIndexInPattern])}
                             </div>
                         </div>
                         <div className="row">
@@ -414,6 +511,7 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
                                     onExpansionClick={this.onExpansionClick}
                                     onVisPatternIndexChange={this.props.onVisPatternIndexChange}
                                     onClickShowFilterSelectModal={this.props.onClickShowFilterSelectModal}
+                                    onMatchResultIndexChange={this.props.onMatchResultIndexChange}
                                     onSelectedAttributeIndicesChange={this.props.onSelectedAttributeIndicesChange} />
                                 {shrinkTag()}
                             </div>

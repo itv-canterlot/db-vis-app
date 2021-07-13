@@ -35,6 +35,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                 renderFailed: true,
                 renderedAttributesIndices: context.selectedAttributesIndices,
                 renderedTableIndex: context.selectedFirstTableIndex,
+                renderedMatchResultIndex: context.selectedMatchResultIndexInPattern,
                 renderedVisSchemaIndex: selectedPattern,
                 renderedFilters: context.filters
             })
@@ -60,6 +61,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
             context.selectedAttributesIndices[0].map(att => att.table.pk.columns.map(col => col.colName))
 
         const selectedAttributesForeignKeyNames = context.selectedAttributesIndices[0].map(att => {
+            if (!patternMatchStatus || !patternMatchStatus.responsibleRelation) return;
             const responsibleFkInRel = 
                 patternMatchStatus.responsibleRelation.childRelations
                     .find(cr => cr.table.idx === att.table.idx);
@@ -91,6 +93,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                 renderFailed: true,
                 renderedAttributesIndices: context.selectedAttributesIndices,
                 renderedTableIndex: context.selectedFirstTableIndex,
+                renderedMatchResultIndex: context.selectedMatchResultIndexInPattern,
                 renderedVisSchemaIndex: selectedPattern,
                 renderedFilters: context.filters
             });
@@ -102,6 +105,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
         this.setState({
             renderFailed: false,
             renderedAttributesIndices: context.selectedAttributesIndices,
+            renderedMatchResultIndex: context.selectedMatchResultIndexInPattern,
             renderedTableIndex: context.selectedFirstTableIndex,
             renderedVisSchemaIndex: selectedPattern,
             renderedFilters: context.filters
@@ -168,21 +172,26 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                 // Pattern selection unchanged
                 if (context.selectedFirstTableIndex === this.state.renderedTableIndex) {
                     // Table selection unchanged
-                    let allAttributeSetChanged = this.isAllAttributeSetChanged();
-                    
-                    if (allAttributeSetChanged) {
-                        if (context.allEntitiesList !== undefined && context.allEntitiesList.length !== 0) {
-                            // If the entity list is loaded
-                            // If no table is selected, do not render
-                            return context.selectedFirstTableIndex >= 0;
+                    if (context.selectedMatchResultIndexInPattern === this.state.renderedMatchResultIndex) {
+                        // Match result index unchanged
+                        let allAttributeSetChanged = this.isAllAttributeSetChanged();
+                        
+                        if (allAttributeSetChanged) {
+                            if (context.allEntitiesList !== undefined && context.allEntitiesList.length !== 0) {
+                                // If the entity list is loaded
+                                // If no table is selected, do not render
+                                return context.selectedFirstTableIndex >= 0;
+                            } else {
+                                // Entity list not loaded, do not render
+                                return false;
+                            }
                         } else {
-                            // Entity list not loaded, do not render
-                            return false;
+                            // Attribute set unchanged
+                            // Rerender if filter set is changed
+                            return this.areFiltersChanged();
                         }
                     } else {
-                        // Attribute set unchanged
-                        // Rerender if filter set is changed
-                        return this.areFiltersChanged();
+                        return true;
                     }
                 } else {
                     return true;
