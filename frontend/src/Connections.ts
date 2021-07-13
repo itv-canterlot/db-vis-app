@@ -195,18 +195,15 @@ export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patt
                     childEntityFkCols
                 )
         } else if (responsibleRelation) {
-            console.log(responsibleRelation)
-            console.log(queryGroupedByTableName)
-            console.log(context.filters.map(filter => filter.relatedPatternMatchResult.responsibleRelation))
+            // All involved relations in both the pattern and the filters
+            const uniqueRelationsInvolved = [...new Set([responsibleRelation, 
+                ...context.filters.map(filter => filter.relatedPatternMatchResult.responsibleRelation)])]
             query = getMultiTableQuery(
                 responsibleRelation.parentEntity.tableName,
                 Object.keys(queryInvolvedTables).map(key => queryInvolvedTables[key]),
                 attrsMappedToQuery,
-                getFkColsQueriesByRels([responsibleRelation, 
-                    ...context.filters.map(filter => filter.relatedPatternMatchResult.responsibleRelation)], queryGroupedByTableName)
+                getFkColsQueriesByRels(uniqueRelationsInvolved, queryGroupedByTableName)
             );
-            console.log(query);
-            // TEST
         } else {
             throw new Error("responsibleRelation not found")
         }

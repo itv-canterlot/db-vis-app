@@ -14,6 +14,8 @@ export default function visTemplates(graphType, parameters) {
             return;
         case "chord":
             return;
+        case "line":
+            renderLinePlot(parameters);
         default:
             return;
     }
@@ -391,6 +393,127 @@ function renderBarPlot(parameters: VisTemplateBuilder) {
             .attr("width", x.bandwidth())
             .attr("height", function(d) { return height - y(d[xname]); })
             .attr("fill", "#69b3a2")
+}
+
+function renderLinePlot(parameters: VisTemplateBuilder) {
+    const width = parameters.width,
+        height = parameters.height,
+        svg = parameters.svg,
+        margin = parameters.margin,
+        attName = parameters.args["attributeNames"][0][0];
+
+    let selectedAttributesPKNames = parameters.args["selectedAttributesPublicKeyNames"][0]; // Compulsory attributes only
+    let selectedAttributesFKNames = parameters.args["selectedAttributesForeignKeyNames"][0]; // Compulsory attributes only
+
+    // Remove columns in the table the attribute is in that links between tables
+    for (let i = selectedAttributesPKNames.length - 1; i >= 0; i--) {
+        if (selectedAttributesFKNames.includes(selectedAttributesPKNames[i])) {
+            selectedAttributesPKNames.splice(i, 1);
+        }
+    }
+
+    // Separate out null data points
+    let data = JSON.parse(JSON.stringify(parameters.data))
+    // Assume the plotted axis is numbers only?
+    let dataGroupedByNames = d3.group(data, d => d[selectedAttributesFKNames[0]]);
+
+    let nullPoints = [];
+    let nullFilterIndex = data.length - 1;
+
+    while (nullFilterIndex >= 0) {
+        const d = data[nullFilterIndex];
+        const hasNull = Object.values(d).some(x => x === null || x === '' || x === undefined);
+        if (hasNull) {
+            nullPoints.push(d);
+            data.splice(nullFilterIndex, 1)
+        }
+        nullFilterIndex--;
+    }
+
+    // Floating point values for the data points - for statistical use only, not for plotting
+    const dataFloat = data
+        .map(d => parseFloat(d[attName]))
+        .filter(d => !isNaN(d));
+
+    const xAxisFloat = data
+        .map(d => parseFloat(d[selectedAttributesPKNames[0]]))
+        .filter(d => !isNaN(d));
+
+    // Find out the range of each data dimension
+    const attMax = Math.max(...dataFloat),
+        attMin = Math.min(...dataFloat),
+        xAxisMax = Math.max(...xAxisFloat),
+        xAxisMin = Math.min(...xAxisFloat);
+
+    var x = d3.scaleLinear()
+        .domain([xAxisMin, xAxisMax])
+        .range([0, width]);
+    svg.append("g")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(x).ticks(5));
+
+    var y = d3.scaleLinear()
+        .domain([attMin, attMax])
+        .range([height, 0]);
+    svg.append("g")
+        .call(d3.axisLeft(y));
+
+    // Group names
+    var groupNames = dataGroupedByNames.keys();
+    // Colours TODO
+    svg.selectAll(".line")
+        .data(dataGroupedByNames)
+        .enter()
+        .append("path")
+            .attr("fill", "none")
+            .attr("stroke", "#69b3a2")
+            .attr("stroke-width", 1.5)
+            .attr("d", (d) => {
+                return d3.line()
+                    .x(d => x(d[selectedAttributesPKNames[0]]))
+                    .y(d => y(d[attName]))
+                    (d[1])
+            })
+    
+    // svg.append("g")
+    // .attr("transform", "translate(0," + height + ")")
+    // .call(d3.axisBottom(x))
+    // .selectAll("text")
+    //     .attr("transform", "translate(-10,0)rotate(-45)")
+    //     .style("text-anchor", "end");
+
+    // // Add Y axis
+    // var y = d3.scaleLinear()
+    // .domain([xmin - xext, xmax + xext])
+    // .range([ height, 0]);
+    
+    // svg.append("g")
+    // .call(d3.axisLeft(y));
+
+    // // Add X axis label:
+    // svg.append("text")
+    // .attr("text-anchor", "end")
+    // .attr("x", width/2 + margin.left)
+    // .attr("y", height + margin.top + 20)
+    // .text(publicKeyNames[0]);
+
+    // // Y axis label:
+    // svg.append("text")
+    // .attr("text-anchor", "end")
+    // .attr("transform", "rotate(-90)")
+    // .attr("y", - margin.left + 20)
+    // .attr("x", - margin.top - height/2 + 20)
+    // .text(xname)
+
+    // svg.selectAll("bar")
+    //     .data(data)
+    //     .enter()
+    //     .append("rect")
+    //         .attr("x", function(d) { return x(d[publicKeyNames[0]]); })
+    //         .attr("y", function(d) { return y(d[xname]); })
+    //         .attr("width", x.bandwidth())
+    //         .attr("height", function(d) { return height - y(d[xname]); })
+    //         .attr("fill", "#69b3a2")
 }
 
 const getSecondSmallestNumberInArray = (min: number, array: number[]) => {

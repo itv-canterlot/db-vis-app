@@ -23,14 +23,14 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
 
         let context: DBSchemaContextInterface = this.context;
         const selectedPattern = context.selectedPatternIndex;
-        const patternMatchStatus = context.visSchemaMatchStatus[selectedPattern];
+        const patternMatchStatus = context.visSchemaMatchStatus[selectedPattern][context.selectedMatchResultIndexInPattern];
         const selectedPatternTemplateCode = context.visSchema[selectedPattern].template
         
         if (!context.dataLoaded) {
             return;
         }
 
-        if (!patternMatchStatus || !patternMatchStatus[0].matched) {
+        if (!patternMatchStatus || !patternMatchStatus.matched) {
             this.setState({
                 renderFailed: true,
                 renderedAttributesIndices: context.selectedAttributesIndices,
@@ -41,7 +41,8 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
             renderEmptyChart();
             return;
         }
-        // TODO: deal with multiple tables
+        
+        // Figure out if there is a foreign key involved in the match
 
         // Map matched attributes to their names
         const attributeNames = context.selectedAttributesIndices
@@ -55,9 +56,32 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
             context.allEntitiesList[context.selectedFirstTableIndex]
                 .pk.columns.map(col => col.colName);
 
+        const selectedAttributesPublicKeyNames = 
+            context.selectedAttributesIndices[0].map(att => att.table.pk.columns.map(col => col.colName))
+
+        const selectedAttributesForeignKeyNames = context.selectedAttributesIndices[0].map(att => {
+            const responsibleFkInRel = 
+                patternMatchStatus.responsibleRelation.childRelations
+                    .find(cr => cr.table.idx === att.table.idx);
+            if (responsibleFkInRel) {
+                // If defined:
+                return att.table.fk
+                    [responsibleFkInRel.fkIndex]
+                        .columns.map(col => col.fkColName);
+            } else {
+                // If not defined: return undefined
+                return undefined;
+            }
+        })
+
+        // TODO: we want to find: which column(s) are used to connect to the main entity
+        // And which one is used for visualisation
+
         const params = {
             attributeNames: attributeNames,
             firstTablePrimaryKeyNames: firstTablePrimaryKeyNames,
+            selectedAttributesPublicKeyNames: selectedAttributesPublicKeyNames,
+            selectedAttributesForeignKeyNames: selectedAttributesForeignKeyNames,
             xLogScale: true,
             yLogScale: true
         }

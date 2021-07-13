@@ -21,7 +21,8 @@
                 {
                     "scalar": true
                 }
-            ]
+            ],
+            "template": "line"
         }, {
             "name": "Stacked Bar Chart",
             "type": 1,
