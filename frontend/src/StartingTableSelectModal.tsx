@@ -15,7 +15,7 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
         super(props);
         this.state = {
             cachedDropdownSelectedIndex: -1,
-            selectedForeignKeyIdx: 0,
+            cachedForeignRelationCardSelectedIndex: -1,
             cachedSelectEntitiesIndices: [],
             cachedSelectedRelationsIndices: []
         };
@@ -31,15 +31,26 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
 
         this.setState({
             cachedDropdownSelectedIndex: tableIndex,
-            selectedForeignKeyIdx: 0
+            cachedForeignRelationCardSelectedIndex: -1
+            
         });
     };
 
     onNewTableAddedToSelectedList = () => {
+        if (this.state.cachedDropdownSelectedIndex < 0) return;
         let newEntityIndices = this.state.cachedSelectEntitiesIndices;
         newEntityIndices.push(this.state.cachedDropdownSelectedIndex);
         this.setState({
             cachedSelectEntitiesIndices: newEntityIndices
+        });
+    }
+
+    onNewRelationAddedToSelectedList = () => {
+        if (this.state.cachedForeignRelationCardSelectedIndex < 0) return;
+        let newRelationIndices = this.state.cachedSelectedRelationsIndices;
+        newRelationIndices.push(this.state.cachedForeignRelationCardSelectedIndex);
+        this.setState({
+            cachedSelectedRelationsIndices: newRelationIndices
         });
     }
 
@@ -75,6 +86,13 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
         this.props.onClose(e);
     };
 
+    onClickForeignRelationElement = (e: React.BaseSyntheticEvent) => {
+        const selectedForeignRelationId = parseInt(e.currentTarget.getAttribute("data-foreign-rel-idx"));
+        this.setState({
+            cachedForeignRelationCardSelectedIndex: selectedForeignRelationId
+        });
+    }
+
     handleOnClose = () => {
         if (this.modalComponent) {
             this.modalComponent.hide();
@@ -92,15 +110,25 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
 
         let foreignKeyParing = null;
 
+        const selectButtonActive = this.state.cachedSelectEntitiesIndices.includes(this.state.cachedDropdownSelectedIndex)
+            && this.state.cachedForeignRelationCardSelectedIndex >= 0;
+
         if (thisRels) {
             foreignKeyParing = (
                 <div className="card">
                     <div className="card-body d-flex justify-content-between align-items-center">
-                        <h5 className="card-title">Foreign relations</h5>
-                        <span className="badge bg-primary rounded-pill">{thisRels.length}</span>
+                        <div className="align-items-end d-inline-flex">
+                            <h5 className="card-title m-0">Foreign relations</h5>
+                            <span className="badge bg-primary rounded-pill ms-2">{thisRels.length}</span>
+                        </div>
+                        <button type="button" 
+                            className={"btn btn-info" + 
+                                (!selectButtonActive ? " disabled" : "")} 
+                            onClick={this.onNewRelationAddedToSelectedList}>Select</button>
                     </div>
                     <ul className="list-group start-table-rel-list ml-auto mr-auto">
-                        {foreignRelationsElement(thisRels, thisTable)}
+                        {foreignRelationsElement(thisRels, thisTable, 
+                            this.onClickForeignRelationElement, this.state.cachedForeignRelationCardSelectedIndex)}
                     </ul>
                 </div>
             );
@@ -155,16 +183,16 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
         );
     };
 
-    onClickIndexPill = (e: React.BaseSyntheticEvent) => {
+    onClickIndexPillDelete = (e: React.BaseSyntheticEvent) => {
         const thisCurrentTarget = e.currentTarget;
         const dataIsEntity = thisCurrentTarget.getAttribute("data-is-entity");
         const elemKey = thisCurrentTarget.getAttribute("data-key");
 
-        if (dataIsEntity) {
+        if (dataIsEntity === "true") {
             let selectEntityIndices = this.state.cachedSelectEntitiesIndices;
             selectEntityIndices.splice(elemKey, 1);
             this.setState({
-                cachedSelectedRelationsIndices: selectEntityIndices
+                cachedSelectEntitiesIndices: selectEntityIndices
             });
         } else {
             let selectRelationsIndices = this.state.cachedSelectedRelationsIndices;
@@ -175,7 +203,7 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
         }
     }
 
-    selectedIndicesPills = () => {
+    selectedEntitiesPills = () => {
         const context: DBSchemaContextInterface = this.context;
         return (
             <div>
@@ -186,7 +214,28 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
                                 {context.allEntitiesList[ind].tableName}
                             </div>
                             <span aria-hidden="true" className="ms-2 cursor-pointer" data-is-entity={true} 
-                                data-elem-ind={ind} data-key={key} onClick={this.onClickIndexPill}><i className="fas fa-times"/></span>
+                                data-elem-ind={ind} data-key={key} onClick={this.onClickIndexPillDelete}><i className="fas fa-times"/></span>
+                        </div>
+                    );
+                })}
+            </div>
+        )
+    }
+
+    selectedRelationsPills = () => {
+        const context: DBSchemaContextInterface = this.context;
+        return (
+            <div>
+                {this.state.cachedSelectedRelationsIndices.map((ind, key) => {
+                    const thisRel = context.relationsList.find(rel => rel.index === ind);
+                    if (!thisRel) return;
+                    return (
+                        <div key={key} className="badge bg-info d-inline-flex me-2">
+                            <div>
+                                {thisRel.parentEntity.tableName} ➔ {thisRel.childRelations.map(cr => cr.table.tableName).join("/")}
+                            </div>
+                            <span aria-hidden="false" className="ms-2 cursor-pointer" data-is-entity={false} 
+                                data-elem-ind={ind} data-key={key} onClick={this.onClickIndexPillDelete}><i className="fas fa-times"/></span>
                         </div>
                     );
                 })}
@@ -273,7 +322,8 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
                             <div className="mt-4 mb-3">
                                 <div className="row justify-content-center">
                                     <div className="col-8 mb-2">
-                                        {this.selectedIndicesPills()}
+                                        {this.selectedEntitiesPills()}
+                                        {this.selectedRelationsPills()}
                                     </div>
                                 </div>
                                 {this.state.cachedDropdownSelectedIndex >= 0 ?

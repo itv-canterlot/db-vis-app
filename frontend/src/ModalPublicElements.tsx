@@ -4,7 +4,8 @@ import { Table, RelationNode, Attribute, VISSCHEMATYPES } from './ts/types';
 import * as SchemaParser from './SchemaParser';
 import * as TypeConstants from './TypeConstants';
 
-export const foreignRelationsElement = (thisRels: RelationNode[], thisTable: Table) => {
+export const foreignRelationsElement = (thisRels: RelationNode[], thisTable: Table, 
+        onClickForeignRelationElement?: React.MouseEventHandler, highlightRelIndex?: number) => {
     if (thisRels) {
         // Display parent relations first
         let thisRelsSorted: RelationNode[] = [], 
@@ -35,13 +36,11 @@ export const foreignRelationsElement = (thisRels: RelationNode[], thisTable: Tab
                             <div key={childIdx}>
                                 <i className="fas fa-arrow-right me-1" /> 
                                 {childEntity.tableName}
-                                {/* (<i className="fas fa-key ms-1 me-1"/>{rel.parentEntity.fk[childRel.fkIndex].keyName}) */}
                             </div>);
                     } else {
                         return (
                             <div key={childIdx}>
                                 <i className="fas fa-arrow-right me-1" /> {childEntity.tableName}
-                                {/* (<i className="fas fa-key ms-1 me-1"/>{childEntity.fk[childRel.fkIndex].keyName}) */}
                             </div>);
                     }
                 }
@@ -97,28 +96,28 @@ export const foreignRelationsElement = (thisRels: RelationNode[], thisTable: Tab
             switch (thisRelType) {
                 case VISSCHEMATYPES.WEAKENTITY:
                     relationTypeTip = (
-                        <div className="type-tip bg-tip-we">
+                        <div className="type-tip tip-text bg-tip-we">
                             Weak entity
                         </div>
                     );
                     break;
                 case VISSCHEMATYPES.MANYMANY:
                     relationTypeTip = (
-                        <div className="type-tip bg-tip-junc">
+                        <div className="type-tip tip-text bg-tip-junc">
                             Many-to-many
                         </div>
                     );
                     break;
                 case VISSCHEMATYPES.SUBSET:
                     relationTypeTip = (
-                        <div className="type-tip bg-tip-subset">
+                        <div className="type-tip tip-text bg-tip-subset">
                             Subset
                         </div>
                     );
                     break;
                 case VISSCHEMATYPES.ONEMANY:
                     relationTypeTip = (
-                        <div className="type-tip bg-tip-onemany">
+                        <div className="type-tip tip-text bg-tip-onemany">
                             One-to-many
                         </div>
                     );
@@ -126,9 +125,13 @@ export const foreignRelationsElement = (thisRels: RelationNode[], thisTable: Tab
                 default:
                     break;
             }
+
+            const elemIsHighlighted = highlightRelIndex !== undefined && (highlightRelIndex >= 0) && (highlightRelIndex === rel.index);
             
             const relationElement = (
-                <li className="list-group-item foreign-relations-group-item" key={idx} data-foreign-rel-idx={rel.index}>
+                <li className={"list-group-item foreign-relations-group-item" 
+                    + (elemIsHighlighted ? " active" : "")} key={idx} data-foreign-rel-idx={rel.index} data-idx={idx}
+                    onClick={onClickForeignRelationElement ? onClickForeignRelationElement : () => undefined}>
                     <div className="d-flex justify-content-between">
                         {relationTypeTip}
                         {relationParentTip}

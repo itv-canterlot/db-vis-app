@@ -275,6 +275,10 @@ const getRelationType = (allTables: Table[]) => {
     for (let parentName in superSetTablesGroupByParentTableName) {
         relationsList.push(constructSubsetRelation(allTables, superSetTablesGroupByParentTableName, parentName))
     }
+
+    relationsList.forEach((rel, idx) => {
+        rel.index = idx
+    })
         
     return relationsList;
 }
