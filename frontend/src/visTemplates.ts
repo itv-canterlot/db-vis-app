@@ -460,6 +460,21 @@ function renderLinePlot(parameters: VisTemplateBuilder) {
 
     var color = d3.scaleOrdinal(d3.schemeCategory10);
 
+    // Add X axis label:
+    svg.append("text")
+    .attr("text-anchor", "end")
+    .attr("x", width/2 + margin.left)
+    .attr("y", height + margin.top + 20)
+    .text(selectedAttributesPKNames[0]);
+
+    // Y axis label:
+    svg.append("text")
+    .attr("text-anchor", "end")
+    .attr("transform", "rotate(-90)")
+    .attr("y", - margin.left + 20)
+    .attr("x", - margin.top - height/2 + 20)
+    .text(attName)
+
     // Group names
     // Colours TODO
     svg.selectAll(".line")
