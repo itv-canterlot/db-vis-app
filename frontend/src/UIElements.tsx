@@ -20,14 +20,13 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
     onListItemClick = (e) => {
         e.preventDefault();
         
-        // const inputNode = this.inputRef.current as HTMLInputElement;
         // Send the selected index to parent
         this.props.onListSelectionChange(e);
         // Unfocus from the input box
         this.blurInput();
-        // // Fill in input box with the name of the selected element
-        // const selectedItemNode = e.target as HTMLAnchorElement;
-        // inputNode.value = selectedItemNode.getAttribute("data-content");
+        // Clear input box
+        const inputNode = this.inputRef.current as HTMLInputElement;
+        inputNode.value = "";
     }
 
     // Default renderer for mapping array/object

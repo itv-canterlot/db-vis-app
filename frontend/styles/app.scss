@@ -132,7 +132,7 @@ body, html {
 
 .start-table-rel-list {
     font-size: 0.9rem;
-    max-height: 60vh;
+    max-height: 40vh;
     overflow-y: auto;
 }
 
@@ -163,7 +163,7 @@ body, html {
   margin: 0;
 }
 
-/* Firefox */
-.input-number-no-scroll[type=number] {
-  -moz-appearance: textfield;
+/* Misc */
+.cursor-pointer {
+    cursor: pointer;
 }

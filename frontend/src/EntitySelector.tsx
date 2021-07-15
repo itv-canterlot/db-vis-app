@@ -35,12 +35,9 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
     }
 
     onTableSelectChangeHandler = (e) => {
-        this.props.onTableSelectChange(e);
-        const selectedItemNode = e.target as HTMLAnchorElement;
-        const nodeText = selectedItemNode.getAttribute("data-content");
-        
+        this.props.onTableSelectChange(e);        
         this.setState({
-            innerVal: nodeText
+            innerVal: ""
         })
     }
 
@@ -62,7 +59,6 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
                         listFilter={UIRenderers.entityArrayFilter}
                         id={this.props.id}
                         />
-
                 </div>
             </div>
         </div>)

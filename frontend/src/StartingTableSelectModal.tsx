@@ -14,42 +14,52 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
     constructor(props) {
         super(props);
         this.state = {
-            cachedSelectedIndex: -1,
-            selectedForeignKeyIdx: 0
+            cachedDropdownSelectedIndex: -1,
+            selectedForeignKeyIdx: 0,
+            cachedSelectEntitiesIndices: [],
+            cachedSelectedRelationsIndices: []
         };
     }
 
     modalComponent: bootstrap.Modal = undefined;
 
-    onTableSelectChange = (e) => {
+    onBrowserTableSelectChange = (e) => {
         let tableIndex = parseInt(e.target.getAttribute("data-index"));
 
         if (tableIndex < 0)
             return;
 
         this.setState({
-            cachedSelectedIndex: tableIndex,
+            cachedDropdownSelectedIndex: tableIndex,
             selectedForeignKeyIdx: 0
         });
     };
 
+    onNewTableAddedToSelectedList = () => {
+        let newEntityIndices = this.state.cachedSelectEntitiesIndices;
+        newEntityIndices.push(this.state.cachedDropdownSelectedIndex);
+        this.setState({
+            cachedSelectEntitiesIndices: newEntityIndices
+        });
+    }
+
     onClickEntityBrowseButton = (e: React.BaseSyntheticEvent) => {
         const dbContext: DBSchemaContextInterface = this.context;
         const targetId: string = e.target.id;
-        const currentCachedSelectedIndex = this.state.cachedSelectedIndex;
+        const currentCachedSelectedIndex = this.state.cachedDropdownSelectedIndex;
         if (targetId.endsWith("-down")) {
             // cachedIndex++
             this.setState({
-                cachedSelectedIndex: currentCachedSelectedIndex + 1
+                cachedDropdownSelectedIndex: currentCachedSelectedIndex + 1
             }, () => {
-                const newEntityName = dbContext.allEntitiesList[this.state.cachedSelectedIndex].tableName;
+                const newEntityName = dbContext.allEntitiesList[this.state.cachedDropdownSelectedIndex].tableName;
             });
         } else if (targetId.endsWith("-up")) {
             // cachedIndex--
             this.setState({
-                cachedSelectedIndex: currentCachedSelectedIndex - 1
+                cachedDropdownSelectedIndex: currentCachedSelectedIndex - 1
             }, () => {
-                const newEntityName = dbContext.allEntitiesList[this.state.cachedSelectedIndex].tableName;
+                const newEntityName = dbContext.allEntitiesList[this.state.cachedDropdownSelectedIndex].tableName;
                 console.log(newEntityName);
             });
         } else {
@@ -58,7 +68,7 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
     };
 
     onTableChangeConfirm = (e) => {
-        this.props.onTableSelectChange(this.state.cachedSelectedIndex);
+        this.props.onTableSelectChange(this.state.cachedDropdownSelectedIndex);
         if (this.modalComponent) {
             this.modalComponent.hide();
         }
@@ -109,13 +119,27 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
             });
         };
 
+        const thisTableCardHeader = (
+            <div className="d-flex align-items-center justify-content-between">
+                <div>
+                    <h5 className="card-title">{thisTable.tableName}</h5>
+                    <h6 className="card-subtitle mb-2 text-muted">n_keys: {thisTable.pk ? thisTable.pk.keyCount : (<em>not available</em>)}</h6>
+                </div>
+                <div>
+                    <button type="button" 
+                        className={"btn btn-success" + 
+                            (this.state.cachedSelectEntitiesIndices.includes(this.state.cachedDropdownSelectedIndex) ? " disabled" : "")} 
+                        onClick={this.onNewTableAddedToSelectedList}>Select</button>
+                </div>
+            </div>
+        )
+
         return (
-            <div className="row justify-content-center mt-4 mb-3">
+            <div className="row justify-content-center">
                 <div className="col-4 mt-auto mb-auto">
                     <div className="card">
                         <div className="card-body">
-                            <h5 className="card-title">{thisTable.tableName}</h5>
-                            <h6 className="card-subtitle mb-2 text-muted">n_keys: {thisTable.pk ? thisTable.pk.keyCount : (<em>not available</em>)}</h6>
+                            {thisTableCardHeader}
                         </div>
                         <ul className="list-group list-group-flush start-table-rel-list ml-auto mr-auto">
                             {tableAttributeList()}
@@ -131,19 +155,57 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
         );
     };
 
+    onClickIndexPill = (e: React.BaseSyntheticEvent) => {
+        const thisCurrentTarget = e.currentTarget;
+        const dataIsEntity = thisCurrentTarget.getAttribute("data-is-entity");
+        const elemKey = thisCurrentTarget.getAttribute("data-key");
+
+        if (dataIsEntity) {
+            let selectEntityIndices = this.state.cachedSelectEntitiesIndices;
+            selectEntityIndices.splice(elemKey, 1);
+            this.setState({
+                cachedSelectedRelationsIndices: selectEntityIndices
+            });
+        } else {
+            let selectRelationsIndices = this.state.cachedSelectedRelationsIndices;
+            selectRelationsIndices.splice(elemKey, 1);
+            this.setState({
+                cachedSelectedRelationsIndices: selectRelationsIndices
+            });
+        }
+    }
+
+    selectedIndicesPills = () => {
+        const context: DBSchemaContextInterface = this.context;
+        return (
+            <div>
+                {this.state.cachedSelectEntitiesIndices.map((ind, key) => {
+                    return (
+                        <div key={key} className="badge bg-secondary d-inline-flex me-2">
+                            <div>
+                                {context.allEntitiesList[ind].tableName}
+                            </div>
+                            <span aria-hidden="true" className="ms-2 cursor-pointer" data-is-entity={true} 
+                                data-elem-ind={ind} data-key={key} onClick={this.onClickIndexPill}><i className="fas fa-times"/></span>
+                        </div>
+                    );
+                })}
+            </div>
+        )
+    }
 
 
     focusCheck = () => {
-        if (this.state.cachedSelectedIndex < 0) {
+        if (this.state.cachedDropdownSelectedIndex < 0) {
             document.getElementById("starting-table-select-input").focus();
         }
     };
 
     componentDidMount() {
         const context: DBSchemaContextInterface = this.context;
-        if (context.selectedFirstTableIndex >= 0 && this.state.cachedSelectedIndex !== context.selectedFirstTableIndex) {
+        if (context.selectedFirstTableIndex >= 0 && this.state.cachedDropdownSelectedIndex !== context.selectedFirstTableIndex) {
             this.setState({
-                cachedSelectedIndex: context.selectedFirstTableIndex
+                cachedDropdownSelectedIndex: context.selectedFirstTableIndex
             });
         }
         const modalElement = document.getElementById("starting-table-select-modal");
@@ -168,7 +230,7 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
     render() {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
         const getEntityBrowserButtonActiveState = (isUp: boolean) => {
-            const currentCachedSelectedIndex = this.state.cachedSelectedIndex;
+            const currentCachedSelectedIndex = this.state.cachedDropdownSelectedIndex;
             let baseClassList = "btn btn-outline-secondary btn-entity-browse";
             if (isUp) {
                 if (currentCachedSelectedIndex <= 0)
@@ -185,7 +247,7 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
             return baseClassList;
         };
         return (
-            <div className="modal fade d-block" role="dialog" id="starting-table-select-modal">
+            <div className="modal fade d-block" role="dialog" id="starting-table-select-modal" style={{overflowY: "hidden"}}>
                 <div className="modal-dialog modal-dialog-centered" role="document" style={{ maxWidth: "80%" }}>
                     <div className="modal-content">
                         <div className="modal-header">
@@ -196,7 +258,7 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
                         </div>
                         <div className="modal-body">
                             <div className="d-flex ">
-                                <EntitySelector onTableSelectChange={this.onTableSelectChange} selectedEntityIndex={this.state.cachedSelectedIndex} id="starting-table-select-input" />
+                                <EntitySelector onTableSelectChange={this.onBrowserTableSelectChange} selectedEntityIndex={this.state.cachedDropdownSelectedIndex} id="starting-table-select-input" />
                                 <div className="btn-group ms-3 me-2" role="group" aria-label="First group">
                                     <button type="button" className={getEntityBrowserButtonActiveState(true)} id="entity-browse-up"
                                         onClick={this.onClickEntityBrowseButton}>
@@ -208,9 +270,16 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
                                     </button>
                                 </div>
                             </div>
-                            {this.state.cachedSelectedIndex >= 0 ?
-                                this.getTableRelationVis(dbSchemaContext, this.state.cachedSelectedIndex) :
-                                null}
+                            <div className="mt-4 mb-3">
+                                <div className="row justify-content-center">
+                                    <div className="col-8 mb-2">
+                                        {this.selectedIndicesPills()}
+                                    </div>
+                                </div>
+                                {this.state.cachedDropdownSelectedIndex >= 0 ?
+                                    this.getTableRelationVis(dbSchemaContext, this.state.cachedDropdownSelectedIndex) :
+                                    null}
+                            </div>
                         </div>
                         <div className="modal-footer">
                             <button type="button" className="btn btn-primary" onClick={this.onTableChangeConfirm}>Confirm</button>

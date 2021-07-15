@@ -89,7 +89,9 @@ export type StartingTableSelectModalProps = {
 }
 
 export type StartingTableSelectModalStates = {
-    cachedSelectedIndex?: number,
+    cachedSelectEntitiesIndices?: number[],
+    cachedSelectedRelationsIndices?: number[],
+    cachedDropdownSelectedIndex?: number,
     selectedForeignKeyIdx?: number
 }
 
