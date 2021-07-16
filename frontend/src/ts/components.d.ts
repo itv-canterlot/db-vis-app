@@ -29,14 +29,9 @@ export type FixedAttributeSelectorProps = {
 
 export type EntitySelectorProps = {
     onTableSelectChange: Function,
-    onAttributeSelectChange?: Function,
-    onFKAttributeSelectChange?: Function,
-    onForeignKeySelectChange?: Function,
-    selectedAttributeIndex?: number,
-    selectedForeignKeyIndex?: number,
-    selectedFKAttributeIndex?: number,
     selectedEntityIndex?: number,
-    listLoaded?: boolean,
+    cachedSelectedEntitiesList?: number[],
+    cachedSelectedRelationsList?: number[],
     id?: string
 }
 

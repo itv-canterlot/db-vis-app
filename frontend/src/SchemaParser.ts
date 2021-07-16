@@ -152,6 +152,49 @@ export const getRelationsInListByName = (relationsList: RelationNode[], tableNam
     })
 }
 
+export const filterTablesByExistingRelations = (allEntitiesList: Table[], allRelationsList: RelationNode[], 
+        availableEntityIndices?: number[], availableRelationsIndices?: number[]) => {
+    let allRelationsRelatedToSelectedEntities: RelationNode[] = [];
+    if (availableEntityIndices !== undefined && availableEntityIndices.length > 0) {
+        availableEntityIndices.forEach(entIndex => {
+            const thisEntity = allEntitiesList[entIndex];
+            allRelationsRelatedToSelectedEntities.push(...getRelationsInListByName(allRelationsList, thisEntity.tableName));
+        });
+    }
+
+    let allSelectedRelations: RelationNode[] = [];
+    if (availableRelationsIndices !== undefined && availableRelationsIndices.length > 0) {
+        allSelectedRelations.push(...availableRelationsIndices.map(relIndex => allRelationsList[relIndex]));
+    }
+
+    let entitiesList: Table[] = [];
+
+    entitiesList.push(...allEntitiesList.filter(ent => {
+        return allRelationsRelatedToSelectedEntities.some(rel => {
+            return rel.childRelations.some(cr => cr.table.idx === ent.idx) || rel.parentEntity.idx === ent.idx;
+        });
+    }));
+
+    allSelectedRelations.forEach(rel => {
+        entitiesList.push(rel.parentEntity);
+        entitiesList.push(...rel.childRelations.map(cr => cr.table))
+    })
+
+    // Filter and sort the entities list
+    entitiesList.sort((t1, t2) => (t1.idx - t2.idx));
+
+    if (entitiesList.length >= 2) {
+        for (let i = entitiesList.length - 1; i > 0; i--) {
+            if (entitiesList[i].idx === entitiesList[i - 1].idx) {
+                entitiesList.splice(i, 1);
+            }
+        }
+    }
+
+
+    return entitiesList;
+}
+
 export const isTableAtRootOfRel = (table: Table, rel: RelationNode) => {
     return rel.parentEntity === table;
 }

@@ -7,6 +7,7 @@ import { ForeignKey, RelationNode, Table } from './ts/types';
 import * as ComponentTypes from './ts/components';
 import * as UIRenderers from './UIRenderers';
 import * as d3 from 'd3';
+import { filterTablesByExistingRelations, getRelationsInListByName } from './SchemaParser';
 
 export class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps, {innerVal?: string}> {
     constructor(props) {
@@ -16,7 +17,6 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
         }
     }
 
-    
     attributeArrayRendererHandler = (item, index, onClickCallback, selectedIndex) => {
         let context: DBSchemaContextInterface = this.context;
         let selectedEntity = context.allEntitiesList[context.selectedFirstTableIndex];
@@ -41,22 +41,42 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
         })
     }
 
+    entityArrayFilterBySelection = (list: Table[], text: string) => {
+        const context: DBSchemaContextInterface = this.context;
+        let availableTablesToSelectBySelection = filterTablesByExistingRelations(
+            context.allEntitiesList, context.relationsList, 
+            this.props.cachedSelectedEntitiesList, this.props.cachedSelectedRelationsList);
+        if (availableTablesToSelectBySelection.length === 0) {
+            availableTablesToSelectBySelection = list;
+        }
+        return availableTablesToSelectBySelection.filter(en => {
+            return en.tableName.toLowerCase().includes(text.toLowerCase());
+        })
+    }
+
     /* React components for entity selectors */
     entitiesListNode = () => {
         const context: DBSchemaContextInterface = this.context;
         const renderingIndex = this.props.selectedEntityIndex ? this.props.selectedEntityIndex : context.selectedFirstTableIndex
-        let selectedEntity = this.context.allEntitiesList[renderingIndex] as Table;
+        let availableTablesToSelect;
+        if (this.props.cachedSelectedEntitiesList !== undefined && this.props.cachedSelectedEntitiesList.length !== 0) {
+            availableTablesToSelect = filterTablesByExistingRelations(
+                context.allEntitiesList, context.relationsList, this.props.cachedSelectedEntitiesList, this.props.cachedSelectedRelationsList);
+        } else {
+            availableTablesToSelect = context.allEntitiesList;
+        }
+
         return (<div className="row">
             <div className="col">
                 <div className="row position-relative">
                     <SearchDropdownList placeholder="Select Entity 1..." 
-                        prependText="E1" dropdownList={this.context.allEntitiesList} 
+                        prependText="E1" dropdownList={availableTablesToSelect} 
                         selectedIndex={renderingIndex}
                         onListSelectionChange={this.onTableSelectChangeHandler}
                         arrayRenderer={this.entityArrayRendererHandler}
                         innerVal={this.state.innerVal}
                         updateInnerText={this.updateInnerText}
-                        listFilter={UIRenderers.entityArrayFilter}
+                        listFilter={this.entityArrayFilterBySelection}
                         id={this.props.id}
                         />
                 </div>

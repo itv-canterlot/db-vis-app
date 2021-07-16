@@ -207,16 +207,6 @@ export const matchTableWithAllVisPatterns = (table: Table, rels: RelationNode[],
     return out;
 }
 
-// export const matchFilteredDataWithAllVisPatterns = (data: Object[], attrs: PatternMatchAttribute[][], patternMatchResult: PatternMatchResult) => {
-//     // For the given dataset, find out which relation node the attributes reside on
-//     console.log(data);
-//     console.log(attrs);
-//     console.log(patternMatchResult.responsibleRelation);
-
-
-//     return undefined;
-// }
-
 const patternMatchSuccessful = (result: PatternMatchResult, vs: VisSchema) => {
     return result.mandatoryAttributes.every(ma => ma.length > 0);
 }

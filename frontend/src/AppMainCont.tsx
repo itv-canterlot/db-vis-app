@@ -494,7 +494,6 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
                         </div>
                         <i className={"fas fa-angle-up mr-2"} />
                         <i className={"fas fa-angle-down"} />
-                        {/* {this.state.explorerExpanded ? (<i className={"fas fa-angle-up"} />) : (<i className={"fas fa-angle-down"} />)} */}
                     </div>
                 </div>
             ) 

@@ -299,12 +299,14 @@ async function getTableMetatdata() {
         }
         table["fk"] = tableFksProcessed;
 
+        // Counting the number of distinct public keys
         if (tablePks && tablePks.length > 0) {
             table["pk"] = {
                 "keyName": tablePks[0]["constraint_name"],
                 "columns": tablePksColumns,
             };
             const pkCountQuery = totalCountByColumnGroup(tableName, tablePksColumns.map(col => col["colName"]));
+            console.log(pkCountQuery)
             return singlePoolRequest(pkCountQuery).then(res => {
                 return res[0]["count"]
             });

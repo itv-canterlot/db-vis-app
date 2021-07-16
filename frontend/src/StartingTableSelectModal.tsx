@@ -2,10 +2,11 @@ import * as React from 'react';
 import bootstrap = require('bootstrap');
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { EntitySelector } from './EntitySelector';
-import { getRelationsInListByName } from './SchemaParser';
+import { filterTablesByExistingRelations, getRelationsInListByName } from './SchemaParser';
 import { Table, RelationNode } from './ts/types';
 import { StartingTableSelectModalProps, StartingTableSelectModalStates } from './ts/components';
 import { foreignRelationsElement, renderTips } from './ModalPublicElements';
+import { matchTableWithAllVisPatterns } from './VisSchemaMatcher';
 
 
 
@@ -38,6 +39,7 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
 
     onNewTableAddedToSelectedList = () => {
         if (this.state.cachedDropdownSelectedIndex < 0) return;
+        if (this.state.cachedSelectEntitiesIndices.includes(this.state.cachedDropdownSelectedIndex)) return;
         let newEntityIndices = this.state.cachedSelectEntitiesIndices;
         newEntityIndices.push(this.state.cachedDropdownSelectedIndex);
         this.setState({
@@ -47,10 +49,13 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
 
     onNewRelationAddedToSelectedList = () => {
         if (this.state.cachedForeignRelationCardSelectedIndex < 0) return;
+        if (this.state.cachedSelectedRelationsIndices.includes(this.state.cachedForeignRelationCardSelectedIndex)) return;
         let newRelationIndices = this.state.cachedSelectedRelationsIndices;
         newRelationIndices.push(this.state.cachedForeignRelationCardSelectedIndex);
         this.setState({
             cachedSelectedRelationsIndices: newRelationIndices
+        }, () => {
+            // matchTableWithAllVisPatterns()
         });
     }
 
@@ -59,19 +64,67 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
         const targetId: string = e.target.id;
         const currentCachedSelectedIndex = this.state.cachedDropdownSelectedIndex;
         if (targetId.endsWith("-down")) {
-            // cachedIndex++
+            // cachedIndex++ to the next available from the list
+            const availableTables = filterTablesByExistingRelations(
+                dbContext.allEntitiesList, dbContext.relationsList, this.state.cachedSelectEntitiesIndices,
+                this.state.cachedSelectedRelationsIndices);
+
+            // If availableTables is empty, set to -1?
+            if (availableTables === undefined || availableTables.length === 0) {
+                this.setState({
+                    cachedDropdownSelectedIndex: -1
+                });
+            }
+            // Find the table nearest to the currently selected entity
+            let newIndexInAvailableList;
+            for (let i = 0; i < availableTables.length; i++) {
+                if (availableTables[i].idx === currentCachedSelectedIndex) {
+                    newIndexInAvailableList = i + 1;
+                    break;
+                } else if (availableTables[i].idx > currentCachedSelectedIndex) {
+                    newIndexInAvailableList = i;
+                    break;
+                }
+            }
+
+            if (newIndexInAvailableList === undefined || newIndexInAvailableList >= availableTables.length) {
+                newIndexInAvailableList = availableTables.length - 1;
+            }
+
             this.setState({
-                cachedDropdownSelectedIndex: currentCachedSelectedIndex + 1
-            }, () => {
-                const newEntityName = dbContext.allEntitiesList[this.state.cachedDropdownSelectedIndex].tableName;
+                cachedDropdownSelectedIndex: availableTables[newIndexInAvailableList].idx
             });
         } else if (targetId.endsWith("-up")) {
-            // cachedIndex--
+            // cachedIndex-- to the next available from the list
+            const availableTables = filterTablesByExistingRelations(
+                dbContext.allEntitiesList, dbContext.relationsList, this.state.cachedSelectEntitiesIndices,
+                this.state.cachedSelectedRelationsIndices);
+
+            // If availableTables is empty, set to -1?
+            if (availableTables === undefined || availableTables.length === 0) {
+                this.setState({
+                    cachedDropdownSelectedIndex: -1
+                });
+            }
+
+            // Find the table nearest to the currently selected entity
+            let newIndexInAvailableList;
+            for (let i = availableTables.length - 1; i >= 0; i--) {
+                if (availableTables[i].idx === currentCachedSelectedIndex) {
+                    newIndexInAvailableList = i - 1;
+                    break;
+                } else if (availableTables[i].idx < currentCachedSelectedIndex) {
+                    newIndexInAvailableList = i;
+                    break;
+                }
+            }
+
+            if (newIndexInAvailableList === undefined || newIndexInAvailableList < 0) {
+                newIndexInAvailableList = 0;
+            }
+
             this.setState({
-                cachedDropdownSelectedIndex: currentCachedSelectedIndex - 1
-            }, () => {
-                const newEntityName = dbContext.allEntitiesList[this.state.cachedDropdownSelectedIndex].tableName;
-                console.log(newEntityName);
+                cachedDropdownSelectedIndex: availableTables[newIndexInAvailableList].idx
             });
         } else {
             return;
@@ -110,7 +163,7 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
 
         let foreignKeyParing = null;
 
-        const selectButtonActive = this.state.cachedSelectEntitiesIndices.includes(this.state.cachedDropdownSelectedIndex)
+        const selectButtonActive = !this.state.cachedSelectedRelationsIndices.includes(this.state.cachedForeignRelationCardSelectedIndex)
             && this.state.cachedForeignRelationCardSelectedIndex >= 0;
 
         if (thisRels) {
@@ -209,7 +262,7 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
             <div>
                 {this.state.cachedSelectEntitiesIndices.map((ind, key) => {
                     return (
-                        <div key={key} className="badge bg-secondary d-inline-flex me-2">
+                        <div key={key} className="badge bg-secondary d-inline-flex me-2 no-select">
                             <div>
                                 {context.allEntitiesList[ind].tableName}
                             </div>
@@ -230,7 +283,7 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
                     const thisRel = context.relationsList.find(rel => rel.index === ind);
                     if (!thisRel) return;
                     return (
-                        <div key={key} className="badge bg-info d-inline-flex me-2">
+                        <div key={key} className="badge bg-info d-inline-flex me-2 no-select">
                             <div>
                                 {thisRel.parentEntity.tableName} ➔ {thisRel.childRelations.map(cr => cr.table.tableName).join("/")}
                             </div>
@@ -307,7 +360,12 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
                         </div>
                         <div className="modal-body">
                             <div className="d-flex ">
-                                <EntitySelector onTableSelectChange={this.onBrowserTableSelectChange} selectedEntityIndex={this.state.cachedDropdownSelectedIndex} id="starting-table-select-input" />
+                                <EntitySelector 
+                                    onTableSelectChange={this.onBrowserTableSelectChange} 
+                                    selectedEntityIndex={this.state.cachedDropdownSelectedIndex} 
+                                    cachedSelectedEntitiesList={this.state.cachedSelectEntitiesIndices}
+                                    cachedSelectedRelationsList={this.state.cachedSelectedRelationsIndices}
+                                    id="starting-table-select-input" />
                                 <div className="btn-group ms-3 me-2" role="group" aria-label="First group">
                                     <button type="button" className={getEntityBrowserButtonActiveState(true)} id="entity-browse-up"
                                         onClick={this.onClickEntityBrowseButton}>
