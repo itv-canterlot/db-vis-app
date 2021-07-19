@@ -6,7 +6,48 @@ const { exception } = require("console");
 // SQL boilerplates
 const dataSelectByTableNameAndFields = (tableName, fields) => `SELECT ${fields.length === 0 ? "*" : fields.join(", ")} FROM ${tableName};`;
 
-const dataSelectMultiTables = (attrs, fks, parentTableName, primaryKeys) => {
+const TESTTESTTEST = (attrs, fks, parentTableNames, primaryKeys) => {
+    console.debug(attrs)
+    console.debug(fks)
+    console.debug(parentTableNames)
+    console.debug(primaryKeys);
+
+    primaryKeyAttributeQueries = primaryKeys.map(pk => {
+        const columnName = pk["columnName"],
+            listIndex = pk["listIndex"];
+        return `t${listIndex}.${columnName} AS pk_${listIndex}_${columnName}`;
+    }).join(", ");
+
+    let listedTables = [];
+
+    tableJoinQueries = fks.map(fk => {
+        let {t1, t2, attrs} = fk;
+        t1 = parseInt(t1);
+        t2 = parseInt(t2);
+        const t1Name = parentTableNames[t1],
+            t2Name = parentTableNames[t2];
+
+        const t1IsListed = listedTables.includes(t1),
+            t2IsListed = listedTables.includes(t2);
+        if (t1IsListed && t2IsListed) {
+            return "";
+        }
+        if (!t1IsListed && !t2IsListed) {
+            listedTables.push(t1, t2);
+            return `${t1Name} AS t${t1} INNER JOIN ${t2Name} AS t${t2} ON ${attrs.map(attr => `t${t1}.${attr[0]}=t${t2}.${attr[1]}`).join(" AND ")}`
+        }
+        if (!t1IsListed) {
+            listedTables.push(t1);
+            return `INNER JOIN ${t1Name} AS t${t1} ON ${attrs.map(attr => `t${t1}.${attr[0]}=t${t2}.${attr[1]}`).join(" AND ")}`
+        } else {
+            listedTables.push(t2);
+            return `INNER JOIN ${t2Name} AS t${t2} ON ${attrs.map(attr => `t${t1}.${attr[0]}=t${t2}.${attr[1]}`).join(" AND ")}`
+        }
+    }).join(" ")
+
+    const completedQuery = `SELECT ${primaryKeyAttributeQueries} FROM ${tableJoinQueries};`;
+}
+const dataSelectMultiTablesQuery = (attrs, fks, parentTableName, primaryKeys) => {
     const allTableNames = attrs.map(attr => attr["tableName"])
     const joinStatement = (fks, parentTableName) => {
         let statement = parentTableName;
@@ -338,8 +379,13 @@ async function getTableAttributes(tableName) {
     return singlePoolRequest(queryAttributesByTable(tableName));
 }
 
-async function getDataMultiTableQuery(attrs, fks, parentTableName, primaryKeys) {
-    const query = dataSelectMultiTables(attrs, fks, parentTableName, primaryKeys);
+async function getDataMultiTable(attrs, fks, parentTableName, primaryKeys) {
+    const query = dataSelectMultiTablesQuery(attrs, fks, parentTableName, primaryKeys);
+    return await singlePoolRequest(query);
+}
+
+async function getDataRelationshipBased(attrs, fks, parentTableName, primaryKeys) {
+    const query = TESTTESTTEST(attrs, fks, parentTableName, primaryKeys);
     return await singlePoolRequest(query);
 }
 
@@ -361,6 +407,6 @@ let groupBy = function(xs, key) {
     }, {});
 };
 
-module.exports = { getTableForeignKeys, getTablePrimaryKeys, getTableAttributes, getDataMultiTableQuery, getTableMetatdata,
-    getTableDistinctColumnCountByColumnName
+module.exports = { getTableForeignKeys, getTablePrimaryKeys, getTableAttributes, getDataMultiTable, getTableMetatdata,
+    getTableDistinctColumnCountByColumnName, getDataRelationshipBased
 };

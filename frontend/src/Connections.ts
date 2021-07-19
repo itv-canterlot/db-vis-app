@@ -73,7 +73,7 @@ const mapTablePrimaryKeyColumnsToQuery = (table: Table) => {
                 tableName: table.tableName,
                 columnName: col.colName 
             }
-});
+    });
 }
 
 const getSingleTableQuery = (table: Table, attQueries: QueryAttribute[], params?: object) => {
@@ -225,6 +225,63 @@ export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patt
         // TODO
         throw(err);
     });
+}
+
+export async function TESTTESTTEST(rels: RelationNode[], context: DBSchemaContextInterface, attrs?: PatternMatchAttribute[][], filters?: Filter[]) {
+    // List of table names
+    let tableIndexList: number[] = [], primaryKeyAttributes = [], foreignKeyAttributes = [];
+    rels.forEach(rel => {
+        if (!tableIndexList.includes(rel.parentEntity.idx)) {
+            tableIndexList.push(rel.parentEntity.idx);
+        }
+        rel.childRelations.forEach(cr => {
+            if (!tableIndexList.includes(cr.table.idx)) {
+                tableIndexList.push(cr.table.idx);
+            }
+        })
+    })
+
+    rels.forEach(rel => {
+        const allRelationForeignKeyPairs = rel.childRelations
+            // .filter(cr => tableIndexList.includes(cr.table.idx))
+            .map(cr => {
+                const thisForeignKey = rel.type === VISSCHEMATYPES.MANYMANY ? rel.parentEntity.fk[cr.fkIndex] : cr.table.fk[cr.fkIndex];
+                return {
+                    t1: tableIndexList.indexOf(rel.parentEntity.idx),
+                    t2: tableIndexList.indexOf(cr.table.idx),
+                    attrs: rel.type === VISSCHEMATYPES.MANYMANY ? 
+                        thisForeignKey.columns.map(col => [col.fkColName, col.pkColName]) : 
+                        thisForeignKey.columns.map(col => [col.pkColName, col.fkColName])
+                };
+            })
+
+        foreignKeyAttributes.push(...allRelationForeignKeyPairs);
+    })
+
+    tableIndexList.forEach((tableIndex, listIndex) => {
+        const thisTable = context.allEntitiesList[tableIndex];
+        const thisColumn = mapTablePrimaryKeyColumnsToQuery(thisTable);
+        thisColumn.forEach(col => col["listIndex"] = listIndex);
+        primaryKeyAttributes.push(...thisColumn);
+    })
+
+    let query = {
+        tableNames: tableIndexList.map(tableIndex => context.allEntitiesList[tableIndex].tableName),
+        primaryKeys: primaryKeyAttributes,
+        foreignKeys: foreignKeyAttributes
+    };
+    
+    const rawResponse = fetch("http://localhost:3000/test-test-test", {
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        method: "POST",
+        body: JSON.stringify(query),
+    })
+
+    rawResponse.then(rr => rr.json())
+        .then(js => console.log(js));
 }
 
 export async function getFilteredData(baseTable: Table, allEntities: Table[], filters?: Filter[]) {

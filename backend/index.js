@@ -36,7 +36,7 @@ app.post('/data-match-attrs', async (req, res, next) => {
   console.debug("POST /data-match-attrs")
   try {
     let {attrs, foreignKeys, parentTableName, primaryKeys} = req.body;
-    pgconnect.getDataMultiTableQuery(attrs, foreignKeys, parentTableName, primaryKeys)
+    pgconnect.getDataMultiTable(attrs, foreignKeys, parentTableName, primaryKeys)
       .then(tabRes => {
         if (tabRes instanceof Error) {
           next(new ErrorHandler(500, tabRes.message));
@@ -48,6 +48,21 @@ app.post('/data-match-attrs', async (req, res, next) => {
       .catch(err => {
         next(new ErrorHandler(500, err.message))
       });
+  } catch (err) {
+    next(new ErrorHandler(500, err.message));
+  }
+});
+
+app.post('/test-test-test', async (req, res, next) => {
+  console.debug("POST /test-test-test")
+  try {
+    let {foreignKeys, primaryKeys, tableNames} = req.body;
+    console.log(primaryKeys);
+    console.log(tableNames)
+    pgconnect.getDataRelationshipBased(undefined, foreignKeys, tableNames, primaryKeys)
+      .then(tabRes => {
+
+      })
   } catch (err) {
     next(new ErrorHandler(500, err.message));
   }

@@ -7,6 +7,7 @@ import { Table, RelationNode } from './ts/types';
 import { StartingTableSelectModalProps, StartingTableSelectModalStates } from './ts/components';
 import { foreignRelationsElement, renderTips } from './ModalPublicElements';
 import { matchTableWithAllVisPatterns } from './VisSchemaMatcher';
+import { TESTTESTTEST } from './Connections';
 
 
 
@@ -55,7 +56,8 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
         this.setState({
             cachedSelectedRelationsIndices: newRelationIndices
         }, () => {
-            // matchTableWithAllVisPatterns()
+            const context: DBSchemaContextInterface = this.context;
+            TESTTESTTEST(this.state.cachedSelectedRelationsIndices.map(idx => context.relationsList[idx]), context);
         });
     }
 

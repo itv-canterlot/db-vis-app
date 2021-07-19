@@ -221,6 +221,10 @@ const failedPatternMatchObject = (vs: VisSchema, mismatchReason?: PatternMismatc
     };
 }
 
+const matchRelationWithVisPattern = (rel: RelationNode, vs: VisSchema, nKeys?: number): PatternMatchResult[] => {
+    return undefined;
+}
+
 const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSchema, nKeys?: number): PatternMatchResult[] => {
     if (!table.pk) return undefined; // Not suitable if there is no PK to use
 
