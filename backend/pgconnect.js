@@ -6,11 +6,7 @@ const { exception } = require("console");
 // SQL boilerplates
 const dataSelectByTableNameAndFields = (tableName, fields) => `SELECT ${fields.length === 0 ? "*" : fields.join(", ")} FROM ${tableName};`;
 
-const TESTTESTTEST = (attrs, fks, parentTableNames, primaryKeys) => {
-    console.debug(attrs)
-    console.debug(fks)
-    console.debug(parentTableNames)
-    console.debug(primaryKeys);
+const dataSelectByRelationshipsQuery = (attrs, fks, parentTableNames, primaryKeys) => {
 
     primaryKeyAttributeQueries = primaryKeys.map(pk => {
         const columnName = pk["columnName"],
@@ -19,20 +15,29 @@ const TESTTESTTEST = (attrs, fks, parentTableNames, primaryKeys) => {
     }).join(", ");
 
     let listedTables = [];
+    let lastRoundUnprocessedForeignKeys = [];
+    let unprocessedForeignKeys = [];
 
-    tableJoinQueries = fks.map(fk => {
+    const convertFKToQueryFunc = (fk) => {
         let {t1, t2, attrs} = fk;
         t1 = parseInt(t1);
         t2 = parseInt(t2);
         const t1Name = parentTableNames[t1],
-            t2Name = parentTableNames[t2];
-
+        t2Name = parentTableNames[t2];
+        
         const t1IsListed = listedTables.includes(t1),
-            t2IsListed = listedTables.includes(t2);
+        t2IsListed = listedTables.includes(t2);
+        console.log(fk)
+        console.log(t1IsListed + "" + t2IsListed)
         if (t1IsListed && t2IsListed) {
-            return "";
+            return;
         }
         if (!t1IsListed && !t2IsListed) {
+            if (listedTables.length !== 0) {
+                // This pair 
+                unprocessedForeignKeys.push(fk);
+                return;
+            }
             listedTables.push(t1, t2);
             return `${t1Name} AS t${t1} INNER JOIN ${t2Name} AS t${t2} ON ${attrs.map(attr => `t${t1}.${attr[0]}=t${t2}.${attr[1]}`).join(" AND ")}`
         }
@@ -43,9 +48,26 @@ const TESTTESTTEST = (attrs, fks, parentTableNames, primaryKeys) => {
             listedTables.push(t2);
             return `INNER JOIN ${t2Name} AS t${t2} ON ${attrs.map(attr => `t${t1}.${attr[0]}=t${t2}.${attr[1]}`).join(" AND ")}`
         }
-    }).join(" ")
+    }
 
-    const completedQuery = `SELECT ${primaryKeyAttributeQueries} FROM ${tableJoinQueries};`;
+    tableJoinQueries = fks.map(convertFKToQueryFunc);
+    
+    while (lastRoundUnprocessedForeignKeys.length !== unprocessedForeignKeys.length) {
+        console.log(unprocessedForeignKeys);
+        lastRoundUnprocessedForeignKeys = unprocessedForeignKeys;
+        unprocessedForeignKeys = [];
+        tableJoinQueries.push(...lastRoundUnprocessedForeignKeys.map(convertFKToQueryFunc));
+    }
+
+    if (unprocessedForeignKeys.length > 0) {
+        throw new Error("Some relations are disjoint.")
+    }
+
+    const completedQuery = `SELECT ${primaryKeyAttributeQueries} FROM ${tableJoinQueries.join(" ")};`;
+
+    console.log(completedQuery)
+
+    return completedQuery;
 }
 const dataSelectMultiTablesQuery = (attrs, fks, parentTableName, primaryKeys) => {
     const allTableNames = attrs.map(attr => attr["tableName"])
@@ -385,7 +407,7 @@ async function getDataMultiTable(attrs, fks, parentTableName, primaryKeys) {
 }
 
 async function getDataRelationshipBased(attrs, fks, parentTableName, primaryKeys) {
-    const query = TESTTESTTEST(attrs, fks, parentTableName, primaryKeys);
+    const query = dataSelectByRelationshipsQuery(attrs, fks, parentTableName, primaryKeys);
     return await singlePoolRequest(query);
 }
 

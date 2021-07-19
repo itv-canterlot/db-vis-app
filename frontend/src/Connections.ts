@@ -227,7 +227,7 @@ export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patt
     });
 }
 
-export async function TESTTESTTEST(rels: RelationNode[], context: DBSchemaContextInterface, attrs?: PatternMatchAttribute[][], filters?: Filter[]) {
+export async function getRelationBasedData(rels: RelationNode[], context: DBSchemaContextInterface, attrs?: PatternMatchAttribute[][], filters?: Filter[]) {
     // List of table names
     let tableIndexList: number[] = [], primaryKeyAttributes = [], foreignKeyAttributes = [];
     rels.forEach(rel => {
@@ -271,7 +271,7 @@ export async function TESTTESTTEST(rels: RelationNode[], context: DBSchemaContex
         foreignKeys: foreignKeyAttributes
     };
     
-    const rawResponse = fetch("http://localhost:3000/test-test-test", {
+    const rawResponse = fetch("http://localhost:3000/get-rel-based-data", {
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
