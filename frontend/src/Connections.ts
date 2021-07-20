@@ -280,8 +280,7 @@ export async function getRelationBasedData(rels: RelationNode[], context: DBSche
         body: JSON.stringify(query),
     })
 
-    rawResponse.then(rr => rr.json())
-        .then(js => console.log(js));
+    return rawResponse.then(rr => rr.json())
 }
 
 export async function getFilteredData(baseTable: Table, allEntities: Table[], filters?: Filter[]) {

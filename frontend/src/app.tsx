@@ -188,12 +188,11 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         })
     }
 
-    // Called when R1 is changed
     onDatasetSchemaSelectChange = (newEntities?: number[], newRelations?: number[]) => {
         const entitiesIndicesChanged = this.state.selectedEntitesIndices !== newEntities
         const relationIndicesChanged = this.state.selectedRelationsIndices !== newRelations
 
-        if (newEntities.length === 0) {
+        if (newEntities.length === 0 && newRelations.length === 0) {
             this.setState({
                 load: true
             });
@@ -202,40 +201,83 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
         if (!entitiesIndicesChanged && !relationIndicesChanged) return;
 
-        this.setState({
-            dataLoaded: false,
-            data: undefined,
-            filters: []
-        }, () => {
+        // TODO: only process one array only; entity priority
+        // Entity case
+        if (newEntities.length !== 0 ) {
             this.setState({
-                selectedEntitesIndices: newEntities,
-                selectedRelationsIndices: newRelations
-            })
-            const {
-                visSchemaMatchStatus, 
-                selectedPatternIndex, 
-                selectedMatchResultIndexInPattern,
-                rendererSelectedAttributes} = this.getAllMatchableVisSchemaPatterns(newEntities[0], undefined, true);
-
-            const getDataCallback = (data: object[]) => {
+                dataLoaded: false,
+                data: undefined,
+                filters: []
+            }, () => {
                 this.setState({
-                    dataLoaded: true,
-                    data: data,
                     selectedEntitesIndices: newEntities,
-                    selectedMatchResultIndexInPattern: selectedMatchResultIndexInPattern,
-                    rerender: entitiesIndicesChanged,
-                    visSchemaMatchStatus: visSchemaMatchStatus,
-                    selectedPatternIndex: selectedPatternIndex ? selectedPatternIndex : -1,
-                    rendererSelectedAttributes: rendererSelectedAttributes
-                });
-            }
+                    selectedRelationsIndices: newRelations
+                })
+                const {
+                    visSchemaMatchStatus, 
+                    selectedPatternIndex, 
+                    selectedMatchResultIndexInPattern,
+                    rendererSelectedAttributes} = this.getAllMatchableVisSchemaPatterns(newEntities[0], undefined, true);
+    
+                const getDataCallback = (data: object[]) => {
+                    this.setState({
+                        dataLoaded: true,
+                        data: data,
+                        selectedMatchResultIndexInPattern: selectedMatchResultIndexInPattern,
+                        rerender: entitiesIndicesChanged,
+                        visSchemaMatchStatus: visSchemaMatchStatus,
+                        selectedPatternIndex: selectedPatternIndex ? selectedPatternIndex : -1,
+                        rendererSelectedAttributes: rendererSelectedAttributes
+                    });
+                }
+    
+                Connections.getDataByMatchAttrs(
+                    rendererSelectedAttributes, 
+                    visSchemaMatchStatus[selectedPatternIndex][0],
+                    this.getProviderValues())
+                        .then(getDataCallback.bind(this));
+            })
+        } else {
+            this.setState({
+                dataLoaded: false,
+                data: undefined,
+                filters: []
+            }, () => {
+                this.setState({
+                    selectedEntitesIndices: newEntities,
+                    selectedRelationsIndices: newRelations
+                })
 
-            Connections.getDataByMatchAttrs(
-                rendererSelectedAttributes, 
-                visSchemaMatchStatus[selectedPatternIndex][0],
-                this.getProviderValues())
-                    .then(getDataCallback.bind(this));
-        })
+                Connections.getRelationBasedData(newRelations.map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues())
+                    .then(data => {
+                        console.log(data);
+                    })
+                
+                // const {
+                //     visSchemaMatchStatus, 
+                //     selectedPatternIndex, 
+                //     selectedMatchResultIndexInPattern,
+                //     rendererSelectedAttributes} = this.getAllMatchableVisSchemaPatterns(newEntities[0], undefined, true);
+    
+                const getDataCallback = (data: object[]) => {
+                    this.setState({
+                        dataLoaded: true,
+                        data: data,
+                        // selectedMatchResultIndexInPattern: selectedMatchResultIndexInPattern,
+                        // rerender: entitiesIndicesChanged,
+                        // visSchemaMatchStatus: visSchemaMatchStatus,
+                        // selectedPatternIndex: selectedPatternIndex ? selectedPatternIndex : -1,
+                        // rendererSelectedAttributes: rendererSelectedAttributes
+                    });
+                }
+    
+                // Connections.getDataByMatchAttrs(
+                //     rendererSelectedAttributes, 
+                //     visSchemaMatchStatus[selectedPatternIndex][0],
+                //     this.getProviderValues())
+                //         .then(getDataCallback.bind(this));
+            })
+        }
     }
 
     onDataChange = (data) => {

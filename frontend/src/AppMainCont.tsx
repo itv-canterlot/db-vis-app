@@ -403,6 +403,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
         const patternIndex = context.selectedPatternIndex;
         const matchIndex = context.selectedMatchResultIndexInPattern;
         const thisPattern = context.visSchema ? context.visSchema[patternIndex] : undefined;
+
         if (context.selectedEntitiesIndices.length === 0) {
             return (
                 <div className="d-flex justify-content-center">
@@ -486,48 +487,70 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
         if (this.props.load) {
             return (<div>Loading...</div>);
         }
-        const shrinkTag = () => {
-            if (context.selectedEntitiesIndices.length === 0) return null;
-            else return (
-                <div className="pt-1 pb-2" onClick={this.onExpansionClick} style={{cursor: "pointer"}}>
-                    <div className=" d-flex justify-content-center align-items-center">
-                        <div className="small me-2">
-                            {this.state.explorerExpanded ? "Shrink" : "More options..."}
+        
+        const context: DBSchemaContextInterface = this.context;
+
+        const schemaExplorerAccordianTitle = () => {
+            const selectedEntitiesIndices = context.selectedEntitiesIndices;
+            const selectedRelationsIndices = context.selectedRelationsIndices;
+            const selectedAttributesIndices = context.selectedAttributesIndices;
+            const selectedPattern = context.visSchema[context.selectedPatternIndex];
+            
+            if (selectedEntitiesIndices.length === 0 && selectedRelationsIndices.length === 0) {
+                return (
+                    <h5>
+                        <span className="badge bg-secondary">No data selected</span>
+                    </h5>
+                );
+            } else {
+                return (
+                    <div className="d-flex">
+                        <h5>
+                            <span className="badge bg-success me-1">{selectedEntitiesIndices.length} entities</span>
+                        </h5>
+                        <h5>
+                            <span className="badge bg-info me-1">{selectedRelationsIndices.length} relations</span>
+                        </h5>
+                        <h5>
+                            <span className="badge bg-warning me-1">{selectedAttributesIndices.length} attributes</span>
+                        </h5>
+                        <h5>
+                            <span className="badge bg-primary me-1">{(selectedPattern === undefined) ? "No pattern selected" : ("Pattern: " + selectedPattern.name)}</span>
+                        </h5>
+                    </div>
+                );
+            }
+        };
+
+        return (
+            <div className="col-8 col-lg-9 g-0">
+                <div className="accordion" id="accordionFlushExample">
+                    <div className="accordion-item">
+                        <div id="flush-collapseOne" className="accordion-collapse collapse" aria-labelledby="flush-headingOne" data-bs-parent="#accordionFlushExample">
+                            <SchemaExplorer 
+                                expanded={this.state.explorerExpanded}
+                                onExpansionClick={this.onExpansionClick}
+                                onVisPatternIndexChange={this.props.onVisPatternIndexChange}
+                                onClickShowFilterSelectModal={this.props.onClickShowFilterSelectModal}
+                                onMatchResultIndexChange={this.props.onMatchResultIndexChange}
+                                onSelectedAttributeIndicesChange={this.props.onSelectedAttributeIndicesChange} />
                         </div>
-                        <i className={"fas fa-angle-up mr-2"} />
-                        <i className={"fas fa-angle-down"} />
+                        <h2 className="accordion-header" id="flush-headingOne">
+                        <button className="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
+                            {schemaExplorerAccordianTitle()}
+                        </button>
+                        </h2>
                     </div>
                 </div>
-            ) 
-        }
-        const context: DBSchemaContextInterface = this.context;
-        return (
-            <div className="col-8 col-lg-9">
-                <div className="row">
+                <div className="row g-0">
                     <div className="col">
-                        <div className="row pt-2 pb-1" style={{borderBottom: "2px solid black", minHeight: this.state.explorerExpanded ? "50vh" : ""}}>
-                            <div className="col d-flex flex-column justify-content-between">
-                                <SchemaExplorer 
-                                    expanded={this.state.explorerExpanded}
-                                    onExpansionClick={this.onExpansionClick}
-                                    onVisPatternIndexChange={this.props.onVisPatternIndexChange}
-                                    onClickShowFilterSelectModal={this.props.onClickShowFilterSelectModal}
-                                    onMatchResultIndexChange={this.props.onMatchResultIndexChange}
-                                    onSelectedAttributeIndicesChange={this.props.onSelectedAttributeIndicesChange} />
-                                {shrinkTag()}
-                            </div>
-                        </div>
-                        <div className="row">
-                            <div className="col">
-                                {
-                                    context.selectedEntitiesIndices.length > 0 && context.selectedPatternIndex >= 0 ? 
-                                    <Visualiser 
-                                        rerender={this.props.rerender}
-                                        onDataChange={this.onDataChange} />
-                                        : null
-                                }
-                            </div>
-                        </div>
+                        {
+                            context.selectedEntitiesIndices.length > 0 && context.selectedPatternIndex >= 0 ? 
+                            <Visualiser 
+                                rerender={this.props.rerender}
+                                onDataChange={this.onDataChange} />
+                                : null
+                        }
                     </div>
                 </div>
             </div>
