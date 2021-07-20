@@ -6,11 +6,6 @@ import { filterTablesByExistingRelations, getRelationsInListByName } from './Sch
 import { Table, RelationNode } from './ts/types';
 import { StartingTableSelectModalProps, StartingTableSelectModalStates } from './ts/components';
 import { foreignRelationsElement, renderTips } from './ModalPublicElements';
-import { matchTableWithAllVisPatterns } from './VisSchemaMatcher';
-import { getRelationBasedData } from './Connections';
-
-
-
 
 export class StartingTableSelectModal extends React.Component<StartingTableSelectModalProps, StartingTableSelectModalStates> {
     constructor(props) {
@@ -19,7 +14,8 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
             cachedDropdownSelectedIndex: -1,
             cachedForeignRelationCardSelectedIndex: -1,
             cachedSelectEntitiesIndices: [],
-            cachedSelectedRelationsIndices: []
+            cachedSelectedRelationsIndices: [],
+            dataSelectByTable: true
         };
     }
 
@@ -295,12 +291,32 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
         )
     }
 
+    onSelectCriteriaChange = () => {
+        const lastSelectCriteria = this.state.dataSelectByTable;
+        this.setState({
+            dataSelectByTable: !lastSelectCriteria
+        });
+    }
 
     focusCheck = () => {
         if (this.state.cachedDropdownSelectedIndex < 0) {
             document.getElementById("starting-table-select-input").focus();
         }
     };
+
+    dataSelectCriteriaRadioButtons = () => {
+        return (
+            <div className="btn-group" role="group" aria-label="Data selection criteria button group">
+                <input type="radio" className="btn-check" name="btnradio" id="data-selection-by-table" autoComplete="off"
+                    defaultChecked={this.state.dataSelectByTable} onChange={this.onSelectCriteriaChange} />
+                <label className="btn btn-outline-primary" htmlFor="data-selection-by-table">Select by tables</label>
+
+                <input type="radio" className="btn-check" name="btnradio" id="data-selection-by-rels" autoComplete="off"
+                    defaultChecked={!this.state.dataSelectByTable} onChange={this.onSelectCriteriaChange} />
+                <label className="btn btn-outline-primary" htmlFor="data-selection-by-rels">Select by relations</label>
+            </div>
+        );
+    }
 
     componentDidMount() {
         const context: DBSchemaContextInterface = this.context;
@@ -347,17 +363,34 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
 
             return baseClassList;
         };
+
+        const isConfirmButtonActive = () => {
+            if (this.state.dataSelectByTable) {
+                if (this.state.cachedSelectEntitiesIndices.length > 0) {
+                    return true;
+                }
+            } else {
+                if (this.state.cachedSelectedRelationsIndices.length > 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         return (
             <div className="modal fade d-block" role="dialog" id="starting-table-select-modal" style={{overflowY: "hidden"}}>
                 <div className="modal-dialog modal-dialog-centered" role="document" style={{ maxWidth: "80%" }}>
                     <div className="modal-content">
                         <div className="modal-header">
-                            <h5 className="modal-title">Select starting table...</h5>
+                            <h5 className="modal-title">{`Select starting ${this.state.dataSelectByTable ? "table" : "relations"}...`}</h5>
                             <button type="button" className="close" aria-label="Close" onClick={this.handleOnClose}>
                                 <span aria-hidden="true"><i className="fas fa-times" /></span>
                             </button>
                         </div>
                         <div className="modal-body">
+                            <div className="mb-2">
+                                {this.dataSelectCriteriaRadioButtons()}
+                            </div>
                             <div className="d-flex ">
                                 <EntitySelector 
                                     onTableSelectChange={this.onBrowserTableSelectChange} 
@@ -389,7 +422,7 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
                             </div>
                         </div>
                         <div className="modal-footer">
-                            <button type="button" className="btn btn-primary" onClick={this.onTableChangeConfirm}>Confirm</button>
+                            <button type="button" className={"btn btn-primary" + (isConfirmButtonActive() ? "" : " disabled")} onClick={this.onTableChangeConfirm}>Confirm</button>
                             <button type="button" className="btn btn-secondary" onClick={this.handleOnClose}>Cancel</button>
                         </div>
                     </div>
