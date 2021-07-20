@@ -34,7 +34,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
             this.setState({
                 renderFailed: true,
                 renderedAttributesIndices: context.selectedAttributesIndices,
-                renderedTableIndex: context.selectedFirstTableIndex,
+                renderedTableIndex: context.selectedEntitiesIndices[0],
                 renderedMatchResultIndex: context.selectedMatchResultIndexInPattern,
                 renderedVisSchemaIndex: selectedPattern,
                 renderedFilters: context.filters
@@ -54,7 +54,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
             }));
 
         const firstTablePrimaryKeyNames = 
-            context.allEntitiesList[context.selectedFirstTableIndex]
+            context.allEntitiesList[context.selectedEntitiesIndices[0]]
                 .pk.columns.map(col => col.colName);
 
         const selectedAttributesPublicKeyNames = 
@@ -92,7 +92,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
             this.setState({
                 renderFailed: true,
                 renderedAttributesIndices: context.selectedAttributesIndices,
-                renderedTableIndex: context.selectedFirstTableIndex,
+                renderedTableIndex: context.selectedEntitiesIndices[0],
                 renderedMatchResultIndex: context.selectedMatchResultIndexInPattern,
                 renderedVisSchemaIndex: selectedPattern,
                 renderedFilters: context.filters
@@ -106,7 +106,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
             renderFailed: false,
             renderedAttributesIndices: context.selectedAttributesIndices,
             renderedMatchResultIndex: context.selectedMatchResultIndexInPattern,
-            renderedTableIndex: context.selectedFirstTableIndex,
+            renderedTableIndex: context.selectedEntitiesIndices[0],
             renderedVisSchemaIndex: selectedPattern,
             renderedFilters: context.filters
         })
@@ -170,7 +170,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
             // Data load status check
             if (context.selectedPatternIndex === this.state.renderedVisSchemaIndex) {
                 // Pattern selection unchanged
-                if (context.selectedFirstTableIndex === this.state.renderedTableIndex) {
+                if (context.selectedEntitiesIndices[0] === this.state.renderedTableIndex) {
                     // Table selection unchanged
                     if (context.selectedMatchResultIndexInPattern === this.state.renderedMatchResultIndex) {
                         // Match result index unchanged
@@ -180,7 +180,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                             if (context.allEntitiesList !== undefined && context.allEntitiesList.length !== 0) {
                                 // If the entity list is loaded
                                 // If no table is selected, do not render
-                                return context.selectedFirstTableIndex >= 0;
+                                return context.selectedEntitiesIndices[0] >= 0;
                             } else {
                                 // Entity list not loaded, do not render
                                 return false;
@@ -224,7 +224,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
     componentDidMount() {
         let context: DBSchemaContextInterface = this.context;
         if (context.allEntitiesList !== undefined && context.allEntitiesList.length !== 0) {
-            if (context.selectedFirstTableIndex < 0) return;
+            if (context.selectedEntitiesIndices[0] < 0) return;
             if (!context.dataLoaded) return;
 
             this.visualisationHandler();

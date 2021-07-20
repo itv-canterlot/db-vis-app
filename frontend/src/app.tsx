@@ -26,7 +26,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         this.state = {
             allEntitiesList: [],
             filters: [],
-            selectedFirstTableIndex: -1,
+            selectedEntitesIndices: [],
+            selectedRelationsIndices: [],
             selectedPatternIndex: -1,
             rendererSelectedAttributes: [[], []],
             rerender: true,
@@ -40,6 +41,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         };
     }
 
+    // Event handlers
     onClickShowStartingTableSelectModal = () => {
         this.setState({
             showStartingTableSelectModal: true
@@ -62,64 +64,6 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         this.setState({
             showFilterSelectModal: false
         });
-    }
-
-    isPatternMatchResultValid = (res: PatternMatchResult) => {
-        if (typeof(res) == "undefined" || res == null) return false;
-        return res.matched;
-    }
-
-
-    getAllMatchableVisSchemaPatterns = (selectedFirstTableIndex: number, pkNum?: number, getFirstIndices?: boolean) => {
-        // Break if not all the components had been initiated
-        if (this.state.relationsList === undefined) return;
-        if (visSchema === undefined) return;
-
-        // Check type of the relation
-        let selectedEntity = this.state.allEntitiesList[selectedFirstTableIndex];
-        let entityRel = SchemaParser.getRelationsInListByName(this.state.relationsList, selectedEntity.tableName);
-    
-        const matchStatusForAllSchema: PatternMatchResult[][] = matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema, pkNum);
-
-        if (!getFirstIndices) return {
-            visSchemaMatchStatus: matchStatusForAllSchema,
-            selectedPatternIndex: undefined,
-            rendererSelectedAttributes: undefined
-        };;
-        
-        const firstValidPatternIndex = matchStatusForAllSchema.findIndex(res => res.length > 0 && this.isPatternMatchResultValid(res[0]));
-        if (!firstValidPatternIndex) return;
-
-        const firstMatchResultIndex = 0;
-
-        // Find the first pattern-matching result that resulted in a match
-        const firstValidPatternMatchStatus: PatternMatchResult = matchStatusForAllSchema[firstValidPatternIndex][firstMatchResultIndex];
-        if (!firstValidPatternMatchStatus) return;
-        
-        const mandatoryParamInitIndices = firstValidPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {
-            return Math.floor(Math.random() * mandMatch.length);
-        });
-        const mandatoryParamInitAtts = mandatoryParamInitIndices.map((attIdx, listIdx) => firstValidPatternMatchStatus.mandatoryAttributes[listIdx][attIdx])
-
-        let optionalParamInitIndices, optionalParamInitAtts;
-        if (firstValidPatternMatchStatus.hasOwnProperty("optionalAttributes")) {
-            optionalParamInitIndices = firstValidPatternMatchStatus.optionalAttributes.map((mandMatch, idx) => {
-                return Math.floor(Math.random() * mandMatch.length);
-            });
-            optionalParamInitAtts = optionalParamInitIndices.map((attIdx, listIdx) => firstValidPatternMatchStatus.optionalAttributes[listIdx][attIdx])
-        } else {
-            optionalParamInitIndices = [];
-        }
-
-        // TODO: make sure the picked indices are not duplicates of each other
-        return {
-            visSchemaMatchStatus: matchStatusForAllSchema,
-            selectedPatternIndex: firstValidPatternIndex ? firstValidPatternIndex : -1,
-            selectedMatchResultIndexInPattern: firstMatchResultIndex,
-            rendererSelectedAttributes: [mandatoryParamInitAtts, optionalParamInitAtts]
-        };
-
-        
     }
 
     onMatchResultIndexChange = (newIndex: number) => {
@@ -245,43 +189,41 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     }
 
     // Called when R1 is changed
-    onTableSelectChange = (e) => {
-        let tableIndex = -1;
-        if (e instanceof Object) {
-            tableIndex = parseInt(e.target.getAttribute("data-index"));
-        } else {
-            tableIndex = e;
-        }
+    onDatasetSchemaSelectChange = (newEntities?: number[], newRelations?: number[]) => {
+        const entitiesIndicesChanged = this.state.selectedEntitesIndices !== newEntities
+        const relationIndicesChanged = this.state.selectedRelationsIndices !== newRelations
 
-        const tableIndexChanged = this.state.selectedFirstTableIndex !== tableIndex
-
-        if (tableIndex < 0) {
+        if (newEntities.length === 0) {
             this.setState({
                 load: true
             });
             return;
         };
 
-        if (!tableIndexChanged) return;
+        if (!entitiesIndicesChanged && !relationIndicesChanged) return;
 
         this.setState({
             dataLoaded: false,
             data: undefined,
             filters: []
         }, () => {
+            this.setState({
+                selectedEntitesIndices: newEntities,
+                selectedRelationsIndices: newRelations
+            })
             const {
                 visSchemaMatchStatus, 
                 selectedPatternIndex, 
                 selectedMatchResultIndexInPattern,
-                rendererSelectedAttributes} = this.getAllMatchableVisSchemaPatterns(tableIndex, undefined, true);
+                rendererSelectedAttributes} = this.getAllMatchableVisSchemaPatterns(newEntities[0], undefined, true);
 
             const getDataCallback = (data: object[]) => {
                 this.setState({
                     dataLoaded: true,
                     data: data,
-                    selectedFirstTableIndex: tableIndex,
+                    selectedEntitesIndices: newEntities,
                     selectedMatchResultIndexInPattern: selectedMatchResultIndexInPattern,
-                    rerender: tableIndexChanged,
+                    rerender: entitiesIndicesChanged,
                     visSchemaMatchStatus: visSchemaMatchStatus,
                     selectedPatternIndex: selectedPatternIndex ? selectedPatternIndex : -1,
                     rendererSelectedAttributes: rendererSelectedAttributes
@@ -296,6 +238,99 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         })
     }
 
+    onDataChange = (data) => {
+        this.setState({
+            data: data
+        })
+    }
+
+    onFilterChange = (filters: Filter[]) => {
+        this.setState({
+            filters: filters
+        }, () => {
+            const filteredData = filterDataByFilters(this.state.data, this.getProviderValues(), this.state.filters);
+
+            const {
+                visSchemaMatchStatus, 
+                selectedPatternIndex, 
+                selectedMatchResultIndexInPattern, 
+                rendererSelectedAttributes} = this.getAllMatchableVisSchemaPatterns(this.state.selectedEntitesIndices[0], filteredData.length, false);
+
+            const getDataCallback = (data: object[]) => {
+                this.setState({
+                    data: data,
+                    visSchemaMatchStatus: visSchemaMatchStatus,
+                });
+            }
+
+            Connections.getDataByMatchAttrs(
+                this.state.rendererSelectedAttributes, 
+                visSchemaMatchStatus[this.state.selectedPatternIndex][this.state.selectedMatchResultIndexInPattern], 
+                this.getProviderValues())
+                    .then(getDataCallback.bind(this));
+        });
+    }
+
+    // Helpers
+    isPatternMatchResultValid = (res: PatternMatchResult) => {
+        if (typeof(res) == "undefined" || res == null) return false;
+        return res.matched;
+    }
+
+
+    getAllMatchableVisSchemaPatterns = (selectedFirstTableIndex: number, pkNum?: number, getFirstIndices?: boolean) => {
+        // Break if not all the components had been initiated
+        if (this.state.relationsList === undefined) return;
+        if (visSchema === undefined) return;
+
+        // Check type of the relation
+        let selectedEntity = this.state.allEntitiesList[selectedFirstTableIndex];
+        let entityRel = SchemaParser.getRelationsInListByName(this.state.relationsList, selectedEntity.tableName);
+    
+        const matchStatusForAllSchema: PatternMatchResult[][] = matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema, pkNum);
+
+        if (!getFirstIndices) return {
+            visSchemaMatchStatus: matchStatusForAllSchema,
+            selectedPatternIndex: undefined,
+            rendererSelectedAttributes: undefined
+        };;
+        
+        const firstValidPatternIndex = matchStatusForAllSchema.findIndex(res => res.length > 0 && this.isPatternMatchResultValid(res[0]));
+        if (!firstValidPatternIndex) return;
+
+        const firstMatchResultIndex = 0;
+
+        // Find the first pattern-matching result that resulted in a match
+        const firstValidPatternMatchStatus: PatternMatchResult = matchStatusForAllSchema[firstValidPatternIndex][firstMatchResultIndex];
+        if (!firstValidPatternMatchStatus) return;
+        
+        const mandatoryParamInitIndices = firstValidPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {
+            return Math.floor(Math.random() * mandMatch.length);
+        });
+        const mandatoryParamInitAtts = mandatoryParamInitIndices.map((attIdx, listIdx) => firstValidPatternMatchStatus.mandatoryAttributes[listIdx][attIdx])
+
+        let optionalParamInitIndices, optionalParamInitAtts;
+        if (firstValidPatternMatchStatus.hasOwnProperty("optionalAttributes")) {
+            optionalParamInitIndices = firstValidPatternMatchStatus.optionalAttributes.map((mandMatch, idx) => {
+                return Math.floor(Math.random() * mandMatch.length);
+            });
+            optionalParamInitAtts = optionalParamInitIndices.map((attIdx, listIdx) => firstValidPatternMatchStatus.optionalAttributes[listIdx][attIdx])
+        } else {
+            optionalParamInitIndices = [];
+        }
+
+        // TODO: make sure the picked indices are not duplicates of each other
+        return {
+            visSchemaMatchStatus: matchStatusForAllSchema,
+            selectedPatternIndex: firstValidPatternIndex ? firstValidPatternIndex : -1,
+            selectedMatchResultIndexInPattern: firstMatchResultIndex,
+            rendererSelectedAttributes: [mandatoryParamInitAtts, optionalParamInitAtts]
+        };
+
+        
+    }
+
+    
     getTableMetadata = () => {
         if (this.state.allEntitiesList.length !== 0) {
             return;
@@ -325,41 +360,6 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         });
     }
 
-    
-
-    onDataChange = (data) => {
-        this.setState({
-            data: data
-        })
-    }
-
-    onFilterChange = (filters: Filter[]) => {
-        this.setState({
-            filters: filters
-        }, () => {
-            const filteredData = filterDataByFilters(this.state.data, this.getProviderValues(), this.state.filters);
-
-            const {
-                visSchemaMatchStatus, 
-                selectedPatternIndex, 
-                selectedMatchResultIndexInPattern, 
-                rendererSelectedAttributes} = this.getAllMatchableVisSchemaPatterns(this.state.selectedFirstTableIndex, filteredData.length, false);
-
-            const getDataCallback = (data: object[]) => {
-                this.setState({
-                    data: data,
-                    visSchemaMatchStatus: visSchemaMatchStatus,
-                });
-            }
-
-            Connections.getDataByMatchAttrs(
-                this.state.rendererSelectedAttributes, 
-                visSchemaMatchStatus[this.state.selectedPatternIndex][this.state.selectedMatchResultIndexInPattern], 
-                this.getProviderValues())
-                    .then(getDataCallback.bind(this));
-        });
-    }
-
     async componentDidMount() {
         // Can even do some loading screen stuff here
         readVisSchemaJSON();
@@ -377,7 +377,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             visSchema: visSchema,
             selectedPatternIndex: this.state.selectedPatternIndex,
             selectedMatchResultIndexInPattern: this.state.selectedMatchResultIndexInPattern,
-            selectedFirstTableIndex: this.state.selectedFirstTableIndex,
+            selectedEntitiesIndices: this.state.selectedEntitesIndices,
+            selectedRelationsIndices: this.state.selectedRelationsIndices,
             selectedAttributesIndices: this.state.rendererSelectedAttributes
         };
     }
@@ -389,7 +390,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             <DBSchemaContext.Provider value={providerValues}>
                 {this.state.showStartingTableSelectModal ? 
                     <StartingTableSelectModal 
-                        onClose={this.onCloseShowStartingTableSelectModal} onTableSelectChange={this.onTableSelectChange} /> 
+                        onClose={this.onCloseShowStartingTableSelectModal} onDatasetSchemaSelectChange={this.onDatasetSchemaSelectChange} /> 
                     : null}
                 {this.state.showFilterSelectModal ? 
                     <FilterSelectModal 

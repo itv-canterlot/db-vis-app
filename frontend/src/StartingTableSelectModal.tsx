@@ -127,7 +127,7 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
     };
 
     onTableChangeConfirm = (e) => {
-        this.props.onTableSelectChange(this.state.cachedDropdownSelectedIndex);
+        this.props.onDatasetSchemaSelectChange(this.state.cachedSelectEntitiesIndices, this.state.cachedSelectedRelationsIndices);
         if (this.modalComponent) {
             this.modalComponent.hide();
         }
@@ -320,11 +320,14 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
 
     componentDidMount() {
         const context: DBSchemaContextInterface = this.context;
-        if (context.selectedFirstTableIndex >= 0 && this.state.cachedDropdownSelectedIndex !== context.selectedFirstTableIndex) {
-            this.setState({
-                cachedDropdownSelectedIndex: context.selectedFirstTableIndex
-            });
-        }
+        const currentlySelectedEntitiesIndices = context.selectedEntitiesIndices,
+            currentlySelectedRelationIndices = context.selectedRelationsIndices;
+
+        this.setState({
+            cachedSelectEntitiesIndices: JSON.parse(JSON.stringify(currentlySelectedEntitiesIndices)),
+            cachedSelectedRelationsIndices: JSON.parse(JSON.stringify(currentlySelectedRelationIndices))
+        })
+
         const modalElement = document.getElementById("starting-table-select-modal");
         this.modalComponent = new bootstrap.Modal(modalElement, {
             keyboard: false

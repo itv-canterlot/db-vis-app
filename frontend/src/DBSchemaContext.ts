@@ -11,7 +11,8 @@ export interface DBSchemaContextInterface {
     visSchemaMatchStatus: PatternMatchResult[][]
     selectedPatternIndex: number,
     selectedMatchResultIndexInPattern: number,
-    selectedFirstTableIndex: number
+    selectedEntitiesIndices: number[],
+    selectedRelationsIndices: number[],
     selectedAttributesIndices: PatternMatchAttribute[][]
 }
 
@@ -25,6 +26,7 @@ export const DBSchemaContext = React.createContext<DBSchemaContextInterface>({
     visSchemaMatchStatus: [],
     selectedPatternIndex: -1,
     selectedMatchResultIndexInPattern: -1,
-    selectedFirstTableIndex: -1,
+    selectedEntitiesIndices: [],
+    selectedRelationsIndices: [],
     selectedAttributesIndices: [[], []]
 });

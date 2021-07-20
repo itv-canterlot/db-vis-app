@@ -47,7 +47,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         const dbSchemaContext: DBSchemaContextInterface = this.context;
         let fkTableSelected: Table;
         if (fkIndex !== undefined && fkIndex >= 0) {
-            const fk = dbSchemaContext.allEntitiesList[dbSchemaContext.selectedFirstTableIndex].fk[fkIndex];
+            const fk = dbSchemaContext.allEntitiesList[dbSchemaContext.selectedEntitiesIndices[0]].fk[fkIndex];
             fkTableSelected = dbSchemaContext.allEntitiesList.find(table => table.tableName === fk.pkTableName);
         }
 
@@ -69,7 +69,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
 
     setNewCachedFilterOnForeignTable = (tableIdx: number, attNum: number) => {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
-        const tableWithFk = dbSchemaContext.allEntitiesList[dbSchemaContext.selectedFirstTableIndex]; // TODO: other cases
+        const tableWithFk = dbSchemaContext.allEntitiesList[dbSchemaContext.selectedEntitiesIndices[0]];
         const fk = tableWithFk.fk[this.state.cachedForeignTableFKIndex];
         this.setState({
             cachedFilterSelection: {
@@ -90,7 +90,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             tableIdx = parseInt(currentTarget.getAttribute("data-table-idx")),
             attNum = parseInt(currentTarget.getAttribute("data-attnum"));
 
-        if (tableIdx === dbSchemaContext.selectedFirstTableIndex) {
+        if (tableIdx === dbSchemaContext.selectedEntitiesIndices[0]) {
             // Selected attribute is in the "base" table
             const foreignKeyAttElement = currentTarget.getElementsByClassName("att-to-fk");
             let fkIndex: number;
@@ -137,7 +137,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 }
                 // Retrieve data (TODO: simplify this)
                 const dbSchemaContext: DBSchemaContextInterface = this.context;
-                const thisTable = dbSchemaContext.allEntitiesList[dbSchemaContext.selectedFirstTableIndex];
+                const thisTable = dbSchemaContext.allEntitiesList[dbSchemaContext.selectedEntitiesIndices[0]];
                 getFilteredData(thisTable, dbSchemaContext.allEntitiesList, [...this.props.filters, ...this.state.cachedFiltersList]);
             });
         }
@@ -467,10 +467,10 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
 
     tableAttributeListHandler = () => {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
-        if (dbSchemaContext.selectedFirstTableIndex >= 0) {
+        if (dbSchemaContext.selectedEntitiesIndices[0] >= 0) {
             if (this.state.filterRange === 0) {
                 // Render the relation vis for the entire table
-                return this.getTableRelationVis(dbSchemaContext, dbSchemaContext.selectedFirstTableIndex);
+                return this.getTableRelationVis(dbSchemaContext, dbSchemaContext.selectedEntitiesIndices[0]);
             } else if (this.state.filterRange === 1) {
                 // Render the relation vis for the (potentially-retrieved) dataset
                 const contextData = dbSchemaContext.data;
@@ -613,7 +613,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
     render() {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
         const getEntityBrowserButtonActiveState = (isUp: boolean) => {
-            const currentCachedSelectedIndex = dbSchemaContext.selectedFirstTableIndex;
+            const currentCachedSelectedIndex = dbSchemaContext.selectedEntitiesIndices[0];
             let baseClassList = "btn btn-outline-secondary btn-entity-browse";
             if (isUp) {
                 if (currentCachedSelectedIndex <= 0)

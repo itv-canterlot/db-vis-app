@@ -21,17 +21,17 @@ export const entityArrayFilter = (list: Table[], text: string) => {
     })
 }
 
-export const entityArrayRenderer = (item: Table, onClickCallback: React.MouseEventHandler<HTMLAnchorElement>, selectedIndex: number, relationsList: RelationNode[]) => { 
+export const entityArrayRenderer = (item: Table, onClickCallback: React.MouseEventHandler<HTMLAnchorElement>, entitiesInRels: number[], relationsList: RelationNode[]) => { 
     let index = item.idx;
     let oid = item.oid;
     let tableName = item.tableName;
-    let relNameElement = (name: string) => {
+    let relNameElement = (name: string, isInRels: boolean) => {
         // Markers of the type of table
         const thisTableJunctionRels = getEntityJunctionRelations(item, relationsList)
-        if (thisTableJunctionRels.length > 0) {
+        if (isInRels) {
             return (
-                <div>
-                    <i className="fas fa-compress-alt me-1 pe-none" />{name}
+                <div className="d-flex align-items-center">
+                    {name}<i className="bi bi-dot text-primary" style={{fontSize: "1.75rem", lineHeight: "1rem"}} />
                 </div>
             )
         } else {
@@ -39,33 +39,10 @@ export const entityArrayRenderer = (item: Table, onClickCallback: React.MouseEve
         }
     }
 
-    let weRels = () => {
-        const thisTableJunctionRels = getEntityWeakRelations(item, relationsList)
-        if (thisTableJunctionRels.length > 0) {
-            let visitedKeys = [];
-            return null;
-            // return item.weakEntitiesIndices.map((weIndex:number, arrayIndex:number) => {
-            //     if (visitedKeys.includes(item.fk[weIndex].pkTableName)) {
-            //         return null;
-            //     }
-            //     visitedKeys.push(item.fk[weIndex].pkTableName);
-            //     return (
-            //     <div className="me-1 text-muted dropdown-tip bg-tip-weak-link d-flex align-items-center tip-fontsize" key={arrayIndex}>
-            //         <i className="fas fa-asterisk me-1 pe-none fa-xs" /> <em>{item.fk[weIndex].pkTableName}</em>
-            //     </div>)
-            // })
-        } else {
-            return null;
-        }
-    }
-    // Check this.props.state.selectedIndex
-    return <a className={"dropdown-item pe-auto" + (index == selectedIndex ? " active" : "")} 
+    return <a className={"dropdown-item pe-auto"} 
         data-key={oid} data-index={index} data-content={tableName} key={index} href="#" onMouseDown={onClickCallback}>
             <div className="pe-none">
-                {relNameElement(tableName)}
-            </div>
-            <div className="pe-none d-flex">
-                {weRels()}
+                {relNameElement(tableName, entitiesInRels.includes(item.idx))}
             </div>
         </a>
 }

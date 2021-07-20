@@ -2,30 +2,25 @@ import * as React from 'react';
 
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { SearchDropdownList } from './UIElements';
-import { ForeignKey, RelationNode, Table } from './ts/types';
+import { Table } from './ts/types';
 
 import * as ComponentTypes from './ts/components';
 import * as UIRenderers from './UIRenderers';
-import * as d3 from 'd3';
-import { filterTablesByExistingRelations, getRelationsInListByName } from './SchemaParser';
+import { filterTablesByExistingRelations } from './SchemaParser';
 
-export class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps, {innerVal?: string}> {
+export class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps, {innerVal?: string, tableIndicesInRels?: number[]}> {
     constructor(props) {
         super(props);
         this.state = {
-            innerVal: ""
+            innerVal: "",
+            tableIndicesInRels: []
         }
-    }
-
-    attributeArrayRendererHandler = (item, index, onClickCallback, selectedIndex) => {
-        let context: DBSchemaContextInterface = this.context;
-        let selectedEntity = context.allEntitiesList[context.selectedFirstTableIndex];
-        return UIRenderers.attributeArrayRenderer(item, index, onClickCallback, selectedIndex, selectedEntity.pk, selectedEntity.fk);
     }
 
     entityArrayRendererHandler = (item: Table, index: number, onClickCallback: React.MouseEventHandler<HTMLAnchorElement>) => {
         const context: DBSchemaContextInterface = this.context;
-        return UIRenderers.entityArrayRenderer(item, onClickCallback, context.selectedFirstTableIndex, context.relationsList);
+        return UIRenderers.entityArrayRenderer(
+            item, onClickCallback, this.state.tableIndicesInRels, context.relationsList);
     }
 
     updateInnerText = (s: string) => {
@@ -42,14 +37,7 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
     }
 
     entityArrayFilterBySelection = (list: Table[], text: string) => {
-        const context: DBSchemaContextInterface = this.context;
-        let availableTablesToSelectBySelection = filterTablesByExistingRelations(
-            context.allEntitiesList, context.relationsList, 
-            this.props.cachedSelectedEntitiesList, this.props.cachedSelectedRelationsList);
-        if (availableTablesToSelectBySelection.length === 0) {
-            availableTablesToSelectBySelection = list;
-        }
-        return availableTablesToSelectBySelection.filter(en => {
+        return list.filter(en => {
             return en.tableName.toLowerCase().includes(text.toLowerCase());
         })
     }
@@ -57,20 +45,13 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
     /* React components for entity selectors */
     entitiesListNode = () => {
         const context: DBSchemaContextInterface = this.context;
-        const renderingIndex = this.props.selectedEntityIndex ? this.props.selectedEntityIndex : context.selectedFirstTableIndex
-        let availableTablesToSelect;
-        if (this.props.cachedSelectedEntitiesList !== undefined && this.props.cachedSelectedEntitiesList.length !== 0) {
-            availableTablesToSelect = filterTablesByExistingRelations(
-                context.allEntitiesList, context.relationsList, this.props.cachedSelectedEntitiesList, this.props.cachedSelectedRelationsList);
-        } else {
-            availableTablesToSelect = context.allEntitiesList;
-        }
+        const renderingIndex = this.props.selectedEntityIndex ? this.props.selectedEntityIndex : context.selectedEntitiesIndices[0]
 
         return (<div className="row">
             <div className="col">
                 <div className="row position-relative">
                     <SearchDropdownList placeholder="Select Entity 1..." 
-                        prependText="E1" dropdownList={availableTablesToSelect} 
+                        prependText="E1" dropdownList={context.allEntitiesList} 
                         selectedIndex={renderingIndex}
                         onListSelectionChange={this.onTableSelectChangeHandler}
                         arrayRenderer={this.entityArrayRendererHandler}
@@ -84,17 +65,46 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
         </div>)
     }
 
+    updateTableIndicesInRels = () => {
+        const context: DBSchemaContextInterface = this.context;
+        let tableIndicesInRelations = filterTablesByExistingRelations(
+            context.allEntitiesList, context.relationsList, 
+            this.props.cachedSelectedEntitiesList, this.props.cachedSelectedRelationsList)
+            .map(table => table.idx);
+        
+        if (this.state.tableIndicesInRels !== undefined) {
+            if (!(tableIndicesInRelations.length === this.state.tableIndicesInRels.length && 
+                tableIndicesInRelations.every((el, idx) => el === this.state.tableIndicesInRels[idx]))) {
+                this.setState({
+                    tableIndicesInRels: tableIndicesInRelations
+                });
+            }
+        }
+
+        return;
+    }
+
     componentDidMount() {
         console.log("mount")
         const context: DBSchemaContextInterface = this.context;
+        
+        this.updateTableIndicesInRels();
+
+
         const propSelectedIndex = this.props.selectedEntityIndex ? this.props.selectedEntityIndex : -1;
-        const contextSelectedIndex = context.selectedFirstTableIndex;
+        const contextSelectedIndex = context.selectedEntitiesIndices[0];
+    
         if (propSelectedIndex >= 0 && contextSelectedIndex >= 0) {
             const selectedEntity = this.context.allEntitiesList[propSelectedIndex] as Table;
             this.setState({
                 innerVal: selectedEntity.tableName
             });
         }
+    }
+
+    componentDidUpdate() {
+        console.log("update");
+        this.updateTableIndicesInRels();
     }
 
     render() {
@@ -106,143 +116,6 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
     }
 }
 EntitySelector.contextType = DBSchemaContext;
-
-class MetadataGraph extends React.Component<{listLoaded: boolean, selectedTable: number}, {loaded?: boolean, selectedTableIndex?: number}> {
-    constructor(props) {
-        super(props);
-        this.state = {
-            loaded: false,
-            selectedTableIndex: -1
-        }
-    }
-
-    componentDidUpdate() {
-        if (this.state.selectedTableIndex !== this.props.selectedTable) {
-            this.setState({
-                selectedTableIndex: this.props.selectedTable
-            }, () => this.renderSelectedTableMetaGraph())
-        }
-        if (this.state.loaded) return;
-        if (this.props.listLoaded) {
-            // this.renderMetaGraph();
-            this.setState({
-                loaded: true
-            });
-        }
-    }
-
-    getLinkedListBetweenTables = () => {
-        if (!this.props.listLoaded) {
-            return;
-        }
-        let strings = [];
-        let dbSchemaContext: DBSchemaContextInterface = this.context;
-        let relationsList = dbSchemaContext.relationsList;
-        
-        relationsList.forEach(rel => {
-            strings.push(rel.parentEntity.tableName + "->" + rel.childRelations.map(t => t.table.tableName).join());
-        })
-
-        console.log(strings);
-
-        return (<div>{strings.map(string => (<p>{string}</p>))}</div>)
-    }
-    
-    renderSelectedTableMetaGraph = () => {
-        // // Attempt 1: with d3.js
-        // if (this.state.selectedTableIndex < 0) return;
-        // const containerViewport = document.getElementById("meta-graph-cont");
-        // let margin = {top: 10, right: 30, bottom: 30, left: 40},
-        // maxWidth = containerViewport.clientWidth, maxHeight = 600,
-        // width = maxWidth - margin.left - margin.right,
-        // height = maxHeight - margin.top - margin.bottom;
-
-        // let boxWidth = 10, boxHeight = 2; // in REM
-        // let boxWidthText = boxWidth + "rem", boxHeightText = boxHeight + "rem";
-
-        // var svg = d3.select("#meta-graph-cont")
-        //     .append("svg")
-        //         .attr("width", "100%")
-        //         .attr("height", maxHeight + "px")
-        //         // .attr("preserveAspectRatio", "none")
-        //         // .attr("viewBox", containerString)
-        //     .append("g")
-        //         .attr("transform",
-        //             "translate(" + margin.left + "," + margin.top + ")");
-        
-        // let dbSchemaContext: DBSchemaContextInterface = this.context;
-        // let linkedRelations = dbSchemaContext.relationsList[this.props.selectedTable]; // Pretty sure rel list is listed in order as well
-        // let data = [linkedRelations].concat(linkedRelations.childRelations.map(rel));
-        
-        // let links = linkedRelations.childRelations.map(child => {
-        //     return {
-        //         "source": linkedRelations.index,
-        //         "target": child.index
-        //     };
-        // });
-
-        // console.log(data);
-        // console.log(links);
-
-        // const node = svg.selectAll("g")
-        //     .data(data)
-        //     .enter();
-
-        // node.append("g")
-        //     .append("rect")
-        //     .attr("width", boxWidthText)
-        //     .attr("height", boxHeightText)
-        //     .attr("transform", (d, idx) => "translate (" + convertRemToPixels(idx * (boxWidth + 2)) + ", 0)");
-        
-        // svg.selectAll("g")
-        //     .append("text")
-        //     .text((d: RelationNode) => d.parentEntity.tableName)
-        //     .attr("transform", (d, idx) => {
-        //         const textX = convertRemToPixels(idx * (boxWidth + 2)) + 10;
-        //         const textY = convertRemToPixels(boxHeight / 2);
-        //         return `translate (${textX},${textY})`;
-        //     })
-            
-        // // Set status of parent node so CSS can do things with it
-        // svg.selectAll("g").filter((d: RelationNode) => d.index === this.state.selectedTableIndex)
-        //     .attr("class", "parent-node");
-
-        // svg.selectAll("g").filter((d: RelationNode) => d.index !== this.state.selectedTableIndex)
-        //     .attr("class", "child-node");
-        
-    }
-
-    render() {
-        return (
-            <div className="col" id="meta-graph-cont">
-                {/* {this.getLinkedListBetweenTables()} */}
-            </div>
-        );
-    }
-}
-MetadataGraph.contextType = DBSchemaContext;
-
-class JunctionTableLinks extends React.Component<ComponentTypes.JunctionTableLinksProps, {}> {
-    constructor(props) {
-        super(props);
-    }
-
-    render() {
-        let selectedEntity = this.props.selectedEntity as Table;
-        let foreignKeyList = selectedEntity.fk;
-        let fkListNode = foreignKeyList.map(fk => {
-            return (
-                <FixedAttributeSelector key={fk.keyName} entity={selectedEntity} fk={fk} />
-            );
-        });
-        return (
-            <div className="col">
-                {fkListNode}
-            </div>
-        );
-    }
-}
-
 class AttributeListSelector extends React.Component<ComponentTypes.AttributeListSelectorProps, {}> {
     constructor(props) {
         super(props);
@@ -266,73 +139,8 @@ class AttributeListSelector extends React.Component<ComponentTypes.AttributeList
     }
 }
 
-class FixedAttributeSelector extends React.Component<ComponentTypes.FixedAttributeSelectorProps, {selectedAttributeIndex?: number}> {
-    constructor(props) {
-        super(props);
-        this.state = {
-            selectedAttributeIndex: -1
-        }
-    }
-
-    onAttributeSelectionChange = (el: React.BaseSyntheticEvent) => {
-        this.setState({
-            selectedAttributeIndex: el.target.getAttribute("data-index")
-        }); // TODO
-    }
-
-    render() {
-        let thisEntity = this.props.entity as Table;
-        let fk = this.props.fk as ForeignKey;
-
-        return (
-            <DBSchemaContext.Consumer>
-                {(context) => {
-                    let fkEntity = getEntityFromTableName(context.allEntitiesList, fk.pkTableName)
-                    return (<div className="mt-1 mb-1">
-                        <div className="text-muted">
-                            <div className="dropdown-tip bg-tip-fk d-inline-block">
-                                <i className="fas fa-link me-2" />{fk.keyName}
-                            </div>
-                            <div className="ms-1 tip-fontsize d-inline-block">
-                            <i className="fas fa-arrow-right" />
-                            </div>
-                        </div>
-                        <div className="ms-2">
-                            <AttributeListSelector 
-                                dropdownList={fkEntity.attr}
-                                onListSelectionChange={this.onAttributeSelectionChange}
-                                prependText={fk.pkTableName}
-                                selectedIndex={this.state.selectedAttributeIndex}
-                                tableForeignKeys={fkEntity.fk}
-                                tablePrimaryKey={fkEntity.pk}
-                            />
-                        </div>
-                    </div>);
-                    }
-                }
-            </DBSchemaContext.Consumer>
-        )
-    }
-}
-
-const getAttrsFromOID = (entities: Table[], oid: number) => {
-    return getEntityFromOID(entities, oid).attr;
-}
-
 const getAttrsFromTableName = (entities: Table[], tableName: string) => {
     return getEntityFromTableName(entities, tableName).attr;
-}
-
-const getEntityFromOID = (entities: Table[], oid: number) => {
-    let fkRelIndex;
-    for (let i = 0; i < entities.length; i++) {
-        if (entities[i].oid === oid) {
-            fkRelIndex = i;
-            break;
-        }
-    }
-
-    return entities[fkRelIndex];
 }
 
 const getEntityFromTableName = (entities: Table[], tableName: string) => {
@@ -345,8 +153,4 @@ const getEntityFromTableName = (entities: Table[], tableName: string) => {
     }
 
     return entities[fkRelIndex];
-}
-
-const convertRemToPixels = (rem) =>{    
-    return rem * parseFloat(getComputedStyle(document.documentElement).fontSize);
 }

@@ -50,10 +50,11 @@ export type ApplicationStates = {
     dataLoaded?: boolean,
     filters?: Filter[],
     relationsList?: RelationNode[],
-    selectedFirstTableIndex?: number,
+    selectedEntitesIndices?: number[],
+    selectedRelationsIndices?: number[],
     selectedPatternIndex?: number,
     selectedMatchResultIndexInPattern?: number,
-    rendererSelectedAttributes?: PatternMatchAttribute[][], // TODO: expand if needed
+    rendererSelectedAttributes?: PatternMatchAttribute[][],
     rerender?: boolean,
     load?: boolean,
     listLoaded?: boolean,
@@ -80,7 +81,7 @@ export type SidebarBubbleBlockProps = {
 /* SidebarModals.tsx */
 export type StartingTableSelectModalProps = {
     onClose: Function, 
-    onTableSelectChange: Function, 
+    onDatasetSchemaSelectChange: Function, 
 }
 
 export type StartingTableSelectModalStates = {

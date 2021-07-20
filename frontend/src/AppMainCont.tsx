@@ -403,7 +403,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
         const patternIndex = context.selectedPatternIndex;
         const matchIndex = context.selectedMatchResultIndexInPattern;
         const thisPattern = context.visSchema ? context.visSchema[patternIndex] : undefined;
-        if (context.selectedFirstTableIndex < 0) {
+        if (context.selectedEntitiesIndices.length === 0) {
             return (
                 <div className="d-flex justify-content-center">
                     <div>
@@ -413,13 +413,15 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
             )
         } else {
             const thisPatternMatchResultGroup: PatternMatchResult[] = (patternIndex < 0) ? undefined : context.visSchemaMatchStatus[patternIndex]
-            const thisPatternMatchResult: PatternMatchResult = (matchIndex < 0) ? undefined : thisPatternMatchResultGroup[matchIndex];
+
+            if (!thisPatternMatchResultGroup) return null;
+            // const thisPatternMatchResult: PatternMatchResult = (matchIndex < 0) ? undefined : thisPatternMatchResultGroup[matchIndex];
 
             return (
                 <div>
                     <div className="d-flex justify-content-between align-items-center">
                         <div>
-                            {context.allEntitiesList[context.selectedFirstTableIndex].tableName}
+                            {context.allEntitiesList[context.selectedEntitiesIndices[0]].tableName}
                         </div>
                         <div className="dropdown">
                             <a className="btn btn-primary dropdown-toggle" href="#" role="button" id="matched-schema-list-dropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -485,7 +487,7 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
             return (<div>Loading...</div>);
         }
         const shrinkTag = () => {
-            if (context.selectedFirstTableIndex < 0) return null;
+            if (context.selectedEntitiesIndices.length === 0) return null;
             else return (
                 <div className="pt-1 pb-2" onClick={this.onExpansionClick} style={{cursor: "pointer"}}>
                     <div className=" d-flex justify-content-center align-items-center">
@@ -518,7 +520,7 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
                         <div className="row">
                             <div className="col">
                                 {
-                                    context.selectedFirstTableIndex >= 0 && context.selectedPatternIndex >= 0 ? 
+                                    context.selectedEntitiesIndices.length > 0 && context.selectedPatternIndex >= 0 ? 
                                     <Visualiser 
                                         rerender={this.props.rerender}
                                         onDataChange={this.onDataChange} />
