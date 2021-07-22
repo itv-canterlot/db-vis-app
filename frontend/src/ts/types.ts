@@ -44,6 +44,8 @@ export interface Attribute {
     attnum: number,
     typname: string,
     isNullable?: boolean,
+    attCount?: number,
+    attDistinctCount?: number
 }
 
 // Visualisation types

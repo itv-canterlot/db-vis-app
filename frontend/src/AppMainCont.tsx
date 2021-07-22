@@ -34,7 +34,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
     allSchemasDropdownItem = () => {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
         const patternMatchResult = dbSchemaContext.visSchemaMatchStatus;
-        if (dbSchemaContext.visSchemaMatchStatus && dbSchemaContext.visSchema) {
+        if (dbSchemaContext.visSchema) {
             let matchedItems = [], unmatchedItems = [];
             matchedItems.push((
                 <li key={-1}>
@@ -42,22 +42,24 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
                 </li>
             ));
 
-            if (this.props.expanded) {
-                unmatchedItems.push((
-                    <li key={-3}><hr className="dropdown-divider" /></li>
-                ))
-                unmatchedItems.push((
-                    <li key={-2} onClick={(e) => e.preventDefault()}>
-                        <h6 className="dropdown-header">Unmatched patterns</h6>
-                    </li>
-                ));
-            }
+            // if (this.props.expanded) {
+            unmatchedItems.push((
+                <li key={-3}><hr className="dropdown-divider" /></li>
+            ))
+            unmatchedItems.push((
+                <li key={-2} onClick={(e) => e.preventDefault()}>
+                    <h6 className="dropdown-header">Unmatched patterns</h6>
+                </li>
+            ));
+            // }
 
+
+            // Separate matched and unmatched items?
             dbSchemaContext.visSchema.map((visSchema, idx) => {
-                const schemaMatchResult = patternMatchResult[idx];
-                if (!this.props.expanded && (!schemaMatchResult || !schemaMatchResult.some(result => result.matched))) {
-                    return;
-                }
+                const schemaMatchResult = patternMatchResult ? patternMatchResult[idx] : undefined;
+                // if (!schemaMatchResult || !schemaMatchResult.some(result => result.matched)) {
+                //     return;
+                // }
 
                 let classList = "dropdown-item";
                 if (dbSchemaContext.selectedPatternIndex === idx) classList += " active"
@@ -76,6 +78,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
                     unmatchedItems.push(listElem);
                 }
             });
+
             return matchedItems.concat(unmatchedItems);
         } else {
             return null;
@@ -404,15 +407,47 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
         const matchIndex = context.selectedMatchResultIndexInPattern;
         const thisPattern = context.visSchema ? context.visSchema[patternIndex] : undefined;
 
-        if (context.selectedEntitiesIndices.length === 0) {
+        const schemaDropdown = (
+            <div className="dropdown">
+                <a className="btn btn-primary dropdown-toggle" href="#" role="button" id="matched-schema-list-dropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    {thisPattern ? thisPattern.name : "Select Pattern..."}
+                </a>
+
+                <ul className="dropdown-menu" id="matched-schema-list-dropdown-list" aria-labelledby="matched-schema-list-dropdown">
+                    {this.allSchemasDropdownItem()}
+                </ul>
+            </div>
+        );
+
+        const selectedRelationsPills = () => {
+            const context: DBSchemaContextInterface = this.context;
+            return (
+                <div>
+                    {context.selectedRelationsIndices.map((ind, key) => {
+                        const thisRel = context.relationsList.find(rel => rel.index === ind);
+                        if (!thisRel) return;
+                        return (
+                            <div key={key} className="badge bg-info d-inline-flex me-2 no-select">
+                                <div>
+                                    {thisRel.parentEntity.tableName} ➔ {thisRel.childRelations.map(cr => cr.table.tableName).join("/")}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )
+        }
+
+
+        if (context.selectedEntitiesIndices.length === 0 && context.selectedRelationsIndices.length === 0) {
             return (
                 <div className="d-flex justify-content-center">
                     <div>
-                        <em>Select a table to continue...</em>
+                        <em>Select something to continue...</em>
                     </div>       
                 </div>
             )
-        } else {
+        } else if (context.selectedEntitiesIndices.length !== 0) {
             const thisPatternMatchResultGroup: PatternMatchResult[] = (patternIndex < 0) ? undefined : context.visSchemaMatchStatus[patternIndex]
 
             if (!thisPatternMatchResultGroup) return null;
@@ -424,15 +459,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
                         <div>
                             {context.allEntitiesList[context.selectedEntitiesIndices[0]].tableName}
                         </div>
-                        <div className="dropdown">
-                            <a className="btn btn-primary dropdown-toggle" href="#" role="button" id="matched-schema-list-dropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                {thisPattern ? thisPattern.name : "Select Pattern..."}
-                            </a>
-
-                            <ul className="dropdown-menu" id="matched-schema-list-dropdown-list" aria-labelledby="matched-schema-list-dropdown">
-                                {this.allSchemasDropdownItem()}
-                            </ul>
-                        </div>
+                        {schemaDropdown}
                     </div>
                     <div className="mt-2">
                         <div className="row">
@@ -458,6 +485,42 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
                     </div>
                 </div>
             );
+        } else {
+            const dataLength = context.data === undefined ? 0 : context.data.length;
+            return (
+                <div>
+                    <div className="d-flex justify-content-between align-items-center">
+                        <div>
+                            Existing entry length: <span className="badge bg-secondary ms-1">{dataLength}</span>
+                        </div>
+                        {schemaDropdown}
+                    </div>
+                    <div className="mt-2">
+                        <div className="row">
+                                <div className="col d-flex">
+                                    <div>
+                                    Relations:
+                                    </div>
+                                    {selectedRelationsPills()}
+                                </div>
+                            </div>
+                        {/* <div className="row">
+                            <div className="col">
+                                Mandatory attributes:
+                                {this.mandatoryAttributeDropdownGroup(thisPatternMatchResultGroup[context.selectedMatchResultIndexInPattern])}
+                            </div>
+                        </div>
+                        <div className="row">
+                        <div className="col">
+                                Optional attributes:
+                            </div>
+                        </div> */}
+                    </div>
+                    <div>
+                        {this.parsedVisPattern()}
+                    </div>
+                </div>
+            )
         }
     }
 }
@@ -503,6 +566,7 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
                     </h5>
                 );
             } else {
+                const selectedAttributeLength = selectedAttributesIndices.reduce(((acc, atts) => acc + atts.length), 0)
                 return (
                     <div className="d-flex">
                         <h5>
@@ -512,7 +576,7 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
                             <span className="badge bg-info me-1">{selectedRelationsIndices.length} relations</span>
                         </h5>
                         <h5>
-                            <span className="badge bg-warning me-1">{selectedAttributesIndices.length} attributes</span>
+                            <span className="badge bg-warning me-1">{selectedAttributeLength} attributes</span>
                         </h5>
                         <h5>
                             <span className="badge bg-primary me-1">{(selectedPattern === undefined) ? "No pattern selected" : ("Pattern: " + selectedPattern.name)}</span>

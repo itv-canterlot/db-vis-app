@@ -1,12 +1,12 @@
 import * as React from 'react';
 import ReactDOM = require('react-dom');
 
-import { Filter, PatternMatchAttribute, PatternMatchResult, VisSchema } from './ts/types'
+import { Filter, PatternMatchAttribute, PatternMatchResult, RelationNode, VisSchema } from './ts/types'
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { AppMainCont } from './AppMainCont';
 
 import { AppSidebar } from './AppSidebar';
-import { matchTableWithAllVisPatterns } from './VisSchemaMatcher'
+import { matchTableWithAllVisPatterns, matchTableWithVisPattern } from './VisSchemaMatcher'
 
 import * as ComponentTypes from './ts/components';
 import * as Connections from './Connections';
@@ -248,16 +248,13 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     selectedRelationsIndices: newRelations
                 })
 
-                Connections.getRelationBasedData(newRelations.map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues())
-                    .then(data => {
-                        console.log(data);
-                    })
-                
                 // const {
                 //     visSchemaMatchStatus, 
                 //     selectedPatternIndex, 
                 //     selectedMatchResultIndexInPattern,
                 //     rendererSelectedAttributes} = this.getAllMatchableVisSchemaPatterns(newEntities[0], undefined, true);
+                
+                this.getVisSchemaMatchesFromSelectedRelations(newRelations.map(relIdx => this.state.relationsList[relIdx]));
     
                 const getDataCallback = (data: object[]) => {
                     this.setState({
@@ -270,12 +267,9 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                         // rendererSelectedAttributes: rendererSelectedAttributes
                     });
                 }
-    
-                // Connections.getDataByMatchAttrs(
-                //     rendererSelectedAttributes, 
-                //     visSchemaMatchStatus[selectedPatternIndex][0],
-                //     this.getProviderValues())
-                //         .then(getDataCallback.bind(this));
+
+                Connections.getRelationBasedData(newRelations.map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues())
+                    .then(getDataCallback)
             })
         }
     }
@@ -372,6 +366,21 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         
     }
 
+    getVisSchemaMatchesFromSelectedRelations = (selectedRelations: RelationNode[]) => {
+        selectedRelations.forEach(rel => {
+            // TODO: more graceful way to remove key count restriction
+            const thisRelMatches = matchTableWithAllVisPatterns(rel.parentEntity, [rel], visSchema, 1);
+            thisRelMatches.forEach(matches => {
+                matches.forEach(match => {
+                    if (match.matched) {
+                        const matchWithConstraint = matchTableWithVisPattern(rel.parentEntity, [rel], match.vs);
+                        console.log(matchWithConstraint)
+                    }
+                })
+            })
+            console.log(thisRelMatches);
+        })
+    }
     
     getTableMetadata = () => {
         if (this.state.allEntitiesList.length !== 0) {

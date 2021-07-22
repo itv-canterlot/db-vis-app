@@ -225,7 +225,7 @@ const matchRelationWithVisPattern = (rel: RelationNode, vs: VisSchema, nKeys?: n
     return undefined;
 }
 
-const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSchema, nKeys?: number): PatternMatchResult[] => {
+export const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSchema, nKeys?: number): PatternMatchResult[] => {
     if (!table.pk) return undefined; // Not suitable if there is no PK to use
 
     let subsetRel = rels.find(rel => rel.type === VISSCHEMATYPES.SUBSET); // TODO: multiple subsets?

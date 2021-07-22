@@ -103,7 +103,10 @@ const dataSelectMultiTablesQuery = (attrs, fks, parentTableName, primaryKeys) =>
 
 const dataSelectAllColumnsByTableName = (tablename) => `SELECT * FROM ${tableName};`;
 
-const individualCountsByColumn = (tableName, fieldName) => `SELECT COUNT(${fieldName}) as count, COUNT(DISTINCT ${fieldName}) as distinct_count FROM ${tableName};`;
+const columnCounts = (tableName, fieldNames) => {
+    const distQuery = fieldNames.map((name, idx) => `COUNT(${name}) AS count_${idx}, COUNT(DISTINCT(${name})) AS distinct_${idx}`).join(", ")
+    return `SELECT ${distQuery} FROM ${tableName};`
+};
 const totalCountByColumnGroup = (tableName, fieldNames) => `SELECT COUNT(*) from (SELECT ${fieldNames.join(", ")} FROM ${tableName}) t;`;
 
 /* PostgreSQL oriented queries */
@@ -326,7 +329,7 @@ async function getTableMetatdata() {
                 "attnum": att["ordinal_position"]
             }
         });
-
+        
         // Grouping PK columns together into one object
         let tablePksColumns;
         if (tablePks && tablePks.length !== 0) {
@@ -387,6 +390,21 @@ async function getTableMetatdata() {
                 tableObjects[idx]["pk"]["keyCount"] = parseInt(count);
             }
         })
+
+        return Promise.all(tableObjects.map(table => {            
+            return getTableDistinctColumnCountByColumnName(table["tableName"], table["attr"].map(att => att["attname"]));
+        }))
+    }).then(res => {
+        res.forEach((tableRes, tableIdx) => {
+            const thisTableResult = tableRes[0];
+            Object.keys(thisTableResult).forEach(k => {
+                const keySplit = k.split("_");
+                const keyNameForAtt = keySplit[0] === "count" ? "attCount" : "attDistinctCount";
+                const count = thisTableResult[k];
+                const attIdx = keySplit[1];
+                tableObjects[tableIdx]["attr"][attIdx][keyNameForAtt] = parseInt(count);
+            })
+        })
         return tableObjects;
     });
 
@@ -412,14 +430,9 @@ async function getDataRelationshipBased(attrs, fks, parentTableName, primaryKeys
 }
 
 async function getTableDistinctColumnCountByColumnName(tableName, columnNames) {
-    columnCountPromises = columnNames.map(val => singlePoolRequest(individualCountsByColumn(tableName, val)));
-    return Promise.all(columnCountPromises).then(columnRes => {
-        columnRes = columnRes.map(val => val[0]);
-        for (let i = 0; i < columnRes.length; i++) {
-            columnRes[i]["columnName"] = columnNames[i];
-        }
-        return columnRes;
-    });
+    const query = columnCounts(tableName, columnNames);
+    // console.log(query);
+    return await singlePoolRequest(query);
 }
 
 let groupBy = function(xs, key) {

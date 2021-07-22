@@ -85,7 +85,6 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
     }
 
     componentDidMount() {
-        console.log("mount")
         const context: DBSchemaContextInterface = this.context;
         
         this.updateTableIndicesInRels();
@@ -103,7 +102,6 @@ export class EntitySelector extends React.Component<ComponentTypes.EntitySelecto
     }
 
     componentDidUpdate() {
-        console.log("update");
         this.updateTableIndicesInRels();
     }
 
