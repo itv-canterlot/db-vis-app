@@ -173,6 +173,7 @@ export type PatternMatchAttribute = {
 export type PatternMatchResult = {
     vs: VisSchema,
     matched: boolean,
+    keyCountMatched?: boolean,
     mismatchReason?: PatternMismatchReason,
     mandatoryAttributes: PatternMatchAttribute[][],
     optionalAttributes: PatternMatchAttribute[][],
@@ -189,7 +190,8 @@ export enum PATTERN_MISMATCH_REASON_TYPE {
     NO_PK,
     KEY_COUNT_MISMATCH,
     KEY_TYPE_MISMATCH,
-    NO_SUITABLE_RELATION
+    NO_SUITABLE_RELATION,
+    NO_SUITABLE_ATTRIBUTE
 }
 
 export type PatternMismatchReason = {

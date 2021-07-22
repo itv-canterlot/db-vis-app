@@ -6,7 +6,7 @@ import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { AppMainCont } from './AppMainCont';
 
 import { AppSidebar } from './AppSidebar';
-import { matchTableWithAllVisPatterns, matchTableWithVisPattern } from './VisSchemaMatcher'
+import { matchRelationWithAllVisPatterns, matchTableWithAllVisPatterns } from './VisSchemaMatcher'
 
 import * as ComponentTypes from './ts/components';
 import * as Connections from './Connections';
@@ -218,6 +218,10 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     selectedPatternIndex, 
                     selectedMatchResultIndexInPattern,
                     rendererSelectedAttributes} = this.getAllMatchableVisSchemaPatterns(newEntities[0], undefined, true);
+
+                if (selectedPatternIndex < 0 || selectedMatchResultIndexInPattern < 0) {
+                    return;
+                }
     
                 const getDataCallback = (data: object[]) => {
                     this.setState({
@@ -332,13 +336,27 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         };;
         
         const firstValidPatternIndex = matchStatusForAllSchema.findIndex(res => res.length > 0 && this.isPatternMatchResultValid(res[0]));
-        if (!firstValidPatternIndex) return;
+        if (firstValidPatternIndex < 0) {
+            return {
+                visSchemaMatchStatus: matchStatusForAllSchema,
+                selectedPatternIndex: -1,
+                selectedMatchResultIndexInPattern: -1,
+                rendererSelectedAttributes: [[], []]
+            }
+        }
 
         const firstMatchResultIndex = 0;
 
         // Find the first pattern-matching result that resulted in a match
         const firstValidPatternMatchStatus: PatternMatchResult = matchStatusForAllSchema[firstValidPatternIndex][firstMatchResultIndex];
-        if (!firstValidPatternMatchStatus) return;
+        if (!firstValidPatternMatchStatus) {
+            return {
+            visSchemaMatchStatus: matchStatusForAllSchema,
+            selectedPatternIndex: firstValidPatternIndex,
+            selectedMatchResultIndexInPattern: -1,
+            rendererSelectedAttributes: [[], []]
+            }
+        };
         
         const mandatoryParamInitIndices = firstValidPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {
             return Math.floor(Math.random() * mandMatch.length);
@@ -358,7 +376,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         // TODO: make sure the picked indices are not duplicates of each other
         return {
             visSchemaMatchStatus: matchStatusForAllSchema,
-            selectedPatternIndex: firstValidPatternIndex ? firstValidPatternIndex : -1,
+            selectedPatternIndex: (firstValidPatternIndex >= 0) ? firstValidPatternIndex : -1,
             selectedMatchResultIndexInPattern: firstMatchResultIndex,
             rendererSelectedAttributes: [mandatoryParamInitAtts, optionalParamInitAtts]
         };
@@ -369,16 +387,17 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     getVisSchemaMatchesFromSelectedRelations = (selectedRelations: RelationNode[]) => {
         selectedRelations.forEach(rel => {
             // TODO: more graceful way to remove key count restriction
-            const thisRelMatches = matchTableWithAllVisPatterns(rel.parentEntity, [rel], visSchema, 1);
-            thisRelMatches.forEach(matches => {
-                matches.forEach(match => {
-                    if (match.matched) {
-                        const matchWithConstraint = matchTableWithVisPattern(rel.parentEntity, [rel], match.vs);
-                        console.log(matchWithConstraint)
-                    }
-                })
-            })
-            console.log(thisRelMatches);
+            const matchWithConstraint = matchRelationWithAllVisPatterns(rel, visSchema);
+            console.log(matchWithConstraint)
+            // const thisRelMatches = matchTableWithAllVisPatterns(rel.parentEntity, [rel], visSchema, 1);
+            // thisRelMatches.forEach(matches => {
+            //     matches.forEach(match => {
+            //         if (match.matched) {
+            //             console.log(matchWithConstraint)
+            //         }
+            //     })
+            // })
+            // console.log(thisRelMatches);
         })
     }
     
