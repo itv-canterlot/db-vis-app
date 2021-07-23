@@ -286,7 +286,7 @@ const weakEntityVisMatch = (table: Table, rel: RelationNode, vs: VisSchema, nKey
     if (vs.complete) {
         // Complete path - TODO
         // if (!isRelationComplete(rel)) return;
-        return;
+        return [failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.PATTERN_TYPE_MISMATCH})];
     }
     
     // Perform key condition check for the two involved entities
@@ -307,14 +307,14 @@ const weakEntityVisMatch = (table: Table, rel: RelationNode, vs: VisSchema, nKey
             }
         }
 
-        const createWeakRelResultFromChildRelation = (cr: ChildRelation, isChildKeyMismatch?: boolean) => {
+        const createWeakRelResultFromChildRelation = (cr: ChildRelation, isKeyMismatch?: boolean) => {
             let thisPatternMatchResult = {
                 vs: vs,
                 mandatoryAttributes: [],
                 optionalAttributes: [],
                 responsibleRelation: rel,
                 matched: false,
-                keyCountCheck: ignoreKeyCountMismatch ? parentKeyIsMismatch : undefined
+                keyCountCheck: ignoreKeyCountMismatch ? !isKeyMismatch : undefined
             };
 
             // Both a1 and a2 are located in the WE table
@@ -326,7 +326,7 @@ const weakEntityVisMatch = (table: Table, rel: RelationNode, vs: VisSchema, nKey
             if (patternMatchSuccessful(thisPatternMatchResult, vs)) {
                 thisPatternMatchResult.matched = true;
             } else {
-                return;
+                return failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.NO_SUITABLE_ATTRIBUTE});
             }
 
             if (vs.optionalParameters) {
@@ -361,37 +361,32 @@ const weakEntityVisMatch = (table: Table, rel: RelationNode, vs: VisSchema, nKey
             if (vs.foreignKey.scalar) {
                 const thisPrimaryKeyColumns = cr.table.pk.columns;
                 // Find key attributes that are outside of the public key subset
-                if (vs.foreignKey.scalar) {
-                    const pkColsNotInFk = thisPrimaryKeyColumns.filter(pkCol => {
-                        // Return PK columns that does not match any FK cols
-                        return !cr.table.fk.some(fk => {
-                            return fk.columns.some(fkCol => {
-                                return fkCol.fkColPos === pkCol.colPos
-                            })
+                const pkColsNotInFk = thisPrimaryKeyColumns.filter(pkCol => {
+                    // Return PK columns that does not match any FK cols
+                    return !cr.table.fk.some(fk => {
+                        return fk.columns.some(fkCol => {
+                            return fkCol.fkColPos === pkCol.colPos
                         })
                     })
+                })
 
-                    if (!pkColsNotInFk || pkColsNotInFk.length === 0) {
-                        return failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.NO_PK});
-                    }
-
-                    const allRequiredScalarAttributesValid = pkColsNotInFk.every(pkCol => {
-                        const thisAttr = cr.table.attr[pkCol.colPos - 1];
-                        return TypeConstants.isAttributeScalar(thisAttr);
-                    })
-
-                    if (!allRequiredScalarAttributesValid) {
-                        return failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.NO_SUITABLE_ATTRIBUTE});
-                    }
-
+                if (!pkColsNotInFk || pkColsNotInFk.length === 0) {
+                    return failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.NO_PK});
                 }
+
+                const allRequiredScalarAttributesValid = pkColsNotInFk.every(pkCol => {
+                    const thisAttr = cr.table.attr[pkCol.colPos - 1];
+                    return TypeConstants.isAttributeScalar(thisAttr);
+                })
+
+                if (!allRequiredScalarAttributesValid) {
+                    return failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.NO_SUITABLE_ATTRIBUTE});
+                    }
 
                 // If no error returned, push this child relation to the list
-                if (!weTableBasicCheckResult) {
-                    return createWeakRelResultFromChildRelation(cr, ignoreKeyCountMismatch ? crKeyIsMismatch : undefined);
-                    // childRelationsAvailableForMatching.push(cr);
-                }
             }
+            
+            return createWeakRelResultFromChildRelation(cr, ignoreKeyCountMismatch ? (crKeyIsMismatch || parentKeyIsMismatch) : undefined);
         });
     } else if (rel.childRelations.some(cr => cr.table.idx === table.idx)) {
         // If any of the child tables of this relation node is exactly the provided table
@@ -444,7 +439,10 @@ const weakEntityVisMatch = (table: Table, rel: RelationNode, vs: VisSchema, nKey
 
         return [thisPatternMatchResult];
 
-    } else return;
+    } else {
+        console.log("uh where did we end up here")
+        return;
+    };
 }
 
 export const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSchema, nKeys?: number): PatternMatchResult[] => {
@@ -573,7 +571,7 @@ const matchRelationWithVisPattern = (rel: RelationNode, vs: VisSchema, nKeys?: n
 
             return basicEntityMatchResult;
         case VISSCHEMATYPES.WEAKENTITY:
-            return;
+            console.log(weakEntityVisMatch(rel.parentEntity, rel, vs, nKeys, true))
     }
 
     return undefined;
