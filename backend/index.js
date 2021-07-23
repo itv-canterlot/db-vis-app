@@ -144,6 +144,28 @@ app.get('/vis-encodings', (req, res) => {
     }).catch(err => {
       next(new ErrorHandler(500, err.message));
     });
+});
+
+app.post('/pivot-table', (req, res, next) => {
+  console.debug("POST /pivot-table");
+
+  try {
+    let {tableName, keyAtts, pivotAtt, conditionAtt, values} = req.body;
+    pgconnect.getPivotTable(tableName, keyAtts, pivotAtt, conditionAtt, values)
+      .then(tabRes => {
+        if (tabRes instanceof Error) {
+          next(new ErrorHandler(500, tabRes.message));
+        }
+        else {
+          return res.send(tabRes);
+        }
+      })
+      .catch(err => {
+        next(new ErrorHandler(500, err.message))
+      });
+  } catch (err) {
+    next(err);
+  }
 })
 
 app.use((err, req, res, next) => {

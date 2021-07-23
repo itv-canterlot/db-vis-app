@@ -103,6 +103,25 @@ const dataSelectMultiTablesQuery = (attrs, fks, parentTableName, primaryKeys) =>
 
 const dataSelectAllColumnsByTableName = (tablename) => `SELECT * FROM ${tableName};`;
 
+/**
+ * Creates a SQL query to construct a pivot table.
+ * @param {*} tableName the name of the table to be pivoted.
+ * @param {*} keyAtts attributes used to conjoin the pivoted tables
+ * @param {*} pivotAtt attribute (singular) to be separated from the original table
+ * @param {*} conditionAtt attribute (singular) to be used as condition for value extraction
+ * @param {*} values values to equate to @pivotAtt
+ */
+const pivotTableQuery = (tableName, keyAtts, pivotAtt, conditionAtt, values) => {
+    const keyColumnNames = keyAtts.map(v => `e1.${v}`).join(", ");
+    const columnNames = keyColumnNames  + ", " +  values.map((v, i) => `e${i}.${pivotAtt} AS ${pivotAtt}_${v}`).join(", ")
+    const tableNames = `${tableName} AS e0` + values.map((v, i) => {
+        if (i == 0) return "";
+        else return `INNER JOIN ${tableName} AS e${i} ON ${keyAtts.map(att => `e0.${att}=e${i}.${att}`).join(", ")}`
+    }).join(" ")
+    const conditions = values.map((v, i) => `e${i}.${conditionAtt}=${v}`).join(" AND ")
+    return `SELECT ${columnNames} FROM ${tableNames} WHERE ${conditions} ORDER BY (${keyColumnNames});`;
+}
+
 const columnCounts = (tableName, fieldNames) => {
     const distQuery = fieldNames.map((name, idx) => `COUNT(${name}) AS count_${idx}, COUNT(DISTINCT(${name})) AS distinct_${idx}`).join(", ")
     return `SELECT ${distQuery} FROM ${tableName};`
@@ -435,6 +454,12 @@ async function getTableDistinctColumnCountByColumnName(tableName, columnNames) {
     return await singlePoolRequest(query);
 }
 
+async function getPivotTable(tableName, keyAtts, pivotAtt, conditionAtt, values) {
+    const query = pivotTableQuery(tableName, keyAtts, pivotAtt, conditionAtt, values);
+    console.log(query)
+    return await singlePoolRequest(query);
+}
+
 let groupBy = function(xs, key) {
     return xs.reduce(function(rv, x) {
       (rv[x[key]] = rv[x[key]] || []).push(x);
@@ -443,5 +468,5 @@ let groupBy = function(xs, key) {
 };
 
 module.exports = { getTableForeignKeys, getTablePrimaryKeys, getTableAttributes, getDataMultiTable, getTableMetatdata,
-    getTableDistinctColumnCountByColumnName, getDataRelationshipBased
+    getTableDistinctColumnCountByColumnName, getDataRelationshipBased, getPivotTable
 };
