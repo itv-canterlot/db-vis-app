@@ -308,13 +308,13 @@ const weakEntityVisMatch = (table: Table, rel: RelationNode, vs: VisSchema, nKey
         }
 
         const createWeakRelResultFromChildRelation = (cr: ChildRelation, isKeyMismatch?: boolean) => {
-            let thisPatternMatchResult = {
+            let thisPatternMatchResult: PatternMatchResult = {
                 vs: vs,
                 mandatoryAttributes: [],
                 optionalAttributes: [],
                 responsibleRelation: rel,
                 matched: false,
-                keyCountCheck: ignoreKeyCountMismatch ? !isKeyMismatch : undefined
+                keyCountMatched: ignoreKeyCountMismatch ? !isKeyMismatch : undefined
             };
 
             // Both a1 and a2 are located in the WE table
@@ -410,13 +410,13 @@ const weakEntityVisMatch = (table: Table, rel: RelationNode, vs: VisSchema, nKey
         }
 
         // Construct the pattern match result
-        let thisPatternMatchResult = {
+        let thisPatternMatchResult: PatternMatchResult = {
             vs: vs,
             mandatoryAttributes: [],
             optionalAttributes: [],
             responsibleRelation: rel,
             matched: false,
-            keyIsMismatch: ignoreKeyCountMismatch ? keyIsMismatch : undefined
+            keyCountMatched: ignoreKeyCountMismatch ? keyIsMismatch : undefined
         };
 
         // Both a1 and a2 are located in the WE table
@@ -445,16 +445,94 @@ const weakEntityVisMatch = (table: Table, rel: RelationNode, vs: VisSchema, nKey
     };
 }
 
+const manyManyEntityMatch = (rel: RelationNode, vs: VisSchema, nKeys: number, ignoreKeyCountMismatch?: boolean): PatternMatchResult[] => {
+    if (vs.type !== VISSCHEMATYPES.MANYMANY) return;
+    if (rel.type !== VISSCHEMATYPES.MANYMANY) {
+        return [failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.PATTERN_TYPE_MISMATCH})];
+    }
+
+    // For each combination of the child entities of the relationship:
+    let allPatternMatchResults: PatternMatchResult[] = [];
+    for (let i = 0; i < rel.childRelations.length; i++) {
+        for (let j = i + 1; j < rel.childRelations.length; j++) {
+            const r1 = rel.childRelations[i];
+            const r2 = rel.childRelations[j];
+            let keyMismatch = false;
+
+            // Reflexivity check
+            if (vs.reflexive) {
+                if (r1.table.idx !== r2.table.idx) {
+                    allPatternMatchResults.push(failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.REFLEXITIVITY_MISMATCH}));
+                    continue;
+                }
+            } else {
+                // TODO: is the reflexivity=no mandatory or optional?
+            }
+
+            // Child relation table count check
+            // Using localKey as k1, foreignKey as k2
+            if (!keyCountCheck(r1.table, vs.localKey, nKeys)) {
+                if (ignoreKeyCountMismatch) {
+                    keyMismatch = true;
+                } else {
+                    allPatternMatchResults.push(failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.KEY_COUNT_MISMATCH}));
+                    continue;
+                }
+            }
+
+            if (!keyCountCheck(r2.table, vs.foreignKey, nKeys)) {
+                if (ignoreKeyCountMismatch) {
+                    keyMismatch = true;
+                } else {
+                    allPatternMatchResults.push(failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.KEY_COUNT_MISMATCH}));
+                    continue;
+                }
+            }
+
+            let thisPatternMatchResult: PatternMatchResult = {
+                vs: vs,
+                mandatoryAttributes: [],
+                optionalAttributes: [],
+                matched: false,
+                responsibleRelation: rel,
+                keyCountMatched: ignoreKeyCountMismatch ? !keyMismatch : undefined
+            };
+            
+            for (let mp of vs.mandatoryParameters) {
+                // Reflexive: check against one table is enough
+                // const childTable = rel.childRelations[0].table; /// Hmmmm
+                let thisConstMatchableIndices = getMatchingAttributesByParameter(rel.parentEntity, mp);
+                thisPatternMatchResult.mandatoryAttributes.push(thisConstMatchableIndices);
+            }
+        
+            if (patternMatchSuccessful(thisPatternMatchResult, vs)) {
+                thisPatternMatchResult.matched = true;
+            } else {
+                allPatternMatchResults.push(failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.NO_SUITABLE_ATTRIBUTE}));
+                continue;
+            }
+        
+            if (vs.optionalParameters) {
+                for (let op of vs.optionalParameters) {
+                    let thisConstMatchableIndices = getMatchingAttributesByParameter(rel.parentEntity, op);
+                    thisPatternMatchResult.optionalAttributes.push(thisConstMatchableIndices);
+                }
+            }
+
+            allPatternMatchResults.push(thisPatternMatchResult);
+        }
+    }
+
+    return allPatternMatchResults;
+}
+
 export const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSchema, nKeys?: number): PatternMatchResult[] => {
     if (!table.pk) return undefined; // Not suitable if there is no PK to use
 
     let subsetRel = rels.find(rel => rel.type === VISSCHEMATYPES.SUBSET); // TODO: multiple subsets?
     let relsInvolvedWithTable = SchemaParser.getRelationsInListByName(rels, table.tableName);
 
-
     let allPatternMatches: PatternMatchResult[] = [];
-    let thisPatternMatchResult: PatternMatchResult;
-    let basicKeyConditionCheckResult: PatternMismatchReason;
     switch (vs.type) {
         case VISSCHEMATYPES.BASIC:
             if (!keyCountCheck(table, vs.localKey, nKeys)) {
@@ -485,59 +563,11 @@ export const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:
             break;
 
         case VISSCHEMATYPES.MANYMANY:
-            basicKeyConditionCheckResult = basicKeyConditionCheck(table, vs.localKey, nKeys)
-            if (basicKeyConditionCheckResult) {
-                return [failedPatternMatchObject(vs, basicKeyConditionCheckResult)];
-            }
-
-            if (!keyCountCheck(table, vs.localKey, nKeys)) {
-                return [
-                    failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.KEY_COUNT_MISMATCH})
-                ];
-            }
             // Find combinations of attributes that match the requirements
             relsInvolvedWithTable.forEach(rel => {
                 if (rel.type !== VISSCHEMATYPES.MANYMANY) return;
-                if (vs.reflexive) {
-                    // Reflexive path
-                    if (!isRelationReflexive(rel)) return;
-                    
-                    thisPatternMatchResult = {
-                        vs: vs,
-                        mandatoryAttributes: [],
-                        optionalAttributes: [],
-                        matched: false,
-                        responsibleRelation: rel
-                    };
-                    
-                    for (let mp of vs.mandatoryParameters) {
-                        // Reflexive: check against one table is enough
-                        // const childTable = rel.childRelations[0].table; /// Hmmmm
-                        let thisConstMatchableIndices = getMatchingAttributesByParameter(table, mp);
-                        thisPatternMatchResult.mandatoryAttributes.push(thisConstMatchableIndices);
-                    }
-    
-                    if (patternMatchSuccessful(thisPatternMatchResult, vs)) {
-                        thisPatternMatchResult.matched = true;
-                    } else {
-                        return;
-                    }
-        
-                    if (vs.optionalParameters) {
-                        for (let op of vs.optionalParameters) {
-                            let thisConstMatchableIndices = getMatchingAttributesByParameter(table, op);
-                            thisPatternMatchResult.optionalAttributes.push(thisConstMatchableIndices);
-                        }
-                    }
-
-                    allPatternMatches.push(thisPatternMatchResult);
-                } else {
-                    // TODO
-                    return;
-                }
-
+                allPatternMatches = manyManyEntityMatch(rel, vs, nKeys);
             })
-            
             break;
 
         default:
@@ -558,7 +588,7 @@ export const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:
     return allPatternMatches;
 }
 
-const matchRelationWithVisPattern = (rel: RelationNode, vs: VisSchema, nKeys?: number): PatternMatchResult => {
+const matchRelationWithVisPattern = (rel: RelationNode, vs: VisSchema, nKeys?: number): PatternMatchResult[] => {
     switch(vs.type) {
         case VISSCHEMATYPES.BASIC:
             let basicEntityMatchResult = 
@@ -569,9 +599,15 @@ const matchRelationWithVisPattern = (rel: RelationNode, vs: VisSchema, nKeys?: n
                 basicEntityMatchResult.keyCountMatched = true
             }
 
-            return basicEntityMatchResult;
+            return [basicEntityMatchResult];
         case VISSCHEMATYPES.WEAKENTITY:
-            console.log(weakEntityVisMatch(rel.parentEntity, rel, vs, nKeys, true))
+            return weakEntityVisMatch(rel.parentEntity, rel, vs, nKeys, true);
+        case VISSCHEMATYPES.ONEMANY:
+            return;
+        case VISSCHEMATYPES.MANYMANY:
+            return manyManyEntityMatch(rel, vs, nKeys, true);
+        default:
+            return;
     }
 
     return undefined;
