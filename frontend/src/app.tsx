@@ -98,11 +98,12 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     onVisPatternIndexChange = (newIndex: number) => {
         const newPatternMatchStatusesByIndex: PatternMatchResult[] =
             this.state.visSchemaMatchStatus[newIndex];
-        let newSelectedMatchResultIndexInPattern = 0;
+        let newSelectedMatchResultIndexInPattern;
         let newPatternMatchStatus: PatternMatchResult;
 
         if (newPatternMatchStatusesByIndex.length > 0) {
-            newSelectedMatchResultIndexInPattern = 0; // Default to the first one?
+            newSelectedMatchResultIndexInPattern = newPatternMatchStatusesByIndex.findIndex(status => status.matched)
+            if (newSelectedMatchResultIndexInPattern < 0) return;
             newPatternMatchStatus = 
                 newPatternMatchStatusesByIndex[newSelectedMatchResultIndexInPattern];
         } else {
