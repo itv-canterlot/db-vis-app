@@ -401,6 +401,51 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
         this.props.onClickShowFilterSelectModal(e)
     }
 
+    onClickRelPillForHierachy = (e: React.BaseSyntheticEvent) => {
+        const context: DBSchemaContextInterface = this.context;
+        const selectedRelationsIndices = context.selectedRelationsIndices;
+        const clickedBubblePatternIndex = selectedRelationsIndices[parseInt(e.currentTarget.getAttribute("data-rel-index"))];
+        console.log(clickedBubblePatternIndex);
+
+        // Process the new relation hierachy array
+        let newHiearchyArray = context.relHierachyIndices;
+        let [mainPatternIndex, subordinatePatternIndex, auxillaryPatternIndex] = newHiearchyArray;
+        if (mainPatternIndex.length === 0) {
+            mainPatternIndex.push(clickedBubblePatternIndex);
+            // TODO
+            this.props.onRelHierachyChange(newHiearchyArray);
+            return;
+        }
+        
+        const 
+            clickedIndexInMain = mainPatternIndex.findIndex(val => val === clickedBubblePatternIndex),
+            clickedInSubordinate = subordinatePatternIndex.findIndex(val => val === clickedBubblePatternIndex),
+            clickedInAuxillary = auxillaryPatternIndex.findIndex(val => val === clickedBubblePatternIndex);
+
+        if (clickedIndexInMain >= 0) {
+            // Clicked index in main, remove
+            mainPatternIndex.splice(clickedIndexInMain, 1);
+            this.props.onRelHierachyChange(newHiearchyArray);
+            return;
+        }
+        if (clickedInSubordinate >= 0) {
+            // Clicked index in main, remove
+            subordinatePatternIndex.splice(clickedInSubordinate, 1);
+            this.props.onRelHierachyChange(newHiearchyArray);
+            return;
+        } else {
+            subordinatePatternIndex.push(clickedBubblePatternIndex);
+            this.props.onRelHierachyChange(newHiearchyArray);
+            return;
+        }
+        // if (clickedInAuxillary >= 0) {
+        //     // Clicked index in main, remove
+        //     auxillaryPatternIndex.splice(clickedInAuxillary, 1);
+        //     return;
+        // }
+       
+    }
+
     render() {
         const context: DBSchemaContextInterface = this.context;
         const patternIndex = context.selectedPatternIndex;
@@ -427,7 +472,8 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
                         const thisRel = context.relationsList.find(rel => rel.index === ind);
                         if (!thisRel) return;
                         return (
-                            <div key={key} className="badge bg-info d-inline-flex me-2 no-select">
+                            <div key={key} className="badge bg-info d-inline-flex me-2 no-select cursor-pointer" 
+                                data-rel-index={key} onClick={this.onClickRelPillForHierachy}>
                                 <div>
                                     {thisRel.parentEntity.tableName} ➔ {thisRel.childRelations.map(cr => cr.table.tableName).join("/")}
                                 </div>
@@ -486,6 +532,7 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
                 </div>
             );
         } else {
+            const thisPatternMatchResultGroup: PatternMatchResult[] = (patternIndex < 0) ? undefined : context.visSchemaMatchStatus[patternIndex]
             const dataLength = context.data === undefined ? 0 : context.data.length;
             return (
                 <div>
@@ -497,27 +544,52 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
                     </div>
                     <div className="mt-2">
                         <div className="row">
-                                <div className="col d-flex">
-                                    <div>
-                                    Relations:
-                                    </div>
-                                    {selectedRelationsPills()}
+                            <div className="col d-flex">
+                                <div>
+                                Relations:
+                                </div>
+                                {selectedRelationsPills()}
+                            </div>
+                        </div>
+
+                        <div className="row">
+                            <div className="col">
+                                {JSON.stringify(context.relHierachyIndices)}
+                            </div>
+                        </div>
+
+
+                        <div className="row">
+                            <div className="col">
+                                <div>
+                                    {JSON.stringify(context.relHierachyIndices)}
                                 </div>
                             </div>
-                        {/* <div className="row">
+                        </div>
+                        <div className="row">
                             <div className="col">
                                 Mandatory attributes:
-                                {this.mandatoryAttributeDropdownGroup(thisPatternMatchResultGroup[context.selectedMatchResultIndexInPattern])}
+                                {thisPatternMatchResultGroup === undefined ? null : this.mandatoryAttributeDropdownGroup(thisPatternMatchResultGroup[context.selectedMatchResultIndexInPattern])}
                             </div>
                         </div>
                         <div className="row">
                         <div className="col">
                                 Optional attributes:
                             </div>
-                        </div> */}
+                        </div>
                     </div>
-                    <div>
-                        {this.parsedVisPattern()}
+                    <div className="row">
+                        <div className="col">
+                            <div>
+                                Statuses:
+                            </div>
+                            <div>
+                                dataLoaded: {JSON.stringify(context.dataLoaded)}
+                            </div>
+                            <div>
+                                Entry count: {thisPatternMatchResultGroup ? JSON.stringify(thisPatternMatchResultGroup[0].keyCountMatched) : "N/A"}
+                            </div>
+                        </div>
                     </div>
                 </div>
             )
@@ -597,7 +669,8 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
                                 onVisPatternIndexChange={this.props.onVisPatternIndexChange}
                                 onClickShowFilterSelectModal={this.props.onClickShowFilterSelectModal}
                                 onMatchResultIndexChange={this.props.onMatchResultIndexChange}
-                                onSelectedAttributeIndicesChange={this.props.onSelectedAttributeIndicesChange} />
+                                onSelectedAttributeIndicesChange={this.props.onSelectedAttributeIndicesChange}
+                                onRelHierachyChange={this.props.onRelHierachyChange} />
                         </div>
                         <h2 className="accordion-header" id="flush-headingOne">
                         <button className="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">

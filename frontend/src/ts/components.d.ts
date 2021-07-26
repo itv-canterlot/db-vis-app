@@ -52,6 +52,7 @@ export type ApplicationStates = {
     relationsList?: RelationNode[],
     selectedEntitesIndices?: number[],
     selectedRelationsIndices?: number[],
+    relHierachyIndices?: number[][],
     selectedPatternIndex?: number,
     selectedMatchResultIndexInPattern?: number,
     rendererSelectedAttributes?: PatternMatchAttribute[][],
@@ -113,6 +114,7 @@ export type SchemaExplorerProps = {
     onVisPatternIndexChange: Function,
     onMatchResultIndexChange: Function,
     onSelectedAttributeIndicesChange: React.MouseEventHandler,
+    onRelHierachyChange: Function,
     onClickShowFilterSelectModal: React.MouseEventHandler,
     onExpansionClick?: Function
 }
@@ -125,6 +127,7 @@ export type AppMainContProps = {
     rerender: boolean,
     onVisPatternIndexChange: Function,
     onMatchResultIndexChange: Function,
+    onRelHierachyChange: Function,
     onSelectedAttributeIndicesChange: React.MouseEventHandler,
     onClickShowFilterSelectModal: React.MouseEventHandler,
     onDataChange?: Function

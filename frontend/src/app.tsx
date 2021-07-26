@@ -29,6 +29,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             selectedEntitesIndices: [],
             selectedRelationsIndices: [],
             selectedPatternIndex: -1,
+            relHierachyIndices: [[], [], []],
             rendererSelectedAttributes: [[], []],
             rerender: true,
             dataLoaded: false,
@@ -189,6 +190,27 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         })
     }
 
+    onRelHierachyChange = (newHierachy: number[][]) => {
+        this.setState({
+            relHierachyIndices: newHierachy
+        }, () => {
+            if (newHierachy[0].length === 0) {
+                this.setState({
+                    visSchemaMatchStatus: undefined
+                })
+                return;
+            }
+
+            const mainRelation = this.state.relationsList[newHierachy[0][0]]
+            const visSchemaMatchesFromRels = 
+                this.getVisSchemaMatchesFromSelectedRelations([mainRelation]);
+            this.setState({
+                visSchemaMatchStatus: visSchemaMatchesFromRels[0]
+            })
+        });
+
+    }
+
     onDatasetSchemaSelectChange = (newEntities?: number[], newRelations?: number[]) => {
         const entitiesIndicesChanged = this.state.selectedEntitesIndices !== newEntities
         const relationIndicesChanged = this.state.selectedRelationsIndices !== newRelations
@@ -242,40 +264,33 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     this.getProviderValues())
                         .then(getDataCallback.bind(this));
             })
-        } else {
+        } else {            
             this.setState({
-                dataLoaded: false,
-                data: undefined,
-                filters: []
-            }, () => {
-                this.setState({
-                    selectedEntitesIndices: newEntities,
-                    selectedRelationsIndices: newRelations
-                })
-
-                // const {
-                //     visSchemaMatchStatus, 
-                //     selectedPatternIndex, 
-                //     selectedMatchResultIndexInPattern,
-                //     rendererSelectedAttributes} = this.getAllMatchableVisSchemaPatterns(newEntities[0], undefined, true);
-                
-                this.getVisSchemaMatchesFromSelectedRelations(newRelations.map(relIdx => this.state.relationsList[relIdx]));
-    
-                const getDataCallback = (data: object[]) => {
-                    this.setState({
-                        dataLoaded: true,
-                        data: data,
-                        // selectedMatchResultIndexInPattern: selectedMatchResultIndexInPattern,
-                        // rerender: entitiesIndicesChanged,
-                        // visSchemaMatchStatus: visSchemaMatchStatus,
-                        // selectedPatternIndex: selectedPatternIndex ? selectedPatternIndex : -1,
-                        // rendererSelectedAttributes: rendererSelectedAttributes
-                    });
-                }
-
-                Connections.getRelationBasedData(newRelations.map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues())
-                    .then(getDataCallback)
+                selectedEntitesIndices: newEntities,
+                selectedRelationsIndices: newRelations
             })
+
+            // this.setState({
+            //     dataLoaded: false,
+            //     data: undefined,
+            //     filters: []
+            // }, () => {
+    
+                // const getDataCallback = (data: object[]) => {
+                //     this.setState({
+                //         dataLoaded: true,
+                //         data: data,
+                //         // selectedMatchResultIndexInPattern: selectedMatchResultIndexInPattern,
+                //         // rerender: entitiesIndicesChanged,
+                //         // visSchemaMatchStatus: visSchemaMatchStatus,
+                //         // selectedPatternIndex: selectedPatternIndex ? selectedPatternIndex : -1,
+                //         // rendererSelectedAttributes: rendererSelectedAttributes
+                //     });
+                // }
+
+                // Connections.getRelationBasedData(newRelations.map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues())
+                //     .then(getDataCallback)
+            // })
         }
     }
 
@@ -386,19 +401,9 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     }
 
     getVisSchemaMatchesFromSelectedRelations = (selectedRelations: RelationNode[]) => {
-        selectedRelations.forEach(rel => {
+        return selectedRelations.map(rel => {
             // TODO: more graceful way to remove key count restriction
-            const matchWithConstraint = matchRelationWithAllVisPatterns(rel, visSchema);
-            console.log(matchWithConstraint)
-            // const thisRelMatches = matchTableWithAllVisPatterns(rel.parentEntity, [rel], visSchema, 1);
-            // thisRelMatches.forEach(matches => {
-            //     matches.forEach(match => {
-            //         if (match.matched) {
-            //             console.log(matchWithConstraint)
-            //         }
-            //     })
-            // })
-            // console.log(thisRelMatches);
+            return matchRelationWithAllVisPatterns(rel, visSchema);
         })
     }
     
@@ -450,6 +455,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             selectedMatchResultIndexInPattern: this.state.selectedMatchResultIndexInPattern,
             selectedEntitiesIndices: this.state.selectedEntitesIndices,
             selectedRelationsIndices: this.state.selectedRelationsIndices,
+            relHierachyIndices: this.state.relHierachyIndices,
             selectedAttributesIndices: this.state.rendererSelectedAttributes
         };
     }
@@ -483,6 +489,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                         onMatchResultIndexChange={this.onMatchResultIndexChange}
                         onSelectedAttributeIndicesChange={this.onSelectedAttributeIndicesChange}
                         onClickShowFilterSelectModal={this.onClickShowFilterSelectModal}
+                        onRelHierachyChange={this.onRelHierachyChange}
                          />
                 </div>
             </DBSchemaContext.Provider>
