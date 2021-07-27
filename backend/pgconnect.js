@@ -17,6 +17,18 @@ const dataSelectByRelationshipsQuery = (attrs, fks, parentTableNames, primaryKey
     let listedTables = [];
     let lastRoundUnprocessedForeignKeys = [];
     let unprocessedForeignKeys = [];
+    
+    const [mandatoryAttrs, optionalAttrs] = attrs;
+    let mandatoryAttrQueries = "";
+    if (mandatoryAttrs !== null && mandatoryAttrs.length > 0 && !mandatoryAttrs.every(attr => attr === undefined)) {
+        mandatoryAttrQueries = mandatoryAttrs.map(attr => {
+            const listIndex = attr["listIndex"];
+            const columnName = attr["columnName"];
+            return `t${listIndex}.${columnName} AS a_${listIndex}_${columnName}`;
+        }).join(", ");
+    }
+
+    if (mandatoryAttrQueries !== "") mandatoryAttrQueries = ", " + mandatoryAttrQueries;
 
     const convertFKToQueryFunc = (fk) => {
         let {t1, t2, attrs} = fk;
@@ -27,8 +39,6 @@ const dataSelectByRelationshipsQuery = (attrs, fks, parentTableNames, primaryKey
         
         const t1IsListed = listedTables.includes(t1),
         t2IsListed = listedTables.includes(t2);
-        console.log(fk)
-        console.log(t1IsListed + "" + t2IsListed)
         if (t1IsListed && t2IsListed) {
             return;
         }
@@ -53,7 +63,6 @@ const dataSelectByRelationshipsQuery = (attrs, fks, parentTableNames, primaryKey
     tableJoinQueries = fks.map(convertFKToQueryFunc);
     
     while (lastRoundUnprocessedForeignKeys.length !== unprocessedForeignKeys.length) {
-        console.log(unprocessedForeignKeys);
         lastRoundUnprocessedForeignKeys = unprocessedForeignKeys;
         unprocessedForeignKeys = [];
         tableJoinQueries.push(...lastRoundUnprocessedForeignKeys.map(convertFKToQueryFunc));
@@ -63,7 +72,7 @@ const dataSelectByRelationshipsQuery = (attrs, fks, parentTableNames, primaryKey
         throw new Error("Some relations are disjoint.")
     }
 
-    const completedQuery = `SELECT ${primaryKeyAttributeQueries} FROM ${tableJoinQueries.join(" ")};`;
+    const completedQuery = `SELECT ${primaryKeyAttributeQueries} ${mandatoryAttrQueries} FROM ${tableJoinQueries.join(" ")};`;
 
     console.log(completedQuery)
 

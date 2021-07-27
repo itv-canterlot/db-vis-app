@@ -56,8 +56,8 @@ app.post('/data-match-attrs', async (req, res, next) => {
 app.post('/get-rel-based-data', async (req, res, next) => {
   console.debug("POST /get-rel-based-data")
   try {
-    let {foreignKeys, primaryKeys, tableNames} = req.body;
-    pgconnect.getDataRelationshipBased(undefined, foreignKeys, tableNames, primaryKeys)
+    let {attributes, foreignKeys, primaryKeys, tableNames} = req.body;
+    pgconnect.getDataRelationshipBased(attributes, foreignKeys, tableNames, primaryKeys)
       .then(tabRes => {
         if (tabRes instanceof Error) {
           next(new ErrorHandler(500, tabRes.message));

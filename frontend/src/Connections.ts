@@ -76,6 +76,16 @@ const mapTablePrimaryKeyColumnsToQuery = (table: Table) => {
     });
 }
 
+const mapPatternMatchAttributesToTableAndColumnNames = ((attrs: PatternMatchAttribute[]): {tableName: string, columnName: string}[] => {
+    return attrs.map(attr => {
+        const matchedAttrsTable = attr.table;
+        return {
+            tableName: matchedAttrsTable.tableName,
+            columnName: matchedAttrsTable.attr[attr.attributeIndex].attname
+        }
+    })
+})
+
 const getSingleTableQuery = (table: Table, attQueries: QueryAttribute[], params?: object) => {
     const tablePrimaryKeyColumnQueries = 
         mapTablePrimaryKeyColumnsToQuery(table);
@@ -159,16 +169,14 @@ export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patt
     // Find the foreign keys that links the selected attributes
     // First group the attributes by their table
     let queryInvolvedTables: {[tableName: string]: Table} = {};
-    const attrsMappedToQuery = allDefinedAttrs.map(matchedAttrs => {
-        const matchedAttrsTable = matchedAttrs.table;
+    allDefinedAttrs.map(attr => {
+        const matchedAttrsTable = attr.table;
         if (!Object.keys(queryInvolvedTables).includes(matchedAttrsTable.tableName)) {
             queryInvolvedTables[matchedAttrsTable.tableName] = matchedAttrsTable;
         }
-        return {
-            tableName: matchedAttrsTable.tableName,
-            columnName: matchedAttrsTable.attr[matchedAttrs.attributeIndex].attname
-        }
     });
+    
+    const attrsMappedToQuery = mapPatternMatchAttributesToTableAndColumnNames(allDefinedAttrs);
 
     const queryGroupedByTableName: QueryAttributeGroup[] = groupBy(attrsMappedToQuery, "tableName");
     
@@ -241,6 +249,8 @@ export async function getRelationBasedData(rels: RelationNode[], context: DBSche
         })
     })
 
+    const tableNames = tableIndexList.map(tableIndex => context.allEntitiesList[tableIndex].tableName);
+
     rels.forEach(rel => {
         const allRelationForeignKeyPairs = rel.childRelations
             // .filter(cr => tableIndexList.includes(cr.table.idx))
@@ -265,10 +275,21 @@ export async function getRelationBasedData(rels: RelationNode[], context: DBSche
         primaryKeyAttributes.push(...thisColumn);
     })
 
+    // Process attributes
+    let mandatoryAtts, optionalAtts;
+    let mandatoryAttrList, optionalAttrList;
+    if (attrs) {
+        [mandatoryAtts, optionalAtts] = attrs;
+        mandatoryAttrList = mapPatternMatchAttributesToTableAndColumnNames(mandatoryAtts);
+        mandatoryAttrList.forEach(col => col["listIndex"] = tableNames.findIndex(n => n === col["tableName"]));
+    }
+
+
     let query = {
-        tableNames: tableIndexList.map(tableIndex => context.allEntitiesList[tableIndex].tableName),
+        tableNames: tableNames,
         primaryKeys: primaryKeyAttributes,
-        foreignKeys: foreignKeyAttributes
+        foreignKeys: foreignKeyAttributes,
+        attributes: [mandatoryAttrList]
     };
     
     const rawResponse = fetch("http://localhost:3000/get-rel-based-data", {
