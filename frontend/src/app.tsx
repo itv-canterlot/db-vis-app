@@ -223,7 +223,6 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     }
 
     onRelHierachyChange = (newHierachy: number[][]) => {
-        
         this.setState({
             relHierachyIndices: newHierachy
         }, () => {

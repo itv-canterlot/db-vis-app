@@ -301,7 +301,13 @@ export async function getRelationBasedData(rels: RelationNode[], context: DBSche
         body: JSON.stringify(query),
     })
 
-    return rawResponse.then(rr => rr.json())
+    return rawResponse.then(response => {
+        return response.json().then(d => {
+            console.log(d);
+            return d;
+        });
+
+    })
 }
 
 export async function getFilteredData(baseTable: Table, allEntities: Table[], filters?: Filter[]) {

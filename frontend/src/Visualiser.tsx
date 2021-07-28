@@ -45,39 +45,74 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
         
         // Figure out if there is a foreign key involved in the match
 
+        // Temporary: split the case on table/relation based selection
+
         // Map matched attributes to their names
-        const attributeNames = context.selectedAttributesIndices
-            .map(atts => atts.map(matchAttr => {
-                if (matchAttr) {
-                    return matchAttr.table.attr[matchAttr.attributeIndex].attname
+        let attributeNames, firstTablePrimaryKeyNames, selectedAttributesPublicKeyNames, selectedAttributesForeignKeyNames;
+        if (context.selectedEntitiesIndices.length !== 0) {
+            attributeNames = context.selectedAttributesIndices
+                .map(atts => atts.map(matchAttr => {
+                    if (matchAttr) {
+                        return matchAttr.table.attr[matchAttr.attributeIndex].attname
+                    }
+                }));
+    
+            firstTablePrimaryKeyNames = 
+                context.allEntitiesList[context.selectedEntitiesIndices[0]]
+                    .pk.columns.map(col => col.colName);
+    
+            selectedAttributesPublicKeyNames = 
+                context.selectedAttributesIndices[0].map(att => att.table.pk.columns.map(col => col.colName))
+    
+            selectedAttributesForeignKeyNames = context.selectedAttributesIndices[0].map(att => {
+                if (!patternMatchStatus || !patternMatchStatus.responsibleRelation) return;
+                const responsibleFkInRel = 
+                    patternMatchStatus.responsibleRelation.childRelations
+                        .find(cr => cr.table.idx === att.table.idx);
+                if (responsibleFkInRel) {
+                    // If defined:
+                    return att.table.fk
+                        [responsibleFkInRel.fkIndex]
+                            .columns.map(col => col.fkColName);
+                } else {
+                    // If not defined: return undefined
+                    return undefined;
                 }
-            }));
-
-        const firstTablePrimaryKeyNames = 
-            context.allEntitiesList[context.selectedEntitiesIndices[0]]
-                .pk.columns.map(col => col.colName);
-
-        const selectedAttributesPublicKeyNames = 
-            context.selectedAttributesIndices[0].map(att => att.table.pk.columns.map(col => col.colName))
-
-        const selectedAttributesForeignKeyNames = context.selectedAttributesIndices[0].map(att => {
-            if (!patternMatchStatus || !patternMatchStatus.responsibleRelation) return;
-            const responsibleFkInRel = 
-                patternMatchStatus.responsibleRelation.childRelations
-                    .find(cr => cr.table.idx === att.table.idx);
-            if (responsibleFkInRel) {
-                // If defined:
-                return att.table.fk
-                    [responsibleFkInRel.fkIndex]
-                        .columns.map(col => col.fkColName);
-            } else {
-                // If not defined: return undefined
-                return undefined;
-            }
-        })
-
-        // TODO: we want to find: which column(s) are used to connect to the main entity
-        // And which one is used for visualisation
+            })
+        } else {
+            attributeNames = context.selectedAttributesIndices
+                .map(atts => atts.map(matchAttr => {
+                    if (matchAttr) {
+                        const attName = matchAttr.table.attr[matchAttr.attributeIndex].attname;
+                        return `a_${matchAttr.table.tableName}_${attName}`;
+                    }
+                }));
+    
+            firstTablePrimaryKeyNames = 
+                context.allEntitiesList[context.relHierachyIndices[0][0]]
+                    .pk.columns.map(col => {
+                        return `pk_${context.allEntitiesList[context.relHierachyIndices[0][0]].tableName}_${col.colName}`;
+                    });
+    
+            selectedAttributesPublicKeyNames = 
+                context.selectedAttributesIndices[0].map(att => att.table.pk.columns.map(col => `pk_${att.table.tableName}_${col.colName}`))
+    
+            selectedAttributesForeignKeyNames = context.selectedAttributesIndices[0].map(att => {
+                if (!patternMatchStatus || !patternMatchStatus.responsibleRelation) return;
+                const responsibleFkInRel = 
+                    patternMatchStatus.responsibleRelation.childRelations
+                        .find(cr => cr.table.idx === att.table.idx);
+                if (responsibleFkInRel) {
+                    // If defined:
+                    return att.table.fk
+                        [responsibleFkInRel.fkIndex]
+                            .columns.map(col => `fk_${att.table.tableName}_${col.fkColName}`);
+                } else {
+                    // If not defined: return undefined
+                    return undefined;
+                }
+            })   
+        }
 
         const params = {
             attributeNames: attributeNames,
@@ -87,6 +122,8 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
             xLogScale: true,
             yLogScale: true
         }
+
+        console.log(params);
 
         if (!context.data || context.data.length === 0) {
             this.setState({

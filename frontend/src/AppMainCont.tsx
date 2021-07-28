@@ -658,6 +658,12 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
             }
         };
 
+        const renderVisualiser = () => {
+            // There must be a pattern selected
+            if (context.selectedPatternIndex < 0) return false;
+            return context.selectedEntitiesIndices.length > 0 || context.selectedRelationsIndices.length > 0;
+        }
+
         return (
             <div className="col-8 col-lg-9 g-0">
                 <div className="accordion" id="accordionFlushExample">
@@ -682,7 +688,7 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
                 <div className="row g-0">
                     <div className="col">
                         {
-                            context.selectedEntitiesIndices.length > 0 && context.selectedPatternIndex >= 0 ? 
+                            renderVisualiser() ? 
                             <Visualiser 
                                 rerender={this.props.rerender}
                                 onDataChange={this.onDataChange} />

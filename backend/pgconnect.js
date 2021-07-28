@@ -11,7 +11,7 @@ const dataSelectByRelationshipsQuery = (attrs, fks, parentTableNames, primaryKey
     primaryKeyAttributeQueries = primaryKeys.map(pk => {
         const columnName = pk["columnName"],
             listIndex = pk["listIndex"];
-        return `t${listIndex}.${columnName} AS pk_${listIndex}_${columnName}`;
+        return `t${listIndex}.${columnName} AS pk_${parentTableNames[listIndex]}_${columnName}`;
     }).join(", ");
 
     let listedTables = [];
@@ -24,7 +24,7 @@ const dataSelectByRelationshipsQuery = (attrs, fks, parentTableNames, primaryKey
         mandatoryAttrQueries = mandatoryAttrs.map(attr => {
             const listIndex = attr["listIndex"];
             const columnName = attr["columnName"];
-            return `t${listIndex}.${columnName} AS a_${listIndex}_${columnName}`;
+            return `t${listIndex}.${columnName} AS a_${parentTableNames[listIndex]}_${columnName}`;
         }).join(", ");
     }
 
@@ -109,8 +109,6 @@ const dataSelectMultiTablesQuery = (attrs, fks, parentTableName, primaryKeys) =>
 
     return `SELECT ${attrsQuery} ${connector} ${primaryKeyQueries} FROM ${joinStatement(fks, parentTableName)}`
 }
-
-const dataSelectAllColumnsByTableName = (tablename) => `SELECT * FROM ${tableName};`;
 
 /**
  * Creates a SQL query to construct a pivot table.
