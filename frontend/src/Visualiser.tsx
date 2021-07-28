@@ -106,7 +106,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                     // If defined:
                     return att.table.fk
                         [responsibleFkInRel.fkIndex]
-                            .columns.map(col => `fk_${att.table.tableName}_${col.fkColName}`);
+                            .columns.map(col => `pk_${att.table.tableName}_${col.fkColName}`);
                 } else {
                     // If not defined: return undefined
                     return undefined;
