@@ -133,21 +133,38 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             dataLoaded: false,
             data: undefined
         }, () => {
-            const getDataCallback = (data: object[]) => {
-                this.setState({
-                    dataLoaded: true,
-                    data: data,
-                    selectedPatternIndex: newIndex,
-                    selectedMatchResultIndexInPattern: newSelectedMatchResultIndexInPattern,
-                    rendererSelectedAttributes: newParamAttrs
-                })
-            };
+            if (this.state.selectedEntitesIndices.length !== 0) {
+                const getDataCallback = (data: object[]) => {
+                    this.setState({
+                        dataLoaded: true,
+                        data: data,
+                        selectedPatternIndex: newIndex,
+                        selectedMatchResultIndexInPattern: newSelectedMatchResultIndexInPattern,
+                        rendererSelectedAttributes: newParamAttrs
+                    })
+                };
+    
+                Connections.getDataByMatchAttrs(
+                    newParamAttrs, 
+                    this.state.visSchemaMatchStatus[newIndex][newSelectedMatchResultIndexInPattern],
+                    this.getProviderValues())
+                        .then(getDataCallback.bind(this));
+            } else {
+                const getDataCallback = (data: object[]) => {
+                    this.setState({
+                        dataLoaded: true,
+                        data: data,
+                        selectedPatternIndex: newIndex,
+                        selectedMatchResultIndexInPattern: newSelectedMatchResultIndexInPattern,
+                        rendererSelectedAttributes: newParamAttrs
+                    });
+                }
 
-            Connections.getDataByMatchAttrs(
-                newParamAttrs, 
-                this.state.visSchemaMatchStatus[newIndex][newSelectedMatchResultIndexInPattern],
-                this.getProviderValues())
-                    .then(getDataCallback.bind(this))
+                Connections.getRelationBasedData(
+                        this.state.relHierachyIndices.flat()
+                            .map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues(), newParamAttrs)
+                    .then(getDataCallback)
+            }
         })
 
     }
@@ -190,16 +207,11 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     .then(getDataCallback.bind(this))
             } else {
                 const getDataCallback = (data: object[]) => {
-                    console.log(data)
-                    // this.setState({
-                    //     dataLoaded: true,
-                    //     data: data,
-                        // selectedMatchResultIndexInPattern: selectedMatchResultIndexInPattern,
-                        // rerender: entitiesIndicesChanged,
-                        // visSchemaMatchStatus: visSchemaMatchStatus,
-                        // selectedPatternIndex: selectedPatternIndex ? selectedPatternIndex : -1,
-                        // rendererSelectedAttributes: rendererSelectedAttributes
-                    // });
+                    this.setState({
+                        dataLoaded: true,
+                        data: data,
+                        rendererSelectedAttributes: newAttsObject
+                    });
                 }
 
                 Connections.getRelationBasedData(
@@ -211,50 +223,20 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     }
 
     onRelHierachyChange = (newHierachy: number[][]) => {
-
-        // this.setState({
-        //     dataLoaded: false,
-        //     data: undefined,
-        //     filters: []
-        // }, () => {
-        const getDataCallback = (data: object[]) => {
-            console.log(data)
-            // this.setState({
-            //     dataLoaded: true,
-            //     data: data,
-                // selectedMatchResultIndexInPattern: selectedMatchResultIndexInPattern,
-                // rerender: entitiesIndicesChanged,
-                // visSchemaMatchStatus: visSchemaMatchStatus,
-                // selectedPatternIndex: selectedPatternIndex ? selectedPatternIndex : -1,
-                // rendererSelectedAttributes: rendererSelectedAttributes
-            // });
-        }
-
-        Connections.getRelationBasedData(newHierachy.flat().map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues())
-            .then(getDataCallback)
-        // })
-
-        // const getDataCallback = (data: object[]) => {
-        //     this.setState({
-        //         dataLoaded: true,
-        //         data: data,
-        //         selectedMatchResultIndexInPattern: selectedMatchResultIndexInPattern,
-        //         rerender: entitiesIndicesChanged,
-        //         visSchemaMatchStatus: visSchemaMatchStatus,
-        //         selectedPatternIndex: selectedPatternIndex ? selectedPatternIndex : -1,
-        //         rendererSelectedAttributes: rendererSelectedAttributes
-        //     });
-        // }
-
-        // Connections.getDataByMatchAttrs(
-        //     rendererSelectedAttributes, 
-        //     visSchemaMatchStatus[selectedPatternIndex][0],
-        //     this.getProviderValues())
-        //         .then(getDataCallback.bind(this));
-                
+        
         this.setState({
             relHierachyIndices: newHierachy
         }, () => {
+            const getDataCallback = (data: object[]) => {
+                this.setState({
+                    dataLoaded: true,
+                    data: data
+                });
+            }
+    
+            Connections.getRelationBasedData(newHierachy.flat().map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues())
+                .then(getDataCallback)
+                
             if (newHierachy[0].length === 0) {
                 this.setState({
                     visSchemaMatchStatus: undefined
