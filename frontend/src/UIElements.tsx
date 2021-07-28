@@ -53,7 +53,10 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
             if (Array.isArray(this.props.dropdownList)) {
                 return (
                     <div className={"dropdown-menu dropdown-custom-text-content" + (this.state.showList ? " d-block" : "")}>
-                        {this.props.listFilter(this.props.dropdownList, this.props.innerVal).map(this.props.arrayRenderer ? this.arrayRendererHandler : this.defaultArrayMapper)}
+                        {this.props.listFilter ?
+                            this.props.listFilter(this.props.dropdownList, this.props.innerVal).map(this.props.arrayRenderer ? this.arrayRendererHandler : this.defaultArrayMapper) :
+                            this.props.dropdownList.map(this.props.arrayRenderer ? this.arrayRendererHandler : this.defaultArrayMapper)
+                        }
                     </div>
                 )
             } else {
@@ -132,9 +135,12 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
         return (
             <div className="col">
                 <div className="input-group mb-0">
-                    <div className="input-group-prepend">
-                        <span className="input-group-text">{this.props.prependText}</span>
-                    </div>
+                    {this.renderListElements()}
+                    {this.props.prependText === undefined ? null : (
+                        <div className="input-group-prepend">
+                            <span className="input-group-text">{this.props.prependText}</span>
+                        </div>
+                    )}
                     <input type="text" className="form-control dropdown-toggle" data-toggle="dropdown" 
                         placeholder={this.props.placeholder} aria-label="Relation"
                         onFocus={this.onInputFocus}
@@ -143,9 +149,6 @@ class SearchDropdownList extends React.Component<SearchDropdownListProps, {showL
                         id={this.props.id}
                         onKeyUp={this.onKeyUp}
                          />
-                </div>
-                <div>
-                    {this.renderListElements()}
                 </div>
             </div>
         );

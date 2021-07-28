@@ -1,5 +1,5 @@
 import React = require('react')
-import {PrimaryKey, ForeignKey, Table, Attribute, RelationNode, PatternMatchResult, PatternMatchAttribute, Filter, VisSchema, FilterType} from './types'
+import {PrimaryKey, ForeignKey, Table, Attribute, RelationNode, PatternMatchResult, PatternMatchAttribute, Filter, VisSchema, FilterType, TableAttributeComb} from './types'
 
 /** UIElements.tsx **/
 export type SearchDropdownListProps = {
@@ -105,6 +105,7 @@ export type FilterSelectModalStates = {
     cachedFilterType?: FilterType,
     cachedForeignTableSelected?: number,
     cachedForeignTableFKIndex?: number,
+    tableAttributeList?: TableAttributeComb[],
     filterRange?: number
 }
 

@@ -9,18 +9,25 @@ import * as d3 from 'd3';
 import { FilterSelector } from './FilterSelector';
 import * as FilterConditions from './ts/FilterConditions';
 import * as DatasetUtils from './DatasetUtils';
+import { SearchDropdownList } from './UIElements';
 
 export class FilterSelectModal extends React.Component<FilterSelectModalProps, FilterSelectModalStates> {
     cachedFilterValueRef: React.RefObject<HTMLInputElement>;
 
     constructor(props) {
         super(props);
+        const context: DBSchemaContextInterface = this.context;
+
         this.state = {
             cachedFilterSelection: undefined,
             cachedFilterType: FilterType.getAllFilterTypes()[0],
             cachedFiltersList: [],
             cachedForeignTableSelected: -1,
-            filterRange: 0
+            filterRange: 0,
+            tableAttributeList: []
+                // context.selectedRelationsIndices && context.selectedRelationsIndices.length !== 0 && context.relHierachyIndices ? 
+                // this.getListOfAttributesInRels():
+                // []
         };
 
         this.cachedFilterValueRef = React.createRef();
@@ -465,7 +472,59 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         );
     }
 
-    tableAttributeListHandler = () => {
+    getListOfAttributesInRels = () => {
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        // Ignoring the auxilliary relations
+        return [...dbSchemaContext.relHierachyIndices[0], ...dbSchemaContext.relHierachyIndices[1]]
+                .flatMap(relIdx => {
+                    const thisRelation = dbSchemaContext.relationsList[relIdx];
+                    const parentTableAtts = thisRelation.parentEntity.attr.map(attr => {
+                        return {
+                            table: thisRelation.parentEntity,
+                            attr: attr
+                        };
+                    });
+                    const childTableAtts = thisRelation.childRelations.flatMap(rel => rel.table.attr.map(attr => {
+                        return {
+                            table: rel.table,
+                            attr: attr
+                        };
+                    }));
+                    return [...parentTableAtts, ...childTableAtts];
+                })
+    }
+
+    getRelBasedAttributeList = () => {
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+
+        return (
+            <div className="row justify-content-center mt-4 mb-3">
+                <div className="col-4 mt-auto mb-auto">
+                    <SearchDropdownList 
+                        placeholder="Search for attributes..."
+                        dropdownList={this.getListOfAttributesInRels().map(tableAttr => `${tableAttr.table.tableName}/${tableAttr.attr.attname}`)}
+                        onListSelectionChange={undefined}
+                        prependText={undefined}
+                        selectedIndex={undefined}
+                    />
+                    <div className="card">
+                        <div className="card-body">
+                            <h5 className="card-title">
+                            </h5>
+                        </div>
+                        <ul className="list-group filter-table-attr-group-item list-group-flush start-table-rel-list ml-auto mr-auto">
+                            {/* {this.getAttributeListFromPatternMatchResults(dbSchemaContext.selectedAttributesIndices)} */}
+                        </ul>
+                    </div>
+                </div>
+                <div className="col-8 mt-auto mb-auto">
+                    {/* {this.datasetFilteringElement()} */}
+                </div>
+            </div>
+        );
+    }
+
+    tableBasedFilterElement = () => {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
         if (dbSchemaContext.selectedEntitiesIndices[0] >= 0) {
             if (this.state.filterRange === 0) {
@@ -475,7 +534,11 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 // Render the relation vis for the (potentially-retrieved) dataset
                 const contextData = dbSchemaContext.data;
                 if (contextData && contextData.length > 0) {
+                    if (dbSchemaContext.selectedEntitiesIndices.length !== 0) {
                     return this.getDatasetFilteringComponenent();
+                    } else {
+                        return this.getRelBasedAttributeList();
+                    }
                 }
             }
         }
@@ -631,28 +694,76 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         };
 
         const combinedFilterList = [...this.props.filters, ...this.state.cachedFiltersList]
-        return (
-            <div className="modal fade d-block" role="dialog" id="starting-table-select-modal">
-                <div className="modal-dialog modal-dialog-centered" role="document" style={{ maxWidth: "80%" }}>
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h5 className="modal-title">Select filtering...</h5>
-                            <button type="button" className="close" aria-label="Close" onClick={this.handleOnClose}>
-                                <span aria-hidden="true"><i className="fas fa-times" /></span>
-                            </button>
-                        </div>
-                        <div className="modal-body">
-                            {this.filterRangeRadioButtons()}
-                            {this.tableAttributeListHandler()}
-                        </div>
-                        <div className="modal-footer">
-                            <button type="button" className={"btn btn-primary" + (combinedFilterList.length === 0 ? " disabled" : "")} onClick={this.onFilterSelectionConfirm}>Confirm</button>
-                            <button type="button" className="btn btn-secondary" onClick={this.handleOnClose}>Cancel</button>
+        if (dbSchemaContext.selectedEntitiesIndices.length !== 0) {
+            return (
+                <div className="modal fade d-block" role="dialog" id="starting-table-select-modal">
+                    <div className="modal-dialog modal-dialog-centered" role="document" style={{ maxWidth: "80%" }}>
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">Select filtering...</h5>
+                                <button type="button" className="close" aria-label="Close" onClick={this.handleOnClose}>
+                                    <span aria-hidden="true"><i className="fas fa-times" /></span>
+                                </button>
+                            </div>
+                            <div className="modal-body">
+                                {this.filterRangeRadioButtons()}
+                                {this.tableBasedFilterElement()}
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className={"btn btn-primary" + (combinedFilterList.length === 0 ? " disabled" : "")} onClick={this.onFilterSelectionConfirm}>Confirm</button>
+                                <button type="button" className="btn btn-secondary" onClick={this.handleOnClose}>Cancel</button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        );
+            );
+        } else if (dbSchemaContext.selectedRelationsIndices.length !== 0) {
+            return (
+                <div className="modal fade d-block" role="dialog" id="starting-table-select-modal">
+                    <div className="modal-dialog modal-dialog-centered" role="document" style={{ maxWidth: "80%" }}>
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">Select filters...</h5>
+                                <button type="button" className="close" aria-label="Close" onClick={this.handleOnClose}>
+                                    <span aria-hidden="true"><i className="fas fa-times" /></span>
+                                </button>
+                            </div>
+                            <div className="modal-body">
+                                {this.getRelBasedAttributeList()}
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className={"btn btn-primary" + (combinedFilterList.length === 0 ? " disabled" : "")} onClick={this.onFilterSelectionConfirm}>Confirm</button>
+                                <button type="button" className="btn btn-secondary" onClick={this.handleOnClose}>Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        } else {
+            return (
+                <div className="modal fade d-block" role="dialog" id="starting-table-select-modal">
+                    <div className="modal-dialog modal-dialog-centered" role="document" style={{ maxWidth: "80%" }}>
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">Select filters...</h5>
+                                <button type="button" className="close" aria-label="Close" onClick={this.handleOnClose}>
+                                    <span aria-hidden="true"><i className="fas fa-times" /></span>
+                                </button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="alert alert-danger" role="alert">
+                                    No table/relation has been chosen yet!
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className={"btn btn-primary" + (combinedFilterList.length === 0 ? " disabled" : "")} onClick={this.onFilterSelectionConfirm}>Confirm</button>
+                                <button type="button" className="btn btn-secondary" onClick={this.handleOnClose}>Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )
+        }
     }
 }
 FilterSelectModal.contextType = DBSchemaContext;

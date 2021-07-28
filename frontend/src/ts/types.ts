@@ -48,6 +48,11 @@ export interface Attribute {
     attDistinctCount?: number
 }
 
+export type TableAttributeComb = {
+    table: Table,
+    attr: Attribute
+}
+
 // Visualisation types
 export const enum VISPARAMTYPES {
     TEMPORAL = "TEMPORAL",
