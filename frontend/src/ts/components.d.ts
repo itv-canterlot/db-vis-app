@@ -123,6 +123,12 @@ export type TableBasedFilterModalContentProps = {
     parentStates: FilterSelectModalStates,
 }
 
+export type RelationBasedFilterModalContentProps = {
+    filterList: Filter[],
+    handleOnClose: React.MouseEventHandler, 
+    onFilterSelectionConfirm: React.MouseEventHandler
+}
+
 export type DatasetFilteringElementProps = {
     cachedFilterSelection: Filter, 
     cachedFilterType: FilterType,

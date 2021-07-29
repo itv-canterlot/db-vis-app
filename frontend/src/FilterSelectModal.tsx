@@ -1,8 +1,8 @@
 import * as React from 'react';
 import bootstrap = require('bootstrap');
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
-import { Table, FilterCondition, Attribute, PatternMatchAttribute, FilterType, Filter } from './ts/types';
-import { DatasetFilteringElementProps, FilterSelectModalProps, FilterSelectModalStates, TableBasedFilterModalContentProps } from './ts/components';
+import { Table, FilterCondition, Attribute, PatternMatchAttribute, FilterType, Filter, TableAttributeComb } from './ts/types';
+import { DatasetFilteringElementProps, FilterSelectModalProps, FilterSelectModalStates, RelationBasedFilterModalContentProps, TableBasedFilterModalContentProps } from './ts/components';
 import { getFilteredData } from './Connections';
 import { renderTips } from './ModalPublicElements';
 import * as d3 from 'd3';
@@ -252,58 +252,6 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         });
     }
 
-    getListOfAttributesInRels = () => {
-        const dbSchemaContext: DBSchemaContextInterface = this.context;
-        // Ignoring the auxilliary relations
-        return [...dbSchemaContext.relHierachyIndices[0], ...dbSchemaContext.relHierachyIndices[1]]
-                .flatMap(relIdx => {
-                    const thisRelation = dbSchemaContext.relationsList[relIdx];
-                    const parentTableAtts = thisRelation.parentEntity.attr.map(attr => {
-                        return {
-                            table: thisRelation.parentEntity,
-                            attr: attr
-                        };
-                    });
-                    const childTableAtts = thisRelation.childRelations.flatMap(rel => rel.table.attr.map(attr => {
-                        return {
-                            table: rel.table,
-                            attr: attr
-                        };
-                    }));
-                    return [...parentTableAtts, ...childTableAtts];
-                })
-    }
-
-    getRelBasedAttributeList = () => {
-        const dbSchemaContext: DBSchemaContextInterface = this.context;
-
-        return (
-            <div className="row justify-content-center mt-4 mb-3">
-                <div className="col-4 mt-auto mb-auto">
-                    <SearchDropdownList 
-                        placeholder="Search for attributes..."
-                        dropdownList={this.getListOfAttributesInRels().map(tableAttr => `${tableAttr.table.tableName}/${tableAttr.attr.attname}`)}
-                        onListSelectionChange={undefined}
-                        prependText={undefined}
-                        selectedIndex={undefined}
-                    />
-                    <div className="card">
-                        <div className="card-body">
-                            <h5 className="card-title">
-                            </h5>
-                        </div>
-                        <ul className="list-group filter-table-attr-group-item list-group-flush start-table-rel-list ml-auto mr-auto">
-                            {/* {this.getAttributeListFromPatternMatchResults(dbSchemaContext.selectedAttributesIndices)} */}
-                        </ul>
-                    </div>
-                </div>
-                <div className="col-8 mt-auto mb-auto">
-                    {/* {this.datasetFilteringElement()} */}
-                </div>
-            </div>
-        );
-    }
-
     componentDidMount() {
         const context: DBSchemaContextInterface = this.context;
         const modalElement = document.getElementById("starting-table-select-modal");
@@ -475,21 +423,10 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             return (
                 <div className="modal fade d-block" role="dialog" id="starting-table-select-modal">
                     <div className="modal-dialog modal-dialog-centered" role="document" style={{ maxWidth: "80%" }}>
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">Select filters...</h5>
-                                <button type="button" className="close" aria-label="Close" onClick={this.handleOnClose}>
-                                    <span aria-hidden="true"><i className="fas fa-times" /></span>
-                                </button>
-                            </div>
-                            <div className="modal-body">
-                                {this.getRelBasedAttributeList()}
-                            </div>
-                            <div className="modal-footer">
-                                <button type="button" className={"btn btn-primary" + (combinedFilterList.length === 0 ? " disabled" : "")} onClick={this.onFilterSelectionConfirm}>Confirm</button>
-                                <button type="button" className="btn btn-secondary" onClick={this.handleOnClose}>Cancel</button>
-                            </div>
-                        </div>
+                        <RelationBasedFilterModalContent
+                            filterList={combinedFilterList}
+                            handleOnClose={this.handleOnClose}
+                            onFilterSelectionConfirm={this.onFilterSelectionConfirm} />
                     </div>
                 </div>
             );
@@ -640,6 +577,120 @@ class TableBasedFilterModalContent extends React.Component<TableBasedFilterModal
     }
 }
 TableBasedFilterModalContent.contextType = DBSchemaContext;
+
+class RelationBasedFilterModalContent extends React.Component<RelationBasedFilterModalContentProps, {tableAttrList?: TableAttributeComb[], selectedTableAttrListIndex?: number}> {
+    constructor(props) {
+        super(props);
+        this.state = {
+            tableAttrList: [],
+            selectedTableAttrListIndex: -1
+        };
+    }
+
+    getListOfAttributesInRels = () => {
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        // Ignoring the auxilliary relations
+        return [...dbSchemaContext.relHierachyIndices[0], ...dbSchemaContext.relHierachyIndices[1]]
+                .flatMap(relIdx => {
+                    const thisRelation = dbSchemaContext.relationsList[relIdx];
+                    const parentTableAtts = thisRelation.parentEntity.attr.map(attr => {
+                        return {
+                            table: thisRelation.parentEntity,
+                            attr: attr
+                        };
+                    });
+                    const childTableAtts = thisRelation.childRelations.flatMap(rel => rel.table.attr.map(attr => {
+                        return {
+                            table: rel.table,
+                            attr: attr
+                        };
+                    }));
+                    return [...parentTableAtts, ...childTableAtts];
+                })
+    }
+
+    relBasedFilteringAttRenderer = (tableAttr: TableAttributeComb, index: number, onClickCallback: React.MouseEventHandler<HTMLAnchorElement>) => {
+        let {table, attr} = tableAttr;
+        let attElement = () => {
+            return (
+                <div className="d-flex align-items-center">
+                    {table.tableName}/{attr.attname}
+                </div>
+            )
+        }
+
+        return <a className={"dropdown-item pe-auto"} 
+            data-table-idx={table.idx} data-attnum={attr.attnum} data-list-index={index} key={index} href="#" onMouseDown={onClickCallback}>
+                <div className="pe-none">
+                    {attElement()}
+                </div>
+            </a>
+    }
+
+    onTableAttrCombSelect = (e: React.BaseSyntheticEvent) => {
+        const listIndex = parseInt(e.currentTarget.getAttribute("data-list-index"));
+        this.setState({
+            selectedTableAttrListIndex: listIndex
+        });
+    }
+
+    getRelBasedAttributeList = () => {
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        return (
+            <div className="row justify-content-center mt-4 mb-3">
+                <div className="col-4 mt-auto mb-auto">
+                    <SearchDropdownList 
+                        placeholder="Search for attributes..."
+                        arrayRenderer={this.relBasedFilteringAttRenderer}
+                        dropdownList={this.state.tableAttrList}
+                        onListSelectionChange={this.onTableAttrCombSelect}
+                        prependText={undefined}
+                        selectedIndex={undefined}
+                    />
+                    <div className="card">
+                        <div className="card-body">
+                            <h5 className="card-title">
+                            </h5>
+                        </div>
+                        <ul className="list-group filter-table-attr-group-item list-group-flush start-table-rel-list ml-auto mr-auto">
+                            {/* {this.getAttributeListFromPatternMatchResults(dbSchemaContext.selectedAttributesIndices)} */}
+                        </ul>
+                    </div>
+                </div>
+                <div className="col-8 mt-auto mb-auto">
+                    {/* {this.datasetFilteringElement()} */}
+                </div>
+            </div>
+        );
+    }
+
+    componentDidMount() {
+        this.setState({
+            tableAttrList: this.getListOfAttributesInRels()
+        });
+    }
+
+    render() {
+        return (
+            <div className="modal-content">
+                <div className="modal-header">
+                    <h5 className="modal-title">Select filters...</h5>
+                    <button type="button" className="close" aria-label="Close" onClick={this.props.handleOnClose}>
+                        <span aria-hidden="true"><i className="fas fa-times" /></span>
+                    </button>
+                </div>
+                <div className="modal-body">
+                    {this.getRelBasedAttributeList()}
+                </div>
+                <div className="modal-footer">
+                    <button type="button" className={"btn btn-primary" + (this.props.filterList.length === 0 ? " disabled" : "")} onClick={this.props.onFilterSelectionConfirm}>Confirm</button>
+                    <button type="button" className="btn btn-secondary" onClick={this.props.handleOnClose}>Cancel</button>
+                </div>
+            </div>
+        )
+    }
+}
+RelationBasedFilterModalContent.contextType = DBSchemaContext;
 
 class DatasetFilteringElement extends React.Component<DatasetFilteringElementProps,{}> {
     filterFormElem = () => {
