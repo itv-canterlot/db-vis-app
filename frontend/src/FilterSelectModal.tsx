@@ -2,8 +2,7 @@ import * as React from 'react';
 import bootstrap = require('bootstrap');
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { Table, FilterCondition, Attribute, PatternMatchAttribute, FilterType, Filter, TableAttributeComb } from './ts/types';
-import { DatasetFilteringElementProps, FilterSelectModalProps, FilterSelectModalStates, RelationBasedFilterModalContentProps, TableBasedFilterModalContentProps } from './ts/components';
-import { getFilteredData } from './Connections';
+import { DatasetFilteringElementProps, FilterSelectModalProps, FilterSelectModalStates, RelationBasedFilterModalContentProps, RelationBasedFilterModalContentStates, TableBasedFilterModalContentProps } from './ts/components';
 import { renderTips } from './ModalPublicElements';
 import * as d3 from 'd3';
 import { FilterSelector } from './FilterSelector';
@@ -118,11 +117,22 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         });
     };
 
-    onConfirmCachedFilter = (e: React.BaseSyntheticEvent) => {
+    onConfirmCachedFilter = (e: React.BaseSyntheticEvent, filter?: Filter, filterType?: FilterType) => {
         const filterInputValue = this.cachedFilterValueRef.current as HTMLInputElement;
-        const cachedFilter = this.state.cachedFilterSelection;
-        if (this.state.cachedFilterType === FilterType.STD) {
-            cachedFilter.condition = FilterConditions.stdRangeCondition;
+        let cachedFilter;
+        if (filter) {
+            cachedFilter = filter;
+        } else {
+            cachedFilter = this.state.cachedFilterSelection;
+        }
+        if (filterType) {
+            if (filterType === FilterType.STD) {
+                cachedFilter.condition = FilterConditions.stdRangeCondition;
+            }
+        } else {
+            if (this.state.cachedFilterType === FilterType.STD) {
+                cachedFilter.condition = FilterConditions.stdRangeCondition;
+            }
         }
 
         cachedFilter.value = filterInputValue.value;
@@ -133,16 +143,20 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             this.setState({
                 cachedFiltersList: [...this.state.cachedFiltersList, cachedFilter]
             }, () => {
-                if (this.state.cachedForeignTableFKIndex) {
-                    this.setNewCachedFilterOnBaseTable(
-                        cachedFilter.tableIndex, cachedFilter.attNum, this.state.cachedForeignTableFKIndex);
+                if (filter) {
+                    // ?
                 } else {
-                    this.setNewCachedFilterOnBaseTable(cachedFilter.tableIndex, cachedFilter.attNum);
+                    if (this.state.cachedForeignTableFKIndex) {
+                        this.setNewCachedFilterOnBaseTable(
+                            cachedFilter.tableIndex, cachedFilter.attNum, this.state.cachedForeignTableFKIndex);
+                    } else {
+                        this.setNewCachedFilterOnBaseTable(cachedFilter.tableIndex, cachedFilter.attNum);
+                    }
                 }
                 // Retrieve data (TODO: simplify this)
-                const dbSchemaContext: DBSchemaContextInterface = this.context;
-                const thisTable = dbSchemaContext.allEntitiesList[dbSchemaContext.selectedEntitiesIndices[0]];
-                getFilteredData(thisTable, dbSchemaContext.allEntitiesList, [...this.props.filters, ...this.state.cachedFiltersList]);
+                // const dbSchemaContext: DBSchemaContextInterface = this.context;
+                // const thisTable = dbSchemaContext.allEntitiesList[dbSchemaContext.selectedEntitiesIndices[0]];
+                // getFilteredData(thisTable, dbSchemaContext.allEntitiesList, [...this.props.filters, ...this.state.cachedFiltersList]);
             });
         }
     };    
@@ -337,7 +351,10 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                         <RelationBasedFilterModalContent
                             filterList={combinedFilterList}
                             handleOnClose={this.handleOnClose}
-                            onFilterSelectionConfirm={this.onFilterSelectionConfirm} />
+                            onFilterSelectionConfirm={this.onFilterSelectionConfirm}
+                            onConfirmCachedFilter={this.onConfirmCachedFilter}
+                            cachedFilterValueRef={this.cachedFilterValueRef}
+                            parentState={this.state} />
                     </div>
                 </div>
             );
@@ -576,13 +593,33 @@ class TableBasedFilterModalContent extends React.Component<TableBasedFilterModal
 }
 TableBasedFilterModalContent.contextType = DBSchemaContext;
 
-class RelationBasedFilterModalContent extends React.Component<RelationBasedFilterModalContentProps, {tableAttrList?: TableAttributeComb[], selectedTableAttrListIndex?: number}> {
+class RelationBasedFilterModalContent extends React.Component<RelationBasedFilterModalContentProps, RelationBasedFilterModalContentStates> {
     constructor(props) {
         super(props);
         this.state = {
             tableAttrList: [],
-            selectedTableAttrListIndex: -1
+            selectedTableAttrListIndex: -1,
         };
+    }
+
+    setNewFilter = (index?: number): Filter => {
+        let thisTableAttElem: TableAttributeComb;
+        if (index !== undefined) {
+            thisTableAttElem = this.state.tableAttrList[index];
+        } else if (this.state.selectedTableAttrListIndex >= 0) {
+            thisTableAttElem = this.state.tableAttrList[this.state.selectedTableAttrListIndex];
+        }
+        if (thisTableAttElem !== undefined) {
+            return {
+                tableIndex: thisTableAttElem.table.idx,
+                attNum: thisTableAttElem.attr.attnum,
+                condition: undefined,
+                relatedPatternMatchResult: undefined,
+                value: undefined
+            }
+        } else {
+            return undefined;
+        }
     }
 
     getListOfAttributesInRels = () => {
@@ -607,6 +644,29 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
                 })
     }
 
+    datasetFilteringElement = () => {
+        if (this.state.selectedTableAttrListIndex < 0) return null;
+        
+        return (
+            <div className="row">
+                <div className="col-6">
+                    TODO
+                </div>
+                <div className="col-6">
+                    <FilterSelector 
+                        cachedFilterType={this.state.newFilterType}
+                        cachedFilterValueRef={this.props.cachedFilterValueRef}
+                        changedCondition={this.onFilterConditionChanged}
+                        filter={this.state.newFilter}
+                        onChangeFilterType={this.onChangeFilterType}
+                        onConfirmCachedFilter={this.onConfirmCachedFilter}
+                    />
+                </div>
+                {/* {JSON.stringify(this.state.tableAttrList[this.state.selectedTableAttrListIndex])} */}
+            </div>
+        )
+    }
+
     relBasedFilteringAttRenderer = (tableAttr: TableAttributeComb, index: number, onClickCallback: React.MouseEventHandler<HTMLAnchorElement>) => {
         let {table, attr} = tableAttr;
         let attElement = () => {
@@ -627,13 +687,58 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
 
     onTableAttrCombSelect = (e: React.BaseSyntheticEvent) => {
         const listIndex = parseInt(e.currentTarget.getAttribute("data-list-index"));
+        const newFilter = this.setNewFilter(listIndex);
         this.setState({
-            selectedTableAttrListIndex: listIndex
+            selectedTableAttrListIndex: listIndex,
+            newFilter: newFilter,
+            newFilterType: FilterType.getAllFilterTypes()[0]
         });
+    }
+
+    onChangeFilterType = (e: React.BaseSyntheticEvent) => {
+        const newFilterTypeIndex = parseInt(e.currentTarget.getAttribute("data-filter-range-id"));
+        this.setState({
+            newFilterType: FilterType.getAllFilterTypes()[newFilterTypeIndex]
+        });
+    }
+
+    onFilterConditionChanged = (cond: FilterCondition) => {
+        const cachedFilter = this.state.newFilter;
+        cachedFilter.condition = cond;
+        this.setState({
+            newFilter: cachedFilter
+        });
+    };
+
+    onConfirmCachedFilter = (e: React.BaseSyntheticEvent) => {
+        this.props.onConfirmCachedFilter(e, this.state.newFilter, this.state.newFilterType);
+        this.setState({
+            newFilter: undefined,
+            newFilterType: FilterType.getAllFilterTypes()[0],
+            selectedTableAttrListIndex: -1
+        })
+    }
+
+    attributeInformationCardText = (chosenTableAttr: TableAttributeComb) => {
+        if (this.state.selectedTableAttrListIndex < 0 || !chosenTableAttr) return null;
+        else return (
+            <div>
+                <p>
+                    Attribute count: {chosenTableAttr.attr.attCount}
+                </p>
+                <p>
+                    Attribute distinct count: {chosenTableAttr.attr.attDistinctCount}
+                </p>
+            </div>
+        )
     }
 
     getRelBasedAttributeList = () => {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
+        let chosenTableAttr: TableAttributeComb;
+        if (this.state.selectedTableAttrListIndex >= 0) {
+            chosenTableAttr = this.state.tableAttrList[this.state.selectedTableAttrListIndex];
+        }
         return (
             <div className="row justify-content-center mt-4 mb-3">
                 <div className="col-4 mt-auto mb-auto">
@@ -648,7 +753,11 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
                     <div className="card">
                         <div className="card-body">
                             <h5 className="card-title">
+                                {chosenTableAttr ? (<span className="badge bg-secondary">{chosenTableAttr.table.tableName}/{chosenTableAttr.attr.attname}</span>) : null}
                             </h5>
+                            <div className="card-text">
+                                {this.attributeInformationCardText(chosenTableAttr)}
+                            </div>
                         </div>
                         <ul className="list-group filter-table-attr-group-item list-group-flush start-table-rel-list ml-auto mr-auto">
                             {/* {this.getAttributeListFromPatternMatchResults(dbSchemaContext.selectedAttributesIndices)} */}
@@ -656,7 +765,7 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
                     </div>
                 </div>
                 <div className="col-8 mt-auto mb-auto">
-                    {/* {this.datasetFilteringElement()} */}
+                    {this.datasetFilteringElement()}
                 </div>
             </div>
         );

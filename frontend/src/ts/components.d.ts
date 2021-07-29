@@ -125,7 +125,17 @@ export type TableBasedFilterModalContentProps = {
 export type RelationBasedFilterModalContentProps = {
     filterList: Filter[],
     handleOnClose: React.MouseEventHandler, 
-    onFilterSelectionConfirm: React.MouseEventHandler
+    onFilterSelectionConfirm: React.MouseEventHandler,
+    onConfirmCachedFilter: Function,
+    cachedFilterValueRef: React.RefObject<HTMLInputElement>,
+    parentState: FilterSelectModalStates
+}
+
+export type RelationBasedFilterModalContentStates = {
+    tableAttrList?: TableAttributeComb[], 
+    selectedTableAttrListIndex?: number
+    newFilter?: Filter,
+    newFilterType?: FilterType
 }
 
 export type DatasetFilteringElementProps = {
