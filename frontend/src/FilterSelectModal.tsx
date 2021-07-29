@@ -145,95 +145,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 getFilteredData(thisTable, dbSchemaContext.allEntitiesList, [...this.props.filters, ...this.state.cachedFiltersList]);
             });
         }
-    };
-    
-    getAttributeListFromTable = (table: Table) => {
-        return this.getAttributeListInSingleTable(table.attr, table);
-    };
-
-    getAttributeListInSingleTable = (attrs: Attribute[], table?: Table) => {
-        return attrs.map(att => {
-            return (
-                <li className="list-group-item pb-1 d-flex justify-content-between" onClick={this.onTableAttributeClick}
-                    data-table-idx={table.idx} data-attnum={att.attnum} key={att.attnum}>
-                    <div>
-                        {att.attname}
-                    </div>
-                    {renderTips(table, att, true)}
-                </li>
-            );
-        });
-    }
-
-    getTableRelationVis = (selectedIndex: number) => {
-        const dbSchemaContext: DBSchemaContextInterface = this.context;
-        let thisTable: Table = undefined;
-        if (selectedIndex >= 0) {
-            thisTable = dbSchemaContext.allEntitiesList[selectedIndex];
-        }
-
-        let foreignKeyAttList = null;
-        if (this.state.cachedForeignTableSelected) {
-            const selectedFk = thisTable.fk[this.state.cachedForeignTableFKIndex];
-            const selectedFkTable = dbSchemaContext.allEntitiesList[this.state.cachedForeignTableSelected];
-
-            if (selectedFkTable) {
-                foreignKeyAttList = (
-                    <div className="card mt-2">
-                        <div className="card-body">
-                            <h5 className="card-title">➔ {selectedFkTable.tableName}</h5>
-                            <div className="small d-inline-block me-1 text-muted dropdown-tip bg-tip-fk">fk: <em>{selectedFk.keyName}</em></div>
-                        </div>
-                        <ul className="list-group filter-table-attr-group-item filter-table-rel-list ml-auto mr-auto">
-                            {this.getAttributeListFromTable(selectedFkTable)}
-                        </ul>
-                    </div>
-                );
-            }
-        }
-        
-
-
-        const cachedFilterElem = () => {
-            const cachedFilter = this.state.cachedFilterSelection;
-            if (!cachedFilter)
-                return null;
-            return (                
-                <FilterSelector 
-                    filter={this.state.cachedFilterSelection} 
-                    cachedFilterValueRef={this.cachedFilterValueRef}
-                    cachedFilterType={this.state.cachedFilterType}
-                    changedCondition={this.onFilterConditionChanged}
-                    onConfirmCachedFilter={this.onConfirmCachedFilter}
-                    onChangeFilterType={this.onChangeFilterType} />
-            );
-        };
-
-        return (
-            <div className="row justify-content-center mt-4 mb-3">
-                <div className="col-4 mt-auto mb-auto">
-                    <div className="card mb-2">
-                        <div className="card-body">
-                            <h5 className="card-title">{thisTable.tableName}</h5>
-                            <h6 className="card-subtitle mb-3 text-muted">n_keys: {thisTable.pk ? thisTable.pk.keyCount : (<em>not available</em>)}</h6>
-                        </div>
-                        <ul className="list-group filter-table-attr-group-item list-group-flush start-table-rel-list ml-auto mr-auto">
-                            {this.getAttributeListFromTable(thisTable)}
-                        </ul>
-                    </div>
-                    {foreignKeyAttList}
-                </div>
-                <div className="col-8 mt-auto mb-auto">
-                    {cachedFilterElem()}
-                    <ul className="list-group">
-                        <FilterList 
-                            filterList={[...this.props.filters, ...this.state.cachedFiltersList]}
-                            entitiesList={dbSchemaContext.allEntitiesList} />
-                    </ul>
-                </div>
-            </div>
-        );
-    };
+    };    
 
     onFilterRangeChange = (newFilterRange: number) => {
         this.setState({
@@ -406,7 +318,6 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                     <div className="modal-dialog modal-dialog-centered" role="document" style={{ maxWidth: "80%" }}>
                         <TableBasedFilterModalContent 
                             filterList={combinedFilterList}
-                            getTableRelationVis={this.getTableRelationVis}
                             handleOnClose={this.handleOnClose}
                             onFilterRangeChange={this.onFilterRangeChange}
                             onFilterSelectionConfirm={this.onFilterSelectionConfirm}
@@ -460,7 +371,6 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
 FilterSelectModal.contextType = DBSchemaContext;
 
 class TableBasedFilterModalContent extends React.Component<TableBasedFilterModalContentProps, {}> {
-
     // React elements
     filterRangeRadioButtons = () => {
         return (
@@ -530,7 +440,7 @@ class TableBasedFilterModalContent extends React.Component<TableBasedFilterModal
         if (dbSchemaContext.selectedEntitiesIndices[0] >= 0) {
             if (this.props.parentStates.filterRange === 0) {
                 // Render the relation vis for the entire table
-                return this.props.getTableRelationVis(dbSchemaContext.selectedEntitiesIndices[0]);
+                return this.getTableRelationVis(dbSchemaContext.selectedEntitiesIndices[0]);
             } else if (this.props.parentStates.filterRange === 1) {
                 // Render the relation vis for the (potentially-retrieved) dataset
                 const contextData = dbSchemaContext.data;
@@ -546,6 +456,94 @@ class TableBasedFilterModalContent extends React.Component<TableBasedFilterModal
 
         return null;
     }
+
+    getAttributeListInSingleTable = (attrs: Attribute[], table?: Table) => {
+        return attrs.map(att => {
+            return (
+                <li className="list-group-item pb-1 d-flex justify-content-between" onClick={this.props.onTableAttributeClick}
+                    data-table-idx={table.idx} data-attnum={att.attnum} key={att.attnum}>
+                    <div>
+                        {att.attname}
+                    </div>
+                    {renderTips(table, att, true)}
+                </li>
+            );
+        });
+    }
+
+    getAttributeListFromTable = (table: Table) => {
+        return this.getAttributeListInSingleTable(table.attr, table);
+    };
+
+    getTableRelationVis = (selectedIndex: number) => {
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        let thisTable: Table = undefined;
+        if (selectedIndex >= 0) {
+            thisTable = dbSchemaContext.allEntitiesList[selectedIndex];
+        }
+
+        let foreignKeyAttList = null;
+        if (this.props.parentStates.cachedForeignTableSelected) {
+            const selectedFk = thisTable.fk[this.props.parentStates.cachedForeignTableFKIndex];
+            const selectedFkTable = dbSchemaContext.allEntitiesList[this.props.parentStates.cachedForeignTableSelected];
+
+            if (selectedFkTable) {
+                foreignKeyAttList = (
+                    <div className="card mt-2">
+                        <div className="card-body">
+                            <h5 className="card-title">➔ {selectedFkTable.tableName}</h5>
+                            <div className="small d-inline-block me-1 text-muted dropdown-tip bg-tip-fk">fk: <em>{selectedFk.keyName}</em></div>
+                        </div>
+                        <ul className="list-group filter-table-attr-group-item filter-table-rel-list ml-auto mr-auto">
+                            {this.getAttributeListFromTable(selectedFkTable)}
+                        </ul>
+                    </div>
+                );
+            }
+        }
+        
+
+
+        const cachedFilterElem = () => {
+            const cachedFilter = this.props.parentStates.cachedFilterSelection;
+            if (!cachedFilter)
+                return null;
+            return (                
+                <FilterSelector 
+                    filter={this.props.parentStates.cachedFilterSelection} 
+                    cachedFilterValueRef={this.props.cachedFilterValueRef}
+                    cachedFilterType={this.props.parentStates.cachedFilterType}
+                    changedCondition={this.props.onFilterConditionChanged}
+                    onConfirmCachedFilter={this.props.onConfirmCachedFilter}
+                    onChangeFilterType={this.props.onChangeFilterType} />
+            );
+        };
+
+        return (
+            <div className="row justify-content-center mt-4 mb-3">
+                <div className="col-4 mt-auto mb-auto">
+                    <div className="card mb-2">
+                        <div className="card-body">
+                            <h5 className="card-title">{thisTable.tableName}</h5>
+                            <h6 className="card-subtitle mb-3 text-muted">n_keys: {thisTable.pk ? thisTable.pk.keyCount : (<em>not available</em>)}</h6>
+                        </div>
+                        <ul className="list-group filter-table-attr-group-item list-group-flush start-table-rel-list ml-auto mr-auto">
+                            {this.getAttributeListFromTable(thisTable)}
+                        </ul>
+                    </div>
+                    {foreignKeyAttList}
+                </div>
+                <div className="col-8 mt-auto mb-auto">
+                    {cachedFilterElem()}
+                    <ul className="list-group">
+                        <FilterList 
+                            filterList={this.props.filterList}
+                            entitiesList={dbSchemaContext.allEntitiesList} />
+                    </ul>
+                </div>
+            </div>
+        );
+    };
 
     // Event handlers
     onFilterRangeChange = (e: React.BaseSyntheticEvent) => {

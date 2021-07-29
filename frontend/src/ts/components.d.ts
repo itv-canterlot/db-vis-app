@@ -118,7 +118,6 @@ export type TableBasedFilterModalContentProps = {
     onFilterConditionChanged: Function,
     filterList: Filter[],
     onFilterRangeChange: Function,
-    getTableRelationVis: Function,
     cachedFilterValueRef: React.RefObject<HTMLInputElement>
     parentStates: FilterSelectModalStates,
 }
