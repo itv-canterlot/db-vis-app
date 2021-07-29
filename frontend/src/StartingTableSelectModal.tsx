@@ -15,7 +15,7 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
             cachedForeignRelationCardSelectedIndex: -1,
             cachedSelectEntitiesIndices: [],
             cachedSelectedRelationsIndices: [],
-            dataSelectByTable: true
+            dataSelectByTable: false
         };
     }
 

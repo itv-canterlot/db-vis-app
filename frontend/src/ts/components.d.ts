@@ -109,6 +109,30 @@ export type FilterSelectModalStates = {
     filterRange?: number
 }
 
+export type TableBasedFilterModalContentProps = {
+    handleOnClose: React.MouseEventHandler, 
+    onFilterSelectionConfirm: React.MouseEventHandler,
+    onConfirmCachedFilter: React.MouseEventHandler,
+    onChangeFilterType: React.MouseEventHandler,
+    onTableAttributeClick: React.MouseEventHandler,
+    onFilterConditionChanged: Function,
+    filterList: Filter[],
+    onFilterRangeChange: Function,
+    getTableRelationVis: Function,
+    cachedFilterValueRef: React.RefObject<HTMLInputElement>
+    parentStates: FilterSelectModalStates,
+}
+
+export type DatasetFilteringElementProps = {
+    cachedFilterSelection: Filter, 
+    cachedFilterType: FilterType,
+    cachedFilterValueRef: React.RefObject<HTMLInputElement>,
+    onFilterConditionChanged: Function,
+    onConfirmCachedFilter: React.MouseEventHandler,
+    onChangeFilterType: React.MouseEventHandler,
+    filterList: Filter[]
+}
+
 /* AppMainCont.tsx */
 export type SchemaExplorerProps = {
     expanded: boolean, 

@@ -1,8 +1,8 @@
 import * as React from 'react';
 import bootstrap = require('bootstrap');
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
-import { Table, FilterCondition, Attribute, PatternMatchAttribute, FilterType } from './ts/types';
-import { FilterSelectModalProps, FilterSelectModalStates } from './ts/components';
+import { Table, FilterCondition, Attribute, PatternMatchAttribute, FilterType, Filter } from './ts/types';
+import { DatasetFilteringElementProps, FilterSelectModalProps, FilterSelectModalStates, TableBasedFilterModalContentProps } from './ts/components';
 import { getFilteredData } from './Connections';
 import { renderTips } from './ModalPublicElements';
 import * as d3 from 'd3';
@@ -25,9 +25,6 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             cachedForeignTableSelected: -1,
             filterRange: 0,
             tableAttributeList: []
-                // context.selectedRelationsIndices && context.selectedRelationsIndices.length !== 0 && context.relHierachyIndices ? 
-                // this.getListOfAttributesInRels():
-                // []
         };
 
         this.cachedFilterValueRef = React.createRef();
@@ -35,7 +32,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
 
     modalComponent: bootstrap.Modal = undefined;
 
-    onFilterSelectionConfirm = (e) => {
+    onFilterSelectionConfirm = (e: React.BaseSyntheticEvent) => {
         this.props.onFilterChange([...this.props.filters, ...this.state.cachedFiltersList]);
         if (this.modalComponent) {
             this.modalComponent.hide();
@@ -168,26 +165,8 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         });
     }
 
-    getAttributeListFromPatternMatchResults = (attrs: PatternMatchAttribute[][]) => {
-        const allAttrs = attrs.flat(1);
-        return allAttrs.map((attr, key) => {
-            if (!attr) return;
-            const tableObject = attr.table;
-            const attrObject = tableObject.attr[attr.attributeIndex];
-            return (
-                <li className={
-                        "list-group-item pb-1 d-flex justify-content-between" + 
-                        (this.state.cachedFilterSelection && this.state.cachedFilterSelection.attNum === attrObject.attnum ? " active" : "")}
-                    data-table-idx={tableObject.idx} data-attnum={attrObject.attnum} key={key} onClick={this.onTableAttributeClick}>
-                    <div>
-                        {tableObject.tableName}/{attrObject.attname}
-                    </div>
-                    {renderTips(tableObject, attrObject, true)}
-                </li>)
-        })
-    }
-
-    getTableRelationVis = (dbSchemaContext: DBSchemaContextInterface, selectedIndex: number) => {
+    getTableRelationVis = (selectedIndex: number) => {
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
         let thisTable: Table = undefined;
         if (selectedIndex >= 0) {
             thisTable = dbSchemaContext.allEntitiesList[selectedIndex];
@@ -247,15 +226,16 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 <div className="col-8 mt-auto mb-auto">
                     {cachedFilterElem()}
                     <ul className="list-group">
-                        {this.currentFilterList()}
+                        <FilterList 
+                            filterList={[...this.props.filters, ...this.state.cachedFiltersList]}
+                            entitiesList={dbSchemaContext.allEntitiesList} />
                     </ul>
                 </div>
             </div>
         );
     };
 
-    onFilterRangeChange = (e: React.BaseSyntheticEvent) => {
-        const newFilterRange = parseInt(e.currentTarget.getAttribute("data-filter-range"));
+    onFilterRangeChange = (newFilterRange: number) => {
         this.setState({
             filterRange: newFilterRange,
             cachedFilterSelection: undefined,
@@ -270,206 +250,6 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         this.setState({
             cachedFilterType: FilterType.getAllFilterTypes()[newFilterTypeIndex]
         });
-    }
-
-    filterRangeRadioButtons = () => {
-        return (
-            <div className="btn-group" role="group" aria-label="Filter type selection button group">
-                <input type="radio" className="btn-check" name="btnradio" id="filter-type-selection" autoComplete="off"
-                    data-filter-range={0} defaultChecked={this.state.filterRange === 0} onChange={this.onFilterRangeChange} />
-                <label className="btn btn-outline-primary" htmlFor="filter-type-selection">Filter query</label>
-
-                <input type="radio" className="btn-check" name="btnradio" id="filter-type-dataset" autoComplete="off"
-                    data-filter-range={1} defaultChecked={this.state.filterRange === 1} onChange={this.onFilterRangeChange} />
-                <label className="btn btn-outline-primary" htmlFor="filter-type-dataset">Filter dataset</label>
-            </div>
-        );
-    }
-
-    filterFormElem = () => {
-        return (
-            <div>
-                <h5>Filters</h5>
-                <FilterSelector 
-                    filter={this.state.cachedFilterSelection} 
-                    cachedFilterValueRef={this.cachedFilterValueRef} 
-                    cachedFilterType={this.state.cachedFilterType}
-                    changedCondition={this.onFilterConditionChanged}
-                    onConfirmCachedFilter={this.onConfirmCachedFilter}
-                    onChangeFilterType={this.onChangeFilterType} />
-            </div>
-        )
-    }
-
-    currentFilterList = () => {
-        const combinedList = [...this.props.filters, ...this.state.cachedFiltersList];
-        const dbSchemaContext: DBSchemaContextInterface = this.context;
-        if (combinedList.length > 0) {
-            return combinedList.map((filter, idx) => {
-                const thisFilterTable = dbSchemaContext.allEntitiesList[filter.tableIndex];
-                const thisFilterAttribute = thisFilterTable.attr[filter.attNum - 1];
-                return (
-                <li className="list-group-item" key={idx}>
-                    <div className="type-tip bg-tip-grey">
-                        {filter.condition.filterType.toString()}
-                    </div>
-                    <div className="d-inline-flex">
-                        <div>{thisFilterTable.tableName}/{thisFilterAttribute.attname}</div>
-                        <div className="ms-1">
-                            {filter.condition.friendlyName[0]}
-                        </div>
-                        <div className="ms-1">
-                            {filter.value}
-                        </div>
-                        {
-                            filter.condition.friendlyTextInfix ? 
-                            <div className="ms-1">
-                                {filter.condition.friendlyName[1]}
-                            </div> : null
-                        }
-                    </div>
-                </li>);
-            });
-        } else {
-            return null;
-        }
-    }
-
-    datasetFilteringElement = () => {
-        const dbSchemaContext: DBSchemaContextInterface = this.context;
-        const contextData = dbSchemaContext.data;
-
-        let datasetStatisticsElem = null, filterDataVisElem = null;
-
-        let thisTable: Table, thisAttr: Attribute, dataFiltered: number[];
-
-        if (this.state.cachedFilterSelection) {
-            thisTable = dbSchemaContext.allEntitiesList[this.state.cachedFilterSelection.tableIndex]
-            thisAttr = thisTable.attr[this.state.cachedFilterSelection.attNum - 1];
-            dataFiltered = DatasetUtils.filterDataByAttribute(contextData, dbSchemaContext, thisAttr, [...this.props.filters, ...this.state.cachedFiltersList], true);
-        }
-
-        if (contextData) {
-            let dataMin = null, dataMax = null, filteredDataLength = null, meanStd = null;
-            if (this.state.cachedFilterSelection) {
-                dataMin = (
-                    <div>
-                        <div className="small">
-                            min
-                        </div>
-                        <div>
-                            <strong>
-                                {Math.min(...dataFiltered)}
-                            </strong>
-                        </div>
-                    </div>
-                );
-                dataMax = (
-                    <div className="text-end">
-                        <div className="small">
-                            max
-                        </div>
-                        <div>
-                            <strong>
-                                {Math.max(...dataFiltered)}
-                            </strong>
-                        </div>
-                    </div>
-                );
-
-                filteredDataLength = (
-                    <div>
-                        {dataFiltered.length}
-                    </div>
-                )
-
-                meanStd = (
-                    <div className="text-center">
-                        <div>
-                            μ = <strong>{DatasetUtils.getAverage(dataFiltered).toFixed(2)}</strong>
-                        </div>
-                        <div>
-                            σ = <strong>{DatasetUtils.getStandardDeviation(dataFiltered).toFixed(2)}</strong>
-                        </div>
-                    </div>
-                )
-                
-                datasetStatisticsElem = (
-                    <div className="card mt-2">
-                        <div className="card-body d-flex justify-content-between align-items-center">
-                            {dataMin} {meanStd} {dataMax}
-                        </div>
-                        <ul className="list-group list-group-flush">
-                            <li className="list-group-item">
-                                <div>
-                                    # total dataset entries: {dbSchemaContext.data.length}
-                                </div>
-                                <div>
-                                    # valid data entries for attribute: {dataFiltered.length}
-                                </div>
-                            </li>
-                        </ul>
-                    </div>
-                )
-            }
-
-        }
-
-        if (this.state.cachedFilterSelection) {                
-            filterDataVisElem = (
-                <div className="row">
-                    <div className="col d-flex justify-content-center">
-                        <div id="filter-data-dist-vis-cont"></div>
-                    </div>
-                </div>
-            )
-        }
-
-        return (
-            <div className="row">
-                <div className="col-6">
-                    <div className="row">
-                        <div className="col">
-                            {filterDataVisElem}
-                        </div>
-                    </div>
-                    <div className="row">
-                        <div className="col">
-                            {datasetStatisticsElem}
-                        </div>
-                    </div>
-
-                </div>
-                <div className="col-6">
-                    {this.state.cachedFilterSelection ? this.filterFormElem() : null}
-                    <ul className="list-group">
-                        {this.currentFilterList()}
-                    </ul>
-                </div>
-            </div>
-        );
-
-    }
-
-    getDatasetFilteringComponenent = () => {
-        const dbSchemaContext: DBSchemaContextInterface = this.context;
-        return (
-            <div className="row justify-content-center mt-4 mb-3">
-                <div className="col-4 mt-auto mb-auto">
-                    <div className="card">
-                        <div className="card-body">
-                            <h5 className="card-title">Attributes involved in dataset</h5>
-                        </div>
-                        <ul className="list-group filter-table-attr-group-item list-group-flush start-table-rel-list ml-auto mr-auto">
-                            {this.getAttributeListFromPatternMatchResults(dbSchemaContext.selectedAttributesIndices)}
-                        </ul>
-                    </div>
-                </div>
-                <div className="col-8 mt-auto mb-auto">
-                    {this.datasetFilteringElement()}
-                </div>
-            </div>
-        );
     }
 
     getListOfAttributesInRels = () => {
@@ -522,28 +302,6 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 </div>
             </div>
         );
-    }
-
-    tableBasedFilterElement = () => {
-        const dbSchemaContext: DBSchemaContextInterface = this.context;
-        if (dbSchemaContext.selectedEntitiesIndices[0] >= 0) {
-            if (this.state.filterRange === 0) {
-                // Render the relation vis for the entire table
-                return this.getTableRelationVis(dbSchemaContext, dbSchemaContext.selectedEntitiesIndices[0]);
-            } else if (this.state.filterRange === 1) {
-                // Render the relation vis for the (potentially-retrieved) dataset
-                const contextData = dbSchemaContext.data;
-                if (contextData && contextData.length > 0) {
-                    if (dbSchemaContext.selectedEntitiesIndices.length !== 0) {
-                    return this.getDatasetFilteringComponenent();
-                    } else {
-                        return this.getRelBasedAttributeList();
-                    }
-                }
-            }
-        }
-
-        return null;
     }
 
     componentDidMount() {
@@ -698,22 +456,18 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             return (
                 <div className="modal fade d-block" role="dialog" id="starting-table-select-modal">
                     <div className="modal-dialog modal-dialog-centered" role="document" style={{ maxWidth: "80%" }}>
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">Select filtering...</h5>
-                                <button type="button" className="close" aria-label="Close" onClick={this.handleOnClose}>
-                                    <span aria-hidden="true"><i className="fas fa-times" /></span>
-                                </button>
-                            </div>
-                            <div className="modal-body">
-                                {this.filterRangeRadioButtons()}
-                                {this.tableBasedFilterElement()}
-                            </div>
-                            <div className="modal-footer">
-                                <button type="button" className={"btn btn-primary" + (combinedFilterList.length === 0 ? " disabled" : "")} onClick={this.onFilterSelectionConfirm}>Confirm</button>
-                                <button type="button" className="btn btn-secondary" onClick={this.handleOnClose}>Cancel</button>
-                            </div>
-                        </div>
+                        <TableBasedFilterModalContent 
+                            filterList={combinedFilterList}
+                            getTableRelationVis={this.getTableRelationVis}
+                            handleOnClose={this.handleOnClose}
+                            onFilterRangeChange={this.onFilterRangeChange}
+                            onFilterSelectionConfirm={this.onFilterSelectionConfirm}
+                            onTableAttributeClick={this.onTableAttributeClick}
+                            cachedFilterValueRef={this.cachedFilterValueRef}
+                            onChangeFilterType={this.onChangeFilterType}
+                            onConfirmCachedFilter={this.onConfirmCachedFilter}
+                            onFilterConditionChanged={this.onFilterConditionChanged}
+                            parentStates={this.state} />
                     </div>
                 </div>
             );
@@ -767,3 +521,293 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
     }
 }
 FilterSelectModal.contextType = DBSchemaContext;
+
+class TableBasedFilterModalContent extends React.Component<TableBasedFilterModalContentProps, {}> {
+
+    // React elements
+    filterRangeRadioButtons = () => {
+        return (
+            <div className="btn-group" role="group" aria-label="Filter type selection button group">
+                <input type="radio" className="btn-check" name="btnradio" id="filter-type-selection" autoComplete="off"
+                    data-filter-range={0} defaultChecked={this.props.parentStates.filterRange === 0} onChange={this.onFilterRangeChange} />
+                <label className="btn btn-outline-primary" htmlFor="filter-type-selection">Filter query</label>
+
+                <input type="radio" className="btn-check" name="btnradio" id="filter-type-dataset" autoComplete="off"
+                    data-filter-range={1} defaultChecked={this.props.parentStates.filterRange === 1} onChange={this.onFilterRangeChange} />
+                <label className="btn btn-outline-primary" htmlFor="filter-type-dataset">Filter dataset</label>
+            </div>
+        );
+    }
+
+    attributeListFromPatternMatchResults = (attrs: PatternMatchAttribute[][]) => {
+        const allAttrs = attrs.flat(1);
+        return allAttrs.map((attr, key) => {
+            if (!attr) return;
+            const tableObject = attr.table;
+            const attrObject = tableObject.attr[attr.attributeIndex];
+            return (
+                <li className={
+                        "list-group-item pb-1 d-flex justify-content-between" + 
+                        (this.props.parentStates.cachedFilterSelection && this.props.parentStates.cachedFilterSelection.attNum === attrObject.attnum ? " active" : "")}
+                    data-table-idx={tableObject.idx} data-attnum={attrObject.attnum} key={key} onClick={this.props.onTableAttributeClick}>
+                    <div>
+                        {tableObject.tableName}/{attrObject.attname}
+                    </div>
+                    {renderTips(tableObject, attrObject, true)}
+                </li>)
+        })
+    }
+
+    datasetFilteringComponenent = () => {
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        return (
+            <div className="row justify-content-center mt-4 mb-3">
+                <div className="col-4 mt-auto mb-auto">
+                    <div className="card">
+                        <div className="card-body">
+                            <h5 className="card-title">Attributes involved in dataset</h5>
+                        </div>
+                        <ul className="list-group filter-table-attr-group-item list-group-flush start-table-rel-list ml-auto mr-auto">
+                            {this.attributeListFromPatternMatchResults(dbSchemaContext.selectedAttributesIndices)}
+                        </ul>
+                    </div>
+                </div>
+                <div className="col-8 mt-auto mb-auto">
+                    <DatasetFilteringElement
+                        filterList={this.props.filterList}
+                        cachedFilterSelection={this.props.parentStates.cachedFilterSelection}
+                        cachedFilterType={this.props.parentStates.cachedFilterType}
+                        cachedFilterValueRef={this.props.cachedFilterValueRef}
+                        onChangeFilterType={this.props.onChangeFilterType}
+                        onConfirmCachedFilter={this.props.onConfirmCachedFilter}
+                        onFilterConditionChanged={this.props.onFilterConditionChanged}
+
+                         />
+                </div>
+            </div>
+        );
+    }
+
+    tableBasedFilterElement = () => {
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        if (dbSchemaContext.selectedEntitiesIndices[0] >= 0) {
+            if (this.props.parentStates.filterRange === 0) {
+                // Render the relation vis for the entire table
+                return this.props.getTableRelationVis(dbSchemaContext.selectedEntitiesIndices[0]);
+            } else if (this.props.parentStates.filterRange === 1) {
+                // Render the relation vis for the (potentially-retrieved) dataset
+                const contextData = dbSchemaContext.data;
+                if (contextData && contextData.length > 0) {
+                    if (dbSchemaContext.selectedEntitiesIndices.length !== 0) {
+                    return this.datasetFilteringComponenent();
+                    } else {
+                        // return this.getRelBasedAttributeList();
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    // Event handlers
+    onFilterRangeChange = (e: React.BaseSyntheticEvent) => {
+        const newFilterRange = parseInt(e.currentTarget.getAttribute("data-filter-range"));    
+        this.props.onFilterRangeChange(newFilterRange);
+    }
+
+    render() {
+        return (
+            <div className="modal-content">
+                <div className="modal-header">
+                    <h5 className="modal-title">Select filtering...</h5>
+                    <button type="button" className="close" aria-label="Close" onClick={this.props.handleOnClose}>
+                        <span aria-hidden="true"><i className="fas fa-times" /></span>
+                    </button>
+                </div>
+                <div className="modal-body">
+                    {this.filterRangeRadioButtons()}
+                    {this.tableBasedFilterElement()}
+                </div>
+                <div className="modal-footer">
+                    <button type="button" 
+                        className={"btn btn-primary" + (this.props.filterList.length === 0 ? " disabled" : "")} 
+                        onClick={this.props.onFilterSelectionConfirm}>Confirm</button>
+                    <button type="button" className="btn btn-secondary" onClick={this.props.handleOnClose}>Cancel</button>
+                </div>
+            </div>
+        )
+    }
+}
+TableBasedFilterModalContent.contextType = DBSchemaContext;
+
+class DatasetFilteringElement extends React.Component<DatasetFilteringElementProps,{}> {
+    filterFormElem = () => {
+        return (
+            <div>
+                <h5>Filters</h5>
+                <FilterSelector 
+                    filter={this.props.cachedFilterSelection} 
+                    cachedFilterValueRef={this.props.cachedFilterValueRef} 
+                    cachedFilterType={this.props.cachedFilterType}
+                    changedCondition={this.props.onFilterConditionChanged}
+                    onConfirmCachedFilter={this.props.onConfirmCachedFilter}
+                    onChangeFilterType={this.props.onChangeFilterType} />
+            </div>
+        )
+    }
+
+    render() {
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        const contextData = dbSchemaContext.data;
+
+        let datasetStatisticsElem = null, filterDataVisElem = null;
+
+        let thisTable: Table, thisAttr: Attribute, dataFiltered: number[];
+
+        if (this.props.cachedFilterSelection) {
+            thisTable = dbSchemaContext.allEntitiesList[this.props.cachedFilterSelection.tableIndex]
+            thisAttr = thisTable.attr[this.props.cachedFilterSelection.attNum - 1];
+            dataFiltered = DatasetUtils.filterDataByAttribute(contextData, dbSchemaContext, thisAttr, this.props.filterList, true);
+        }
+
+        if (contextData) {
+            let dataMin = null, dataMax = null, filteredDataLength = null, meanStd = null;
+            if (this.props.cachedFilterSelection) {
+                dataMin = (
+                    <div>
+                        <div className="small">
+                            min
+                        </div>
+                        <div>
+                            <strong>
+                                {Math.min(...dataFiltered)}
+                            </strong>
+                        </div>
+                    </div>
+                );
+                dataMax = (
+                    <div className="text-end">
+                        <div className="small">
+                            max
+                        </div>
+                        <div>
+                            <strong>
+                                {Math.max(...dataFiltered)}
+                            </strong>
+                        </div>
+                    </div>
+                );
+
+                filteredDataLength = (
+                    <div>
+                        {dataFiltered.length}
+                    </div>
+                )
+
+                meanStd = (
+                    <div className="text-center">
+                        <div>
+                            μ = <strong>{DatasetUtils.getAverage(dataFiltered).toFixed(2)}</strong>
+                        </div>
+                        <div>
+                            σ = <strong>{DatasetUtils.getStandardDeviation(dataFiltered).toFixed(2)}</strong>
+                        </div>
+                    </div>
+                )
+                
+                datasetStatisticsElem = (
+                    <div className="card mt-2">
+                        <div className="card-body d-flex justify-content-between align-items-center">
+                            {dataMin} {meanStd} {dataMax}
+                        </div>
+                        <ul className="list-group list-group-flush">
+                            <li className="list-group-item">
+                                <div>
+                                    # total dataset entries: {dbSchemaContext.data.length}
+                                </div>
+                                <div>
+                                    # valid data entries for attribute: {dataFiltered.length}
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                )
+            }
+
+        }
+
+        if (this.props.cachedFilterSelection) {                
+            filterDataVisElem = (
+                <div className="row">
+                    <div className="col d-flex justify-content-center">
+                        <div id="filter-data-dist-vis-cont"></div>
+                    </div>
+                </div>
+            )
+        }
+
+        return (
+            <div className="row">
+                <div className="col-6">
+                    <div className="row">
+                        <div className="col">
+                            {filterDataVisElem}
+                        </div>
+                    </div>
+                    <div className="row">
+                        <div className="col">
+                            {datasetStatisticsElem}
+                        </div>
+                    </div>
+
+                </div>
+                <div className="col-6">
+                    {this.props.cachedFilterSelection ? this.filterFormElem() : null}
+                    <ul className="list-group">
+                        <FilterList 
+                            filterList={this.props.filterList} 
+                            entitiesList={dbSchemaContext.allEntitiesList} />
+                    </ul>
+                </div>
+            </div>
+        );
+
+    }
+}
+DatasetFilteringElement.contextType = DBSchemaContext;
+
+class FilterList extends React.Component<{filterList: Filter[], entitiesList: Table[]}, {}> {
+    render() {
+        const combinedList = this.props.filterList;
+        if (combinedList.length > 0) {
+            return combinedList.map((filter, idx) => {
+                const thisFilterTable = this.props.entitiesList[filter.tableIndex];
+                const thisFilterAttribute = thisFilterTable.attr[filter.attNum - 1];
+                return (
+                <li className="list-group-item" key={idx}>
+                    <div className="type-tip bg-tip-grey">
+                        {filter.condition.filterType.toString()}
+                    </div>
+                    <div className="d-inline-flex">
+                        <div>{thisFilterTable.tableName}/{thisFilterAttribute.attname}</div>
+                        <div className="ms-1">
+                            {filter.condition.friendlyName[0]}
+                        </div>
+                        <div className="ms-1">
+                            {filter.value}
+                        </div>
+                        {
+                            filter.condition.friendlyTextInfix ? 
+                            <div className="ms-1">
+                                {filter.condition.friendlyName[1]}
+                            </div> : null
+                        }
+                    </div>
+                </li>);
+            });
+        } else {
+            return null;
+        }
+    }
+}
