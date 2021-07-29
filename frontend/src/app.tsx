@@ -343,11 +343,40 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     }
 
     onFilterChange = (filters: Filter[]) => {
-        this.setState({
-            filters: filters
-        }, () => {
-            const filteredData = filterDataByFilters(this.state.data, this.getProviderValues(), this.state.filters);
+        // TODO: temporary divergence
+        if (this.state.selectedEntitesIndices.length === 0) {
+            // TODO: temporary duplicate data retrieval
+            const getDataCallback = (data: object[]) => {
+                const filteredData = filterDataByFilters(data, this.getProviderValues(), filters);
+                
+                const mainRelation = this.state.relHierachyIndices[0].map(relIdx => this.state.relationsList[relIdx])
+                const visSchemaMatchesFromRels = 
+                    this.getVisSchemaMatchesFromSelectedRelations([mainRelation[0]]);
+                
+                this.setState({
+                    data: filteredData,
+                    filters: filters,
+                    visSchemaMatchStatus: visSchemaMatchesFromRels[0]
+                })
+            }
+            
+            Connections.getRelationBasedData(
+                this.state.relHierachyIndices.flat()
+                    .map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues(), 
+                        [
+                        [...this.state.rendererSelectedAttributes[0], 
+                            ...filters.map(filter => {
+                                return {
+                                    table: this.state.allEntitiesList[filter.tableIndex],
+                                    attributeIndex: filter.attNum - 1
+                                }
+                            })], 
+                        this.state.rendererSelectedAttributes[1]], 
+                    filters).then(getDataCallback)
 
+            return;
+        } else {
+            const filteredData = filterDataByFilters(this.state.data, this.getProviderValues(), filters);
             const {
                 visSchemaMatchStatus, 
                 selectedPatternIndex, 
@@ -357,6 +386,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             const getDataCallback = (data: object[]) => {
                 this.setState({
                     data: data,
+                    filters: filters,
                     visSchemaMatchStatus: visSchemaMatchStatus,
                 });
             }
@@ -366,7 +396,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 visSchemaMatchStatus[this.state.selectedPatternIndex][this.state.selectedMatchResultIndexInPattern], 
                 this.getProviderValues())
                     .then(getDataCallback.bind(this));
-        });
+        }
     }
 
     // Helpers

@@ -8,16 +8,27 @@ export const filterDataByFilters = (data: object[], dbSchemaContext: DBSchemaCon
     if (filters) {
         filteredData = data.filter(d => {
             return filters.every(filter => {
-                const filterAtt = dbSchemaContext.allEntitiesList[filter.tableIndex].attr[filter.attNum - 1];
+                const thisTable = dbSchemaContext.allEntitiesList[filter.tableIndex];
+                const filterAtt = thisTable.attr[filter.attNum - 1];
+                const shortName = filterAtt.attname;
+                
+                let attRetrievalName;
+                if (shortName in d) {
+                    attRetrievalName = shortName
+                } else {
+                    const longNameSuffix = `${thisTable.tableName}_${filterAtt.attname}`;
+                    attRetrievalName = Object.keys(d).find(el => el.endsWith(longNameSuffix))
+                }
+                
                 let param = {
-                    baseVal: parseFloat(d[filterAtt.attname]),
+                    baseVal: parseFloat(d[attRetrievalName]),
                     std: undefined,
                     mean: undefined
                 };
 
                 if (filter.condition.filterType === FilterType.STD) {
-                    const thisFilterRelatedData =  data.filter(d => d[filterAtt.attname] !== undefined && d[filterAtt.attname] !== null)
-                    .map(d => d[filterAtt.attname]);
+                    const thisFilterRelatedData =  data.filter(d => d[attRetrievalName] !== undefined && d[attRetrievalName] !== null)
+                    .map(d => d[attRetrievalName]);
 
                     param.std = getStandardDeviation(thisFilterRelatedData);
                     param.mean = getAverage(thisFilterRelatedData);

@@ -52,7 +52,7 @@ const computeScalarFilterCondition = (params: {[key: string]: number}, filter: F
     const filterType = filter.condition.filterType;
     if (filterType !== FilterType.SCALAR_COMPARISON) return undefined;
 
-    const comparedVal = filter.value,
+    const comparedVal = parseFloat(filter.value),
         baseVal = params.baseVal,
         sqlCommand = filter.condition.sqlCommand;
 

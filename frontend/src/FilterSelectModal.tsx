@@ -9,6 +9,7 @@ import { FilterSelector } from './FilterSelector';
 import * as FilterConditions from './ts/FilterConditions';
 import * as DatasetUtils from './DatasetUtils';
 import { SearchDropdownList } from './UIElements';
+import * as Connections from './Connections';
 
 export class FilterSelectModal extends React.Component<FilterSelectModalProps, FilterSelectModalStates> {
     cachedFilterValueRef: React.RefObject<HTMLInputElement>;
@@ -644,23 +645,44 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
                 })
     }
 
+    datasetPreviewElement = () => {
+        if (this.state.sampleData == undefined) {
+            return null;
+        } else {
+            return (
+                <div>
+                    {DatasetUtils.filterDataByFilters(this.state.sampleData, this.context, this.props.filterList).length}
+                </div>
+            )
+        }
+    }
+
     datasetFilteringElement = () => {
-        if (this.state.selectedTableAttrListIndex < 0) return null;
-        
+        // if (this.state.selectedTableAttrListIndex < 0) return null;
+
+        const dbSchemaContext: DBSchemaContextInterface = this.context;        
         return (
             <div className="row">
                 <div className="col-6">
-                    TODO
+                    {this.datasetPreviewElement()}
                 </div>
                 <div className="col-6">
-                    <FilterSelector 
-                        cachedFilterType={this.state.newFilterType}
-                        cachedFilterValueRef={this.props.cachedFilterValueRef}
-                        changedCondition={this.onFilterConditionChanged}
-                        filter={this.state.newFilter}
-                        onChangeFilterType={this.onChangeFilterType}
-                        onConfirmCachedFilter={this.onConfirmCachedFilter}
-                    />
+                    {
+                        this.state.selectedTableAttrListIndex < 0 ? null :
+                        <FilterSelector 
+                            cachedFilterType={this.state.newFilterType}
+                            cachedFilterValueRef={this.props.cachedFilterValueRef}
+                            changedCondition={this.onFilterConditionChanged}
+                            filter={this.state.newFilter}
+                            onChangeFilterType={this.onChangeFilterType}
+                            onConfirmCachedFilter={this.onConfirmCachedFilter}
+                        />
+                    }
+                    <ul className="list-group">
+                        <FilterList 
+                            filterList={this.props.filterList} 
+                            entitiesList={dbSchemaContext.allEntitiesList} />
+                    </ul>
                 </div>
                 {/* {JSON.stringify(this.state.tableAttrList[this.state.selectedTableAttrListIndex])} */}
             </div>
@@ -693,6 +715,29 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
             newFilter: newFilter,
             newFilterType: FilterType.getAllFilterTypes()[0]
         });
+
+        const getDataCallback = (data => {
+            this.setState({
+                sampleData: data
+            })
+        })
+
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        const newtableAttr = this.state.tableAttrList[listIndex];
+        Connections.getRelationBasedData(
+            dbSchemaContext.relHierachyIndices.flat()
+                .map(relIdx => dbSchemaContext.relationsList[relIdx]), dbSchemaContext, 
+                    [
+                    [...dbSchemaContext.selectedAttributesIndices[0], 
+                        {table: newtableAttr.table, attributeIndex: newtableAttr.attr.attnum - 1}, ...this.props.filterList.map(filter => {
+                            return {
+                                table: dbSchemaContext.allEntitiesList[filter.tableIndex],
+                                attributeIndex: filter.attNum - 1
+                            }
+                        })], 
+                    dbSchemaContext.selectedAttributesIndices[1]], 
+                this.props.filterList) // TODO: filters not working in Connection yet
+        .then(getDataCallback.bind(this));
     }
 
     onChangeFilterType = (e: React.BaseSyntheticEvent) => {
