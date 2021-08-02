@@ -111,17 +111,18 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             return;
         }
 
-        let mandatoryParamInitIndices, optionalParamInitIndices;
+        let mandatoryParamInitIndices: number[], optionalParamInitIndices: number[];
         if (!newPatternMatchStatus) {
             mandatoryParamInitIndices = [];
             optionalParamInitIndices = [];
         } else {
+            // Obtain the selected attributes as much as possible
             mandatoryParamInitIndices = newPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {
-                return Math.floor(Math.random() * mandMatch.length);
+                    return Math.floor(Math.random() * mandMatch.length);
             });
             
             optionalParamInitIndices = newPatternMatchStatus.optionalAttributes.map((mandMatch, idx) => {
-                return Math.floor(Math.random() * mandMatch.length);
+                    return Math.floor(Math.random() * mandMatch.length);
             });
         }
 
@@ -162,8 +163,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
                 Connections.getRelationBasedData(
                         this.state.relHierachyIndices.flat()
-                            .map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues(), newParamAttrs)
-                    .then(getDataCallback)
+                            .map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues(), newParamAttrs, this.state.filters)
+                    .then(getDataCallback.bind(this))
             }
         })
 
@@ -206,18 +207,26 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     this.getProviderValues())
                     .then(getDataCallback.bind(this))
             } else {
+                // this.updateRelationBasedDataWithFilter(this.state.filters, undefined, this);
                 const getDataCallback = (data: object[]) => {
+                    const filteredData = filterDataByFilters(data, this.getProviderValues(), this.state.filters);
+                    
+                    const mainRelation = this.state.relHierachyIndices[0].map(relIdx => this.state.relationsList[relIdx])
+                    const visSchemaMatchesFromRels = 
+                        this.getVisSchemaMatchesFromSelectedRelations([mainRelation[0]]);
+        
                     this.setState({
                         dataLoaded: true,
-                        data: data,
+                        data: filteredData,
+                        visSchemaMatchStatus: visSchemaMatchesFromRels[0],
                         rendererSelectedAttributes: newAttsObject
-                    });
+                    })
                 }
-
+                
                 Connections.getRelationBasedData(
-                        this.state.relHierachyIndices.flat()
-                            .map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues(), newAttsObject)
-                    .then(getDataCallback)
+                    this.state.relHierachyIndices.flat()
+                        .map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues(), 
+                            newAttsObject, this.state.filters).then(getDataCallback.bind(this));
             }
         })
     }
@@ -310,29 +319,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             this.setState({
                 selectedEntitesIndices: newEntities,
                 selectedRelationsIndices: newRelations
-            })
-
-            // this.setState({
-            //     dataLoaded: false,
-            //     data: undefined,
-            //     filters: []
-            // }, () => {
-    
-                // const getDataCallback = (data: object[]) => {
-                //     this.setState({
-                //         dataLoaded: true,
-                //         data: data,
-                //         // selectedMatchResultIndexInPattern: selectedMatchResultIndexInPattern,
-                //         // rerender: entitiesIndicesChanged,
-                //         // visSchemaMatchStatus: visSchemaMatchStatus,
-                //         // selectedPatternIndex: selectedPatternIndex ? selectedPatternIndex : -1,
-                //         // rendererSelectedAttributes: rendererSelectedAttributes
-                //     });
-                // }
-
-                // Connections.getRelationBasedData(newRelations.map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues())
-                //     .then(getDataCallback)
-            // })
+            });
         }
     }
 
@@ -342,39 +329,34 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         })
     }
 
+    updateRelationBasedDataWithFilter = (filters: Filter[], newStates?: object, thisObj?: object) => {
+        const getDataCallback = (data: object[]) => {
+            const filteredData = filterDataByFilters(data, this.getProviderValues(), filters);
+            
+            const mainRelation = this.state.relHierachyIndices[0].map(relIdx => this.state.relationsList[relIdx])
+            const visSchemaMatchesFromRels = 
+                this.getVisSchemaMatchesFromSelectedRelations([mainRelation[0]]);
+
+            console.log(newStates)
+            
+            this.setState({
+                dataLoaded: true,
+                data: filteredData,
+                filters: filters,
+                visSchemaMatchStatus: visSchemaMatchesFromRels[0]
+            })
+        }
+        
+        Connections.getRelationBasedData(
+            this.state.relHierachyIndices.flat()
+                .map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues(), 
+                    this.state.rendererSelectedAttributes, filters).then(getDataCallback);
+    }
+
     onFilterChange = (filters: Filter[]) => {
         // TODO: temporary divergence
         if (this.state.selectedEntitesIndices.length === 0) {
-            // TODO: temporary duplicate data retrieval
-            const getDataCallback = (data: object[]) => {
-                const filteredData = filterDataByFilters(data, this.getProviderValues(), filters);
-                
-                const mainRelation = this.state.relHierachyIndices[0].map(relIdx => this.state.relationsList[relIdx])
-                const visSchemaMatchesFromRels = 
-                    this.getVisSchemaMatchesFromSelectedRelations([mainRelation[0]]);
-                
-                this.setState({
-                    data: filteredData,
-                    filters: filters,
-                    visSchemaMatchStatus: visSchemaMatchesFromRels[0]
-                })
-            }
-            
-            Connections.getRelationBasedData(
-                this.state.relHierachyIndices.flat()
-                    .map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues(), 
-                        [
-                        [...this.state.rendererSelectedAttributes[0], 
-                            ...filters.map(filter => {
-                                return {
-                                    table: this.state.allEntitiesList[filter.tableIndex],
-                                    attributeIndex: filter.attNum - 1
-                                }
-                            })], 
-                        this.state.rendererSelectedAttributes[1]], 
-                    filters).then(getDataCallback)
-
-            return;
+            this.updateRelationBasedDataWithFilter(filters, {}, this);
         } else {
             const filteredData = filterDataByFilters(this.state.data, this.getProviderValues(), filters);
             const {

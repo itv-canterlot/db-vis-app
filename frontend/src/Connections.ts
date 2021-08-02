@@ -142,25 +142,7 @@ const getFkColsQueriesByRels = (rels: RelationNode[], queryAttributeGroup: Query
 export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patternMatchResult: PatternMatchResult, context?: DBSchemaContextInterface) {
     const [mandatoryAttrs, optionalAttrs] = attrs;
     const responsibleRelation = patternMatchResult.responsibleRelation;
-    let standaloneFilterAttribute: PatternMatchAttribute[] = [];
-    // For the filter match attributes, remove if any of the specified filter attributes are already in attrs
-    if (context.filters && context.filters.length > 0) {
-        let filterMatchAttributes = getFilterMappedPMAttributes(context.allEntitiesList, context.filters)
-        // const filterMatchAttributes = getFilterMappedPMAttributes(filters)
-        filterMatchAttributes.forEach(fma => {
-            const mandatoryAttrsMatchResult = mandatoryAttrs.some(ma => {
-                return ma && (ma.table.idx === fma.table.idx && ma.attributeIndex === fma.attributeIndex);
-            });
-
-            const optionalAttrsMatchResult = optionalAttrs.some(oa => {
-                return oa && (oa.table.idx === fma.table.idx && oa.attributeIndex === fma.attributeIndex);
-            })
-
-            if (!(mandatoryAttrsMatchResult || optionalAttrsMatchResult)) {
-                standaloneFilterAttribute.push(fma);
-            }
-        })
-    }
+    let standaloneFilterAttribute: PatternMatchAttribute[] = getStandaloneFilterAttributes(context.filters, mandatoryAttrs, optionalAttrs, context.allEntitiesList);
 
 
     // const allDefinedAttrs = [...mandatoryAttrs, ...optionalAttrs, ...standaloneFilterAttribute].filter(attr => attr !== undefined && attr !== null);
@@ -235,7 +217,34 @@ export async function getDataByMatchAttrs(attrs: PatternMatchAttribute[][], patt
     });
 }
 
-export async function getRelationBasedData(rels: RelationNode[], context: DBSchemaContextInterface, attrs?: PatternMatchAttribute[][], filters?: Filter[]) {
+const getStandaloneFilterAttributes = 
+    (filters: Filter[], mandatoryAttrs: PatternMatchAttribute[], optionalAttrs: PatternMatchAttribute[], allEntitiesList: Table[]): PatternMatchAttribute[] => {
+        let standaloneFilterAttribute: PatternMatchAttribute[] = [];
+    
+        // For the filter match attributes, remove if any of the specified filter attributes are already in attrs
+        if (filters !== undefined && filters.length > 0) {
+            let filterMatchAttributes = getFilterMappedPMAttributes(allEntitiesList, filters);
+            // const filterMatchAttributes = getFilterMappedPMAttributes(filters)
+            filterMatchAttributes.forEach(fma => {
+                const mandatoryAttrsMatchResult = mandatoryAttrs.some(ma => {
+                    return ma && (ma.table.idx === fma.table.idx && ma.attributeIndex === fma.attributeIndex);
+                });
+
+                const optionalAttrsMatchResult = optionalAttrs.some(oa => {
+                    return oa && (oa.table.idx === fma.table.idx && oa.attributeIndex === fma.attributeIndex);
+                });
+
+                if (!(mandatoryAttrsMatchResult || optionalAttrsMatchResult)) {
+                    standaloneFilterAttribute.push(fma);
+                }
+            });
+        }
+        return standaloneFilterAttribute;
+}
+
+export async function getRelationBasedData
+    (rels: RelationNode[], context: DBSchemaContextInterface, attrs?: PatternMatchAttribute[][], filters?: Filter[]) {
+    
     // List of table names
     let tableIndexList: number[] = [], primaryKeyAttributes = [], foreignKeyAttributes = [];
     rels.forEach(rel => {
@@ -275,21 +284,26 @@ export async function getRelationBasedData(rels: RelationNode[], context: DBSche
         primaryKeyAttributes.push(...thisColumn);
     })
 
+    
     // Process attributes
-    let mandatoryAtts, optionalAtts;
-    let mandatoryAttrList, optionalAttrList;
+    let mandatoryAtts: PatternMatchAttribute[], optionalAtts: PatternMatchAttribute[];
+    let mandatoryAttrList: object[] = [], optionalAttrList: object[] = [];
     if (attrs) {
         [mandatoryAtts, optionalAtts] = attrs;
         mandatoryAttrList = mapPatternMatchAttributesToTableAndColumnNames(mandatoryAtts);
         mandatoryAttrList.forEach(col => col["listIndex"] = tableNames.findIndex(n => n === col["tableName"]));
     }
+    
+    const standaloneFilterAttributes = mapPatternMatchAttributesToTableAndColumnNames(
+            getStandaloneFilterAttributes(filters, mandatoryAtts, optionalAtts, context.allEntitiesList));
 
+    standaloneFilterAttributes.forEach(col => col["listIndex"] = tableNames.findIndex(n => n === col["tableName"]));
 
     let query = {
         tableNames: tableNames,
         primaryKeys: primaryKeyAttributes,
         foreignKeys: foreignKeyAttributes,
-        attributes: [mandatoryAttrList]
+        attributes: [[...mandatoryAttrList, ...standaloneFilterAttributes]]
     };
     
     const rawResponse = fetch("http://localhost:3000/get-rel-based-data", {
@@ -303,7 +317,6 @@ export async function getRelationBasedData(rels: RelationNode[], context: DBSche
 
     return rawResponse.then(response => {
         return response.json().then(d => {
-            console.log(d);
             return d;
         });
 
@@ -342,9 +355,6 @@ export async function getFilteredData(baseTable: Table, allEntities: Table[], fi
             }
         );
     }
-
-    console.log(query);
-    
 }
 
 

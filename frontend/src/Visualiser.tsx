@@ -27,6 +27,11 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
         const selectedPatternTemplateCode = context.visSchema[selectedPattern].template
         
         if (!context.dataLoaded) {
+            if (this.state.renderedDataLoaded) {
+                this.setState({
+                    renderedDataLoaded: false
+                });
+            }
             return;
         }
 
@@ -37,7 +42,8 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                 renderedTableIndex: context.selectedEntitiesIndices[0],
                 renderedMatchResultIndex: context.selectedMatchResultIndexInPattern,
                 renderedVisSchemaIndex: selectedPattern,
-                renderedFilters: context.filters
+                renderedFilters: context.filters,
+                renderedDataLoaded: context.dataLoaded
             })
             renderEmptyChart();
             return;
@@ -132,7 +138,8 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                 renderedTableIndex: context.selectedEntitiesIndices[0],
                 renderedMatchResultIndex: context.selectedMatchResultIndexInPattern,
                 renderedVisSchemaIndex: selectedPattern,
-                renderedFilters: context.filters
+                renderedFilters: context.filters,
+                renderedDataLoaded: context.dataLoaded
             });
             renderEmptyChart();
             return;
@@ -145,7 +152,8 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
             renderedMatchResultIndex: context.selectedMatchResultIndexInPattern,
             renderedTableIndex: context.selectedEntitiesIndices[0],
             renderedVisSchemaIndex: selectedPattern,
-            renderedFilters: context.filters
+            renderedFilters: context.filters,
+            renderedDataLoaded: context.dataLoaded
         })
     }
 
@@ -204,28 +212,32 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
     renderStateDidChange = () => {
         let context: DBSchemaContextInterface = this.context;
         if (context.dataLoaded) {
-            // Data load status check
-            if (context.selectedPatternIndex === this.state.renderedVisSchemaIndex) {
-                // Pattern selection unchanged
-                if (context.selectedEntitiesIndices[0] === this.state.renderedTableIndex) {
-                    // Table selection unchanged
-                    if (context.selectedMatchResultIndexInPattern === this.state.renderedMatchResultIndex) {
-                        // Match result index unchanged
-                        let allAttributeSetChanged = this.isAllAttributeSetChanged();
-                        
-                        if (allAttributeSetChanged) {
-                            if (context.allEntitiesList !== undefined && context.allEntitiesList.length !== 0) {
-                                // If the entity list is loaded
-                                // If no table is selected, do not render
-                                return context.selectedEntitiesIndices[0] >= 0;
+            if (context.dataLoaded === this.state.renderedDataLoaded) {
+                // Data load status check
+                if (context.selectedPatternIndex === this.state.renderedVisSchemaIndex) {
+                    // Pattern selection unchanged
+                    if (context.selectedEntitiesIndices[0] === this.state.renderedTableIndex) {
+                        // Table selection unchanged
+                        if (context.selectedMatchResultIndexInPattern === this.state.renderedMatchResultIndex) {
+                            // Match result index unchanged
+                            let allAttributeSetChanged = this.isAllAttributeSetChanged();
+                            
+                            if (allAttributeSetChanged) {
+                                if (context.allEntitiesList !== undefined && context.allEntitiesList.length !== 0) {
+                                    // If the entity list is loaded
+                                    // If no table is selected, do not render
+                                    return context.selectedEntitiesIndices[0] >= 0;
+                                } else {
+                                    // Entity list not loaded, do not render
+                                    return false;
+                                }
                             } else {
-                                // Entity list not loaded, do not render
-                                return false;
+                                // Attribute set unchanged
+                                // Rerender if filter set is changed
+                                return this.areFiltersChanged();
                             }
                         } else {
-                            // Attribute set unchanged
-                            // Rerender if filter set is changed
-                            return this.areFiltersChanged();
+                            return true;
                         }
                     } else {
                         return true;
@@ -233,6 +245,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                 } else {
                     return true;
                 }
+
             } else {
                 return true;
             }
@@ -269,9 +282,6 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
     }
     
     componentDidUpdate() {
-        console.log("Vis component update")
-        console.log(this.state.axisScales)
-        let context: DBSchemaContextInterface = this.context;
         if (this.state) {
             if (this.renderStateDidChange()) {
                 this.visualisationHandler();
@@ -281,7 +291,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
 
     render() {
         return (
-            <div className="row" id="main-vis-cont">
+            <div className="row g-0" id="main-vis-cont">
                 <div className="col">
                     <div className="btn-group btn-group-sm" id="a1-scale-btn-group" role="group" aria-label="Axis log scale radio buttons">
                         <input type="radio" className="btn-check" name="btnradio" id="btnradio1" autoComplete="off"

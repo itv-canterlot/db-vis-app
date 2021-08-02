@@ -192,6 +192,7 @@ export type VisualiserStates = {
     renderedAttributesIndices?: PatternMatchAttribute[][],
     renderedVisSchemaIndex?: number,
     renderedFilters?: Filter[],
+    renderedDataLoaded?: boolean,
     renderFailed: boolean,
     axisScales?: object
 }
