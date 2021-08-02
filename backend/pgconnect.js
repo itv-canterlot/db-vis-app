@@ -60,7 +60,7 @@ const dataSelectByRelationshipsQuery = (attrs, fks, parentTableNames, primaryKey
         }
     }
 
-    tableJoinQueries = fks.map(convertFKToQueryFunc);
+    tableJoinQueries = fks.length === 0 ? [`${parentTableNames[0]} AS t0`] : fks.map(convertFKToQueryFunc);
     
     while (lastRoundUnprocessedForeignKeys.length !== unprocessedForeignKeys.length) {
         lastRoundUnprocessedForeignKeys = unprocessedForeignKeys;

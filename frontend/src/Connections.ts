@@ -244,25 +244,45 @@ const getStandaloneFilterAttributes =
 
 export async function getRelationBasedData
     (rels: RelationNode[], context: DBSchemaContextInterface, attrs?: PatternMatchAttribute[][], filters?: Filter[]) {
+
+    const isTableRequired = (tableIndex: number) => {
+        // Table is required if:
+        //// It is the parent entity
+        //// It has been mentioned in one of the attrs or filters
+        const isTableParentEntity = rels.some(rel => rel.parentEntity.idx === tableIndex);
+        if (!isTableParentEntity) {
+            const isTableInOneAttr = attrs === undefined ? false : attrs.some(attr => attr.some(a => a !== undefined && a.table.idx === tableIndex));
+            if (!isTableInOneAttr) {
+                const isTableInOneFilter = filters === undefined ? false : filters.some(f => f.tableIndex === tableIndex);
+                if (!isTableInOneFilter) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
     
     // List of table names
     let tableIndexList: number[] = [], primaryKeyAttributes = [], foreignKeyAttributes = [];
     rels.forEach(rel => {
-        if (!tableIndexList.includes(rel.parentEntity.idx)) {
+        if (!tableIndexList.includes(rel.parentEntity.idx) && isTableRequired(rel.parentEntity.idx)) {
             tableIndexList.push(rel.parentEntity.idx);
         }
         rel.childRelations.forEach(cr => {
-            if (!tableIndexList.includes(cr.table.idx)) {
+            if (!tableIndexList.includes(cr.table.idx) && isTableRequired(cr.table.idx)) {
                 tableIndexList.push(cr.table.idx);
             }
         })
     })
 
+    // Not all table names/pk/fk are required
     const tableNames = tableIndexList.map(tableIndex => context.allEntitiesList[tableIndex].tableName);
 
     rels.forEach(rel => {
         const allRelationForeignKeyPairs = rel.childRelations
             // .filter(cr => tableIndexList.includes(cr.table.idx))
+            .filter(cr => tableIndexList.indexOf(cr.table.idx) >= 0)
             .map(cr => {
                 const thisForeignKey = rel.type === VISSCHEMATYPES.MANYMANY ? rel.parentEntity.fk[cr.fkIndex] : cr.table.fk[cr.fkIndex];
                 return {
