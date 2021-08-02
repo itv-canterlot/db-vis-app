@@ -95,9 +95,9 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                 }));
     
             firstTablePrimaryKeyNames = 
-                context.allEntitiesList[context.relHierachyIndices[0][0]]
+                context.relationsList[context.relHierachyIndices[0][0]].parentEntity
                     .pk.columns.map(col => {
-                        return `pk_${context.allEntitiesList[context.relHierachyIndices[0][0]].tableName}_${col.colName}`;
+                        return `pk_${context.relationsList[context.relHierachyIndices[0][0]].parentEntity.tableName}_${col.colName}`;
                     });
     
             selectedAttributesPublicKeyNames = 

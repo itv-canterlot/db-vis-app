@@ -38,7 +38,7 @@ function renderScatterPlot(parameters: VisTemplateBuilder) {
 
     while (nullFilterIndex >= 0) {
         const d = data[nullFilterIndex];
-        const hasNull = Object.values(d).some(x => x === null || x === '' || x === undefined);
+        const hasNull = Object.values(d).some(x => x === null || x === '' || x === undefined || x === NaN);
         if (hasNull) {
             nullPoints.push(d);
             data.splice(nullFilterIndex, 1)
@@ -212,7 +212,7 @@ function renderBubblePlot(parameters: VisTemplateBuilder) {
 
     while (nullFilterIndex >= 0) {
         const d = data[nullFilterIndex];
-        const hasNull = Object.values(d).some(x => x === null || x === '' || x === undefined);
+        const hasNull = Object.values(d).some(x => x === null || x === '' || x === undefined || x === NaN);
         if (hasNull) {
             nullPoints.push(d);
             data.splice(nullFilterIndex, 1)
@@ -322,7 +322,7 @@ function renderBarPlot(parameters: VisTemplateBuilder) {
 
     while (nullFilterIndex >= 0) {
         const d = data[nullFilterIndex];
-        const hasNull = Object.values(d).some(x => x === null || x === '' || x === undefined);
+        const hasNull = Object.values(d).some(x => x === null || x === '' || x === undefined || x === NaN);
         if (hasNull) {
             nullPoints.push(d);
             data.splice(nullFilterIndex, 1)
@@ -422,7 +422,7 @@ function renderLinePlot(parameters: VisTemplateBuilder) {
 
     while (nullFilterIndex >= 0) {
         const d = data[nullFilterIndex];
-        const hasNull = Object.values(d).some(x => x === null || x === '' || x === undefined);
+        const hasNull = Object.values(d).some(x => x === null || x === '' || x === undefined || x === NaN);
         if (hasNull) {
             nullPoints.push(d);
             data.splice(nullFilterIndex, 1)
