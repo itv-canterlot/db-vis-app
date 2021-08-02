@@ -1,6 +1,7 @@
-import { Attribute, Filter, FilterType, FilterCondition } from "./ts/types";
+import { Attribute, Filter, FilterType, FilterCondition, VISSCHEMATYPES } from "./ts/types";
 import { DBSchemaContextInterface } from "./DBSchemaContext"
 import * as FilterConditions from "./ts/FilterConditions";
+import { keyCountCheck } from "./VisSchemaMatcher";
 
 export const filterDataByFilters = (data: object[], dbSchemaContext: DBSchemaContextInterface, filters?: Filter[]): any[] => {
     let filteredData;
@@ -54,6 +55,52 @@ export const filterDataByAttribute = (data: object[], dbSchemaContext: DBSchemaC
     }
 
     return nullRemoved.map(d => d[attr.attname]);
+}
+
+export const getDatasetEntryCountStatus = (context: DBSchemaContextInterface) => {
+    const filteredData = context.data;
+    const selectedPatternIndex = context.selectedPatternIndex;
+    const selectedVisPattern = context.visSchema[selectedPatternIndex];
+    const selectedRelation = context.relationsList[context.relHierachyIndices[0][0]];
+
+    if (selectedRelation === undefined || filteredData === undefined) return false;
+    
+    let localKeyCountPassed: boolean, foreignKeyCountPassed: boolean;
+    const localTableName = selectedRelation.parentEntity.tableName;
+    
+    if (selectedPatternIndex === undefined || selectedPatternIndex < 0) return false;
+    const localPkAttributeList = selectedRelation.parentEntity.pk.columns.map(col => `pk_${localTableName}_${col.colName}`);
+    
+    const localPkFiltered = filteredData.map(d => localPkAttributeList.reduce((o, k) => {o[k] = d[k]; return o;}, {}));
+    
+    const localPkUnique = [];
+    localPkFiltered.forEach(d => {
+        if (localPkUnique.length === 0 || !localPkUnique.some(uniq => localPkAttributeList.every(attName => d[attName] === uniq[attName]))) {
+            localPkUnique.push(d);
+        }
+    });
+    const localPkCount = localPkUnique.length;
+    localKeyCountPassed = keyCountCheck(selectedVisPattern.localKey, localPkCount)
+    
+    if (selectedVisPattern.type !== VISSCHEMATYPES.BASIC) {
+        const foreignTableName = selectedRelation.childRelations[0].table.tableName; // TODO: multi table?
+        const foreignPkAttributeList = selectedRelation.childRelations[0].table.pk.columns.map(col => `pk_${foreignTableName}_${col.colName}`);
+        const foreignPkFiltered = filteredData.map(d => foreignPkAttributeList.reduce((o, k) => {o[k] = d[k]; return o;}, {}));
+        
+        const foreignPkUnique = [];
+        foreignPkFiltered.forEach(d => {
+            if (foreignPkUnique.length === 0 || !foreignPkUnique.some(uniq => foreignPkAttributeList.every(attName => d[attName] === uniq[attName]))) {
+                foreignPkUnique.push(d);
+            }
+        });
+
+        const foreignPkCount = foreignPkUnique.length;
+        foreignKeyCountPassed = keyCountCheck(selectedVisPattern.foreignKey, foreignPkCount);
+    } else {
+        foreignKeyCountPassed = true;
+    }
+
+    return localKeyCountPassed && foreignKeyCountPassed;
 }
 
 export const getStandardDeviation = (array) => {

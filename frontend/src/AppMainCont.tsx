@@ -3,6 +3,8 @@ import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { AppMainContProps, AppMainContStates, SchemaExplorerProps, SchemaExplorerStates } from './ts/components';
 import { CONFIRMATION_STATUS, PatternMatchAttribute, PatternMatchResult, PATTERN_MISMATCH_REASON_TYPE, RelationNode, VisParam, VISSCHEMATYPES, visSchemaTypeToReadableString } from './ts/types';
 import { Visualiser } from './Visualiser';
+import { keyCountCheck } from './VisSchemaMatcher';
+import { getDatasetEntryCountStatus } from './DatasetUtils';
 
 class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorerStates> {
     constructor(props) {
@@ -443,7 +445,6 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
         //     auxillaryPatternIndex.splice(clickedInAuxillary, 1);
         //     return;
         // }
-       
     }
 
     render() {
@@ -590,6 +591,9 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
                             </div>
                             <div>
                                 Entry count: {thisPatternMatchResultGroup ? JSON.stringify(thisPatternMatchResultGroup[0].keyCountMatched) : "N/A"}
+                            </div>
+                            <div>
+                                New unique key count check: {thisPatternMatchResultGroup ? JSON.stringify(getDatasetEntryCountStatus(this.context)) : "N/A"}
                             </div>
                         </div>
                     </div>

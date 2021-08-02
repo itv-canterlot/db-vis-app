@@ -2,10 +2,10 @@ import * as SchemaParser from "./SchemaParser";
 import {Attribute, RelationNode, Table, VisKey, VisParam, VISPARAMTYPES, VisSchema, VISSCHEMATYPES, PatternMatchResult, PatternMatchAttribute, PatternMismatchReason, PATTERN_MISMATCH_REASON_TYPE, ChildRelation} from "./ts/types";
 import * as TypeConstants from "./TypeConstants";
 
-const keyCountCheck = (table: Table, key: VisKey, nPks?: number): boolean => {
+export const keyCountCheck = (key: VisKey, nPks: number): boolean => {
     const keyMinCount = key.minCount,
         keyMaxCount = key.maxCount,
-        tableKeyCount = nPks ? nPks : table.pk.keyCount;
+        tableKeyCount = nPks;
     // Count checks
     if (keyMaxCount) {
         if (tableKeyCount > keyMaxCount) {
@@ -299,7 +299,7 @@ const weakEntityVisMatch = (table: Table, rel: RelationNode, vs: VisSchema, nKey
             return [failedPatternMatchObject(vs, parentTableBasicCheckResult)];
         }
         
-        if (!keyCountCheck(table, vs.localKey, nKeys)) {
+        if (!keyCountCheck(vs.localKey, nKeys ? nKeys : table.pk.keyCount)) {
             if (ignoreKeyCountMismatch) {
                 parentKeyIsMismatch = true;
             } else {
@@ -348,7 +348,7 @@ const weakEntityVisMatch = (table: Table, rel: RelationNode, vs: VisSchema, nKey
                 return failedPatternMatchObject(vs, weTableBasicCheckResult);
             }
 
-            if (!keyCountCheck(cr.table, vs.localKey, nKeys)) {
+            if (!keyCountCheck(vs.localKey, nKeys ? nKeys : cr.table.pk.keyCount)) {
                 if (ignoreKeyCountMismatch) {
                     crKeyIsMismatch = true;
                 } else {
@@ -401,7 +401,7 @@ const weakEntityVisMatch = (table: Table, rel: RelationNode, vs: VisSchema, nKey
             return [failedPatternMatchObject(vs, weTableBasicCheckResult)];
         }
 
-        if (!keyCountCheck(rel.parentEntity, vs.localKey, nKeys) || !keyCountCheck(table, vs.foreignKey, nKeys)) {
+        if (!keyCountCheck(vs.localKey, nKeys ? nKeys : rel.parentEntity.pk.keyCount) || !keyCountCheck(vs.foreignKey, nKeys ? nKeys : table.pk.keyCount)) {
             if (ignoreKeyCountMismatch) {
                 keyIsMismatch = true;
             } else {
@@ -471,7 +471,7 @@ const manyManyEntityMatch = (rel: RelationNode, vs: VisSchema, nKeys: number, ig
 
             // Child relation table count check
             // Using localKey as k1, foreignKey as k2
-            if (!keyCountCheck(r1.table, vs.localKey, nKeys)) {
+            if (!keyCountCheck(vs.localKey, nKeys ? nKeys : r1.table.pk.keyCount)) {
                 if (ignoreKeyCountMismatch) {
                     keyMismatch = true;
                 } else {
@@ -480,7 +480,7 @@ const manyManyEntityMatch = (rel: RelationNode, vs: VisSchema, nKeys: number, ig
                 }
             }
 
-            if (!keyCountCheck(r2.table, vs.foreignKey, nKeys)) {
+            if (!keyCountCheck(vs.foreignKey, nKeys ? nKeys : r2.table.pk.keyCount)) {
                 if (ignoreKeyCountMismatch) {
                     keyMismatch = true;
                 } else {
@@ -535,7 +535,7 @@ export const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:
     let allPatternMatches: PatternMatchResult[] = [];
     switch (vs.type) {
         case VISSCHEMATYPES.BASIC:
-            if (!keyCountCheck(table, vs.localKey, nKeys)) {
+            if (!keyCountCheck(vs.localKey, nKeys ? nKeys : table.pk.keyCount)) {
                 allPatternMatches.push(failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.KEY_COUNT_MISMATCH}));
                 break;
             }
@@ -593,7 +593,7 @@ const matchRelationWithVisPattern = (rel: RelationNode, vs: VisSchema, nKeys?: n
         case VISSCHEMATYPES.BASIC:
             let basicEntityMatchResult = 
                 basicEntityVisMatch(rel.parentEntity, vs, nKeys, rel.type === VISSCHEMATYPES.SUBSET ? rel : undefined);
-            if (!keyCountCheck(rel.parentEntity, vs.localKey, nKeys)) {
+            if (!keyCountCheck(vs.localKey, nKeys ? nKeys : rel.parentEntity.pk.keyCount)) {
                 basicEntityMatchResult.keyCountMatched = false
             } else {
                 basicEntityMatchResult.keyCountMatched = true
