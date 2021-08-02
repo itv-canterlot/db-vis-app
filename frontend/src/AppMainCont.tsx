@@ -542,43 +542,45 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
                         </div>
                         {schemaDropdown}
                     </div>
-                    <div className="mt-2">
-                        <div className="row">
-                            <div className="col d-flex">
-                                <div>
-                                Relations:
+                    <div className="mt-2 row g-0 ps-2 pe-2">
+                        <div className="col">
+                            <div className="row g-0">
+                                <div className="col d-flex">
+                                    <div>
+                                    Relations:
+                                    </div>
+                                    {selectedRelationsPills()}
                                 </div>
-                                {selectedRelationsPills()}
                             </div>
-                        </div>
 
-                        <div className="row">
-                            <div className="col">
-                                {JSON.stringify(context.relHierachyIndices)}
-                            </div>
-                        </div>
-
-
-                        <div className="row">
-                            <div className="col">
-                                <div>
+                            <div className="row g-0">
+                                <div className="col">
                                     {JSON.stringify(context.relHierachyIndices)}
                                 </div>
                             </div>
-                        </div>
-                        <div className="row">
-                            <div className="col">
-                                Mandatory attributes:
-                                {thisPatternMatchResultGroup === undefined ? null : this.mandatoryAttributeDropdownGroup(thisPatternMatchResultGroup[context.selectedMatchResultIndexInPattern])}
+
+
+                            <div className="row g-0">
+                                <div className="col">
+                                    <div>
+                                        {JSON.stringify(context.relHierachyIndices)}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div className="row">
-                        <div className="col">
-                                Optional attributes:
+                            <div className="row g-0">
+                                <div className="col">
+                                    Mandatory attributes:
+                                    {thisPatternMatchResultGroup === undefined ? null : this.mandatoryAttributeDropdownGroup(thisPatternMatchResultGroup[context.selectedMatchResultIndexInPattern])}
+                                </div>
+                            </div>
+                            <div className="row g-0">
+                                <div className="col">
+                                    Optional attributes:
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div className="row">
+                    <div className="row g-0 ps-2 pe-2">
                         <div className="col">
                             <div>
                                 Statuses:
