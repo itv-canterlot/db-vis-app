@@ -249,7 +249,8 @@ export async function getRelationBasedData
         // Table is required if:
         //// It is the parent entity
         //// It has been mentioned in one of the attrs or filters
-        const isTableParentEntity = rels.some(rel => rel.parentEntity.idx === tableIndex);
+        
+        /* const isTableParentEntity = rels.some(rel => rel.parentEntity.idx === tableIndex);
         if (!isTableParentEntity) {
             const isTableInOneAttr = attrs === undefined ? false : attrs.some(attr => attr.some(a => a !== undefined && a.table.idx === tableIndex));
             if (!isTableInOneAttr) {
@@ -258,7 +259,7 @@ export async function getRelationBasedData
                     return false;
                 }
             }
-        }
+        } */
 
         return true;
     }

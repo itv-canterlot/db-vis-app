@@ -593,7 +593,12 @@ class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorer
                                 Entry count: {thisPatternMatchResultGroup ? JSON.stringify(thisPatternMatchResultGroup[0].keyCountMatched) : "N/A"}
                             </div>
                             <div>
-                                New unique key count check: {thisPatternMatchResultGroup ? JSON.stringify(getDatasetEntryCountStatus(this.context)) : "N/A"}
+                                New unique key count check: {
+                                    thisPatternMatchResultGroup ? 
+                                    JSON.stringify(getDatasetEntryCountStatus(
+                                            context.data, context.visSchema[context.selectedPatternIndex], 
+                                            context.relationsList[context.relHierachyIndices[0][0]])) : 
+                                    "N/A"}
                             </div>
                         </div>
                     </div>
