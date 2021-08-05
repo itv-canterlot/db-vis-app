@@ -1,7 +1,8 @@
-import { Attribute, Filter, FilterType, FilterCondition, VISSCHEMATYPES } from "./ts/types";
+import { Attribute, Filter, FilterType, FilterCondition, VISSCHEMATYPES, PatternMatchAttribute } from "./ts/types";
 import { DBSchemaContextInterface } from "./DBSchemaContext"
 import * as FilterConditions from "./ts/FilterConditions";
 import { keyCountCheck } from "./VisSchemaMatcher";
+import { getRelationBasedData } from "./Connections";
 
 export const filterDataByFilters = (data: object[], dbSchemaContext: DBSchemaContextInterface, filters?: Filter[]): any[] => {
     let filteredData;
@@ -101,6 +102,39 @@ export const getDatasetEntryCountStatus = (context: DBSchemaContextInterface) =>
     }
 
     return localKeyCountPassed && foreignKeyCountPassed;
+}
+
+export const getRelationOneManyStatus = (context: DBSchemaContextInterface) => {
+    const selectedRelation = context.relationsList[context.relHierachyIndices[0][0]];
+    if (selectedRelation.type !== VISSCHEMATYPES.ONEMANY && selectedRelation.type !== VISSCHEMATYPES.MANYMANY) return Promise.resolve(-1);
+
+    const fkIndex = selectedRelation.childRelations[0].fkIndex;
+    const foreignTableName = selectedRelation.childRelations[0].table.tableName
+    const fkMappedToPM: PatternMatchAttribute[] = selectedRelation.childRelations[0].table.fk[fkIndex].columns.map(col => {
+        return {
+            table: selectedRelation.childRelations[0].table,
+            attributeIndex: col.fkColPos - 1
+        }
+    })
+
+    return Promise.resolve(getRelationBasedData([selectedRelation], context, [fkMappedToPM], context.filters).then(data => {
+        const filteredData = filterDataByFilters(data, context, context.filters);
+        const localPkAttributeList = selectedRelation.childRelations[0].table.fk[fkIndex].columns.map(col => `a_${foreignTableName}_${col.fkColName}`);
+        const keyCounter: {[key: string]: number} = {};
+        filteredData.forEach(d => {
+            const keySubsetString = JSON.stringify(localPkAttributeList.reduce((o, k) => {o[k] = d[k]; return o;}, {}));
+            const findElemInKeyCounter = Object.keys(keyCounter).find(key => key === keySubsetString);
+            if (findElemInKeyCounter !== undefined) {
+                // Increment counter
+                keyCounter[keySubsetString]++;
+            } else {
+                keyCounter[keySubsetString] = 1;
+            }
+        });
+
+        const keyPairCount = Math.max(...Object.values(keyCounter));
+        return keyPairCount;
+    }));
 }
 
 export const getStandardDeviation = (array) => {

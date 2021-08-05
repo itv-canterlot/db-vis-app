@@ -1,6 +1,8 @@
 import * as SchemaParser from "./SchemaParser";
 import {Attribute, RelationNode, Table, VisKey, VisParam, VISPARAMTYPES, VisSchema, VISSCHEMATYPES, PatternMatchResult, PatternMatchAttribute, PatternMismatchReason, PATTERN_MISMATCH_REASON_TYPE, ChildRelation} from "./ts/types";
 import * as TypeConstants from "./TypeConstants";
+import { getRelationOneManyStatus } from "./DatasetUtils";
+import { DBSchemaContextInterface } from "./DBSchemaContext";
 
 export const keyCountCheck = (key: VisKey, nPks: number): boolean => {
     const keyMinCount = key.minCount,
@@ -187,20 +189,25 @@ export const matchTableWithAllVisPatterns = (table: Table, rels: RelationNode[],
     return out;
 }
 
-export const matchRelationWithAllVisPatterns = (rel: RelationNode, vss:VisSchema[], nKeys?: number): PatternMatchResult[][] => {
-    let out = [];
-    // If the table is in a set, treat the set as a big table
-    // getTablesWithinSet(rels, tablesWithinSet, relsWithoutSubset);
-    vss.forEach((vs, idx) => {
-        const thisVisSchemaMatchResult = matchRelationWithVisPattern(rel, vs, nKeys)
-        if (thisVisSchemaMatchResult) {
-            out.push(thisVisSchemaMatchResult);
-        } else {
-            out.push(undefined);
-        }
-    })
+// export const matchRelationWithAllVisPatterns = (rel: RelationNode, vss:VisSchema[], nKeys?: number): PatternMatchResult[][] => {
+export const matchRelationWithAllVisPatterns = (context: DBSchemaContextInterface): Promise<PatternMatchResult[][]> => {
+    return getRelationOneManyStatus(context).then(oneManyMaxPairedVal => {
+        let out = [];
+        const vss = context.visSchema;
+        // If the table is in a set, treat the set as a big table
+        // getTablesWithinSet(rels, tablesWithinSet, relsWithoutSubset);
+        vss.forEach((vs, idx) => {
+            const thisVisSchemaMatchResult = matchRelationWithVisPattern(context, vs, oneManyMaxPairedVal)
+            if (thisVisSchemaMatchResult) {
+                out.push(thisVisSchemaMatchResult);
+            } else {
+                out.push(undefined);
+            }
+        })
+    
+        return out;
+    });
 
-    return out;
 }
 
 const patternMatchSuccessful = (result: PatternMatchResult, vs: VisSchema) => {
@@ -526,6 +533,65 @@ const manyManyEntityMatch = (rel: RelationNode, vs: VisSchema, nKeys: number, ig
     return allPatternMatchResults;
 }
 
+export const oneManyVisMatch = 
+    (rel: RelationNode, vs: VisSchema, ignoreKeyCountMismatch?: boolean, oneManyVisMatch?: number): PatternMatchResult[] => {
+        if (rel.type !== VISSCHEMATYPES.WEAKENTITY && rel.type !== VISSCHEMATYPES.ONEMANY) {
+            return [failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.PATTERN_TYPE_MISMATCH})]
+        };
+
+        if (vs.type !== VISSCHEMATYPES.ONEMANY) return;
+        let keyIsMismatch = false;
+        
+        if (!keyCountCheck(vs.localKey, rel.parentEntity.pk.keyCount)) {
+            if (ignoreKeyCountMismatch) {
+                keyIsMismatch = true;
+            } else {
+                return [failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.KEY_COUNT_MISMATCH})];
+            }
+        }
+
+        if (oneManyVisMatch > vs.foreignKey.maxCount) {
+            if (ignoreKeyCountMismatch) {
+                keyIsMismatch = true;
+            } else {
+                return [failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.KEY_COUNT_MISMATCH})];
+            }
+        }
+
+        let thisPatternMatchResult: PatternMatchResult = {
+            vs: vs,
+            mandatoryAttributes: [],
+            optionalAttributes: [],
+            matched: false,
+            responsibleRelation: rel,
+            keyCountMatched: ignoreKeyCountMismatch ? !keyIsMismatch : undefined
+        };
+
+        if (vs.mandatoryParameters) {
+            for (let mp of vs.mandatoryParameters) {
+                let thisConstMatchableIndices = getMatchingAttributesByParameter(rel.parentEntity, mp);
+                thisPatternMatchResult.mandatoryAttributes.push(thisConstMatchableIndices);
+            }
+
+            if (patternMatchSuccessful(thisPatternMatchResult, vs)) {
+                thisPatternMatchResult.matched = true;
+            } else {
+                return [failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.NO_SUITABLE_ATTRIBUTE})];
+            }
+        } else {
+            thisPatternMatchResult.matched = true;
+        }
+    
+        if (vs.optionalParameters) {
+            for (let op of vs.optionalParameters) {
+                let thisConstMatchableIndices = getMatchingAttributesByParameter(rel.parentEntity, op);
+                thisPatternMatchResult.optionalAttributes.push(thisConstMatchableIndices);
+            }
+        }
+        
+        return [thisPatternMatchResult];
+}
+
 export const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:VisSchema, nKeys?: number): PatternMatchResult[] => {
     if (!table.pk) return undefined; // Not suitable if there is no PK to use
 
@@ -588,12 +654,13 @@ export const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:
     return allPatternMatches;
 }
 
-const matchRelationWithVisPattern = (rel: RelationNode, vs: VisSchema, nKeys?: number): PatternMatchResult[] => {
+const matchRelationWithVisPattern = (context: DBSchemaContextInterface, vs: VisSchema, oneManyMaxPairedVal?: number): PatternMatchResult[] => {
+    const rel = context.relationsList[context.relHierachyIndices[0][0]]; // Primary relation
     switch(vs.type) {
         case VISSCHEMATYPES.BASIC:
             let basicEntityMatchResult = 
-                basicEntityVisMatch(rel.parentEntity, vs, nKeys, rel.type === VISSCHEMATYPES.SUBSET ? rel : undefined);
-            if (!keyCountCheck(vs.localKey, nKeys ? nKeys : rel.parentEntity.pk.keyCount)) {
+                basicEntityVisMatch(rel.parentEntity, vs, undefined, rel.type === VISSCHEMATYPES.SUBSET ? rel : undefined);
+            if (!keyCountCheck(vs.localKey, rel.parentEntity.pk.keyCount)) {
                 basicEntityMatchResult.keyCountMatched = false
             } else {
                 basicEntityMatchResult.keyCountMatched = true
@@ -601,11 +668,11 @@ const matchRelationWithVisPattern = (rel: RelationNode, vs: VisSchema, nKeys?: n
 
             return [basicEntityMatchResult];
         case VISSCHEMATYPES.WEAKENTITY:
-            return weakEntityVisMatch(rel.parentEntity, rel, vs, nKeys, true);
+            return weakEntityVisMatch(rel.parentEntity, rel, vs, undefined, true);
         case VISSCHEMATYPES.ONEMANY:
-            return;
+            return oneManyVisMatch(rel, vs, true, oneManyMaxPairedVal);
         case VISSCHEMATYPES.MANYMANY:
-            return manyManyEntityMatch(rel, vs, nKeys, true);
+            return manyManyEntityMatch(rel, vs, undefined, true);
         default:
             return;
     }

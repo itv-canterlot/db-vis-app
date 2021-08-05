@@ -212,15 +212,18 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     const filteredData = filterDataByFilters(data, this.getProviderValues(), this.state.filters);
                     
                     const mainRelation = this.state.relHierachyIndices[0].map(relIdx => this.state.relationsList[relIdx])
-                    const visSchemaMatchesFromRels = 
-                        this.getVisSchemaMatchesFromSelectedRelations([mainRelation[0]]);
-        
-                    this.setState({
-                        dataLoaded: true,
-                        data: filteredData,
-                        visSchemaMatchStatus: visSchemaMatchesFromRels[0],
-                        rendererSelectedAttributes: newAttsObject
-                    })
+                    // const visSchemaMatchesFromRels = 
+                    //     this.getVisSchemaMatchesFromSelectedRelations();
+                    const setStateCallback = visSchemaMatchesFromRels => {
+                        this.setState({
+                            dataLoaded: true,
+                            data: filteredData,
+                            visSchemaMatchStatus: visSchemaMatchesFromRels,
+                            rendererSelectedAttributes: newAttsObject
+                        })
+                    };
+                    
+                    this.getVisSchemaMatchesFromSelectedRelations().then(setStateCallback.bind(this));
                 }
                 
                 Connections.getRelationBasedData(
@@ -252,12 +255,16 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 return;
             }
 
-            const mainRelation = this.state.relationsList[newHierachy[0][0]]
-            const visSchemaMatchesFromRels = 
-                this.getVisSchemaMatchesFromSelectedRelations([mainRelation]);
-            this.setState({
-                visSchemaMatchStatus: visSchemaMatchesFromRels[0]
-            })
+            const setStateCallback = (visSchemaMatchesFromRels => {
+                this.setState({
+                    visSchemaMatchStatus: visSchemaMatchesFromRels
+                })
+            });
+
+            this.getVisSchemaMatchesFromSelectedRelations().then(setStateCallback.bind(this));
+
+            // const visSchemaMatchesFromRels = 
+            //     this.getVisSchemaMatchesFromSelectedRelations();
         });
 
     }
@@ -334,17 +341,20 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             const filteredData = filterDataByFilters(data, this.getProviderValues(), filters);
             
             const mainRelation = this.state.relHierachyIndices[0].map(relIdx => this.state.relationsList[relIdx])
-            const visSchemaMatchesFromRels = 
-                this.getVisSchemaMatchesFromSelectedRelations([mainRelation[0]]);
+            // const visSchemaMatchesFromRels = 
+            //     this.getVisSchemaMatchesFromSelectedRelations();
 
-            console.log(newStates)
+            const setStateCallback = (visSchemaMatchesFromRels) => {
+                this.setState({
+                    dataLoaded: true,
+                    data: filteredData,
+                    filters: filters,
+                    visSchemaMatchStatus: visSchemaMatchesFromRels
+                })
+            }
+
+            this.getVisSchemaMatchesFromSelectedRelations().then(setStateCallback.bind(this));
             
-            this.setState({
-                dataLoaded: true,
-                data: filteredData,
-                filters: filters,
-                visSchemaMatchStatus: visSchemaMatchesFromRels[0]
-            })
         }
         
         Connections.getRelationBasedData(
@@ -454,11 +464,11 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         
     }
 
-    getVisSchemaMatchesFromSelectedRelations = (selectedRelations: RelationNode[]) => {
-        return selectedRelations.map(rel => {
-            // TODO: more graceful way to remove key count restriction
-            return matchRelationWithAllVisPatterns(rel, visSchema);
-        })
+    getVisSchemaMatchesFromSelectedRelations = () => {
+        return matchRelationWithAllVisPatterns(this.getProviderValues());
+        // return selectedRelations.map(rel => {
+        //     // TODO: more graceful way to remove key count restriction
+        // })
     }
     
     getTableMetadata = () => {
