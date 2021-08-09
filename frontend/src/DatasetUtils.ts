@@ -86,7 +86,7 @@ const getOneManyCountPairFromManyManyRel = (relFks: ForeignKey[], filteredData: 
 const oneManyKeyCountMatchWithPatternFromData = (relation: RelationNode, visPattern: VisSchema, filteredData: object[]): boolean => {
     if (visPattern.type !== VISSCHEMATYPES.ONEMANY) return false;
     // Need to check fk per pk
-    if (relation.type === VISSCHEMATYPES.ONEMANY) {
+    if (relation.type !== VISSCHEMATYPES.MANYMANY) {
         const relFk = relation.childRelations[0].table.fk[relation.childRelations[0].fkIndex];
         const pkAttributeNames = relFk.columns.map(col => `pk_${relation.parentEntity.tableName}_${col.pkColName}`);
         const oneManyKeyPairCount = getKeyPairCountFromData(filteredData, pkAttributeNames);
@@ -178,7 +178,7 @@ export const getRelationOneManyStatus = (context: DBSchemaContextInterface, targ
     
     getDataPromise = getDataPromise.then(data => {
         if (data === undefined) {
-            return getRelationBasedData([selectedRelation], context, undefined, context.filters);
+            return getRelationBasedData(context.selectedRelationsIndices.map(idx => context.relationsList[idx]), context, undefined, context.filters);
         } else {
             return data;
         }
@@ -215,7 +215,7 @@ export const getRelationOneManyStatus = (context: DBSchemaContextInterface, targ
             }
         })
     
-        return Promise.resolve(getRelationBasedData([selectedRelation], context, [fkMappedToPM], context.filters).then(data => {
+        return Promise.resolve(getRelationBasedData(context.selectedRelationsIndices.map(idx => context.relationsList[idx]), context, [fkMappedToPM], context.filters).then(data => {
             const filteredData = filterDataByFilters(data, context, context.filters);
             const relFk = selectedRelation.childRelations[0].table.fk[selectedRelation.childRelations[0].fkIndex];
             const pkAttributeNames = relFk.columns.map(col => `pk_${selectedRelation.parentEntity.tableName}_${col.pkColName}`);
