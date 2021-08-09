@@ -658,8 +658,6 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
     }
 
     datasetFilteringElement = () => {
-        // if (this.state.selectedTableAttrListIndex < 0) return null;
-
         const dbSchemaContext: DBSchemaContextInterface = this.context;        
         return (
             <div className="row">
@@ -684,7 +682,6 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
                             entitiesList={dbSchemaContext.allEntitiesList} />
                     </ul>
                 </div>
-                {/* {JSON.stringify(this.state.tableAttrList[this.state.selectedTableAttrListIndex])} */}
             </div>
         )
     }

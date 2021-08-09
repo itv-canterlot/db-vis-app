@@ -215,6 +215,7 @@ export type PatternMismatchReason = {
 export class FilterType {
     static readonly SCALAR_COMPARISON = new FilterType(0, "Scalar comparison");
     static readonly STD = new FilterType(1, "Limit outliers");
+    static readonly STRING_COMPARISON = new FilterType(2, "String comparison");
 
     private constructor(
         private readonly key,
@@ -228,7 +229,8 @@ export class FilterType {
 
     static getAllFilterTypes = () => [
         FilterType.SCALAR_COMPARISON,
-        FilterType.STD
+        FilterType.STD,
+        FilterType.STRING_COMPARISON
     ]
 }
 

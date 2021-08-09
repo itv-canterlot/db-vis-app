@@ -23,7 +23,7 @@ export const filterDataByFilters = (data: object[], dbSchemaContext: DBSchemaCon
                 }
                 
                 let param = {
-                    baseVal: parseFloat(d[attRetrievalName]),
+                    baseVal: d[attRetrievalName],
                     std: undefined,
                     mean: undefined
                 };

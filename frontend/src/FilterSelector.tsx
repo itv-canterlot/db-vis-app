@@ -24,12 +24,14 @@ export class FilterSelector extends React.Component<FilterSelectorProps, {}> {
     thisConditionHandler = (e: React.BaseSyntheticEvent) => {
         const conditionIndexSelected = parseInt(e.target.getAttribute("data-cond-idx"));
         if (conditionIndexSelected > -1) {
-            this.props.changedCondition(FilterConditions.scalarConditions[conditionIndexSelected]);
+            const currentFilterConditions = FilterConditions.getFilterConditionsByType(this.props.cachedFilterType);
+            this.props.changedCondition(currentFilterConditions[conditionIndexSelected]);
         }
     };
 
     conditionDropdown = () => {
         const conditionCached = this.props.filter.condition;
+        const currentFilterConditions = FilterConditions.getFilterConditionsByType(this.props.cachedFilterType);
         return (
             <div className="btn-group me-2">
                 <button type="button" className="btn btn-secondary">{conditionCached !== undefined ? conditionCached.friendlyName : "Select..."}</button>
@@ -37,7 +39,7 @@ export class FilterSelector extends React.Component<FilterSelectorProps, {}> {
                     <span className="visually-hidden">Toggle Dropdown</span>
                 </button>
                 <ul className="dropdown-menu">
-                    {FilterConditions.scalarConditions.map((cond, idx) => {
+                    {currentFilterConditions.map((cond, idx) => {
                         return (<li key={idx} data-cond-idx={idx}><a className="dropdown-item" href="#" data-cond-idx={idx} onClick={this.thisConditionHandler}>{cond.friendlyName}</a></li>);
                     })}
                 </ul>
@@ -51,11 +53,17 @@ export class FilterSelector extends React.Component<FilterSelectorProps, {}> {
         </div>
     );
 
-    valueInput = (
+    valueInputNumber = (
         <div className="input-group" style={{ maxWidth: "20%" }}>
             <input ref={this.props.cachedFilterValueRef} type="number" className="form-control input-number-no-scroll" placeholder="Value" aria-label="Value" />
         </div>
     );
+
+    valueInputAny = (
+        <div className="input-group" style={{ maxWidth: "20%" }}>
+            <input ref={this.props.cachedFilterValueRef} className="form-control input-number-no-scroll" placeholder="Value" aria-label="Value" />
+        </div>
+    )
 
     cachedFilterSubmitButton = (
         <button type="button" className="btn btn-success" onClick={this.props.onConfirmCachedFilter}>Confirm</button>
@@ -87,7 +95,13 @@ export class FilterSelector extends React.Component<FilterSelectorProps, {}> {
             case (FilterType.SCALAR_COMPARISON):
                 return (
                     <div className="d-flex align-items-center">
-                        {this.filterRelatedAttListElem(this.props.filter)} {this.equality} {this.conditionDropdown()} {this.valueInput}
+                        {this.filterRelatedAttListElem(this.props.filter)} {this.equality} {this.conditionDropdown()} {this.valueInputNumber}
+                    </div>
+                )
+            case (FilterType.STRING_COMPARISON):
+                return (
+                    <div className="d-flex align-items-center">
+                        {this.filterRelatedAttListElem(this.props.filter)} {this.equality} {this.conditionDropdown()} {this.valueInputAny}
                     </div>
                 )
             case (FilterType.STD):
@@ -97,7 +111,7 @@ export class FilterSelector extends React.Component<FilterSelectorProps, {}> {
                             <div>Keep data points of</div>{this.filterRelatedAttListElem(this.props.filter)}
                         </div>
                         <div className="d-flex align-items-center">
-                            <div>within</div>{this.valueInput} <div>standard deviations</div>
+                            <div>within</div>{this.valueInputNumber} <div>standard deviations</div>
                         </div>
                     </div>
                 )
