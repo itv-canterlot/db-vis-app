@@ -58,12 +58,7 @@ export const filterDataByAttribute = (data: object[], dbSchemaContext: DBSchemaC
     return nullRemoved.map(d => d[attr.attname]);
 }
 
-export const getDatasetEntryCountStatus = (filteredData: object[], visPattern: VisSchema, relation: RelationNode) => {
-    // const filteredData = context.data;
-    // const selectedPatternIndex = context.selectedPatternIndex;
-    // const visPattern = context.visSchema[selectedPatternIndex];
-    // const relation = context.relationsList[context.relHierachyIndices[0][0]];
-
+export const getDatasetEntryCountStatus = (filteredData: object[], visPattern: VisSchema, relation: RelationNode): boolean => {
     if (relation === undefined || filteredData === undefined) return false;
     
     let localKeyCountPassed: boolean, foreignKeyCountPassed: boolean;
@@ -79,40 +74,43 @@ export const getDatasetEntryCountStatus = (filteredData: object[], visPattern: V
             localPkUnique.push(d);
         }
     });
-    const localPkCount = localPkUnique.length;
-    localKeyCountPassed = keyCountCheck(visPattern.localKey, localPkCount)
-    
-    if (visPattern.type !== VISSCHEMATYPES.BASIC) {
-        if (visPattern.type === VISSCHEMATYPES.ONEMANY) {
-            // Need to check fk per pk
-            const relFk = relation.childRelations[0].table.fk[relation.childRelations[0].fkIndex];
-            const pkAttributeNames = relFk.columns.map(col => `pk_${relation.parentEntity.tableName}_${col.pkColName}`);
-            // , relation.childRelations[0].table.tableName
-            const oneManyKeyPairCount = getKeyPairCountFromData(filteredData, relation, pkAttributeNames);
-            console.log(oneManyKeyPairCount);
 
-        }
-        const foreignTableName = relation.childRelations[0].table.tableName; // TODO: multi table?
-        const foreignPkAttributeList = relation.childRelations[0].table.pk.columns.map(col => `pk_${foreignTableName}_${col.colName}`);
-        const foreignPkFiltered = filteredData.map(d => foreignPkAttributeList.reduce((o, k) => {o[k] = d[k]; return o;}, {}));
-        
-        const foreignPkUnique = [];
-        foreignPkFiltered.forEach(d => {
-            if (foreignPkUnique.length === 0 || !foreignPkUnique.some(uniq => foreignPkAttributeList.every(attName => d[attName] === uniq[attName]))) {
-                foreignPkUnique.push(d);
-            }
-        });
+    if (visPattern.type === VISSCHEMATYPES.ONEMANY) {
+        // Need to check fk per pk
+        const relFk = relation.childRelations[0].table.fk[relation.childRelations[0].fkIndex];
+        const pkAttributeNames = relFk.columns.map(col => `pk_${relation.parentEntity.tableName}_${col.pkColName}`);
+        const oneManyKeyPairCount = getKeyPairCountFromData(filteredData, pkAttributeNames);
+        const localKeyCountPassed = visPattern.localKey.maxCount >= oneManyKeyPairCount[0];
+        const foreignKeyCountPassed = oneManyKeyPairCount[1] >= 0 && visPattern.foreignKey.maxCount >= oneManyKeyPairCount[1];
 
-        const foreignPkCount = foreignPkUnique.length;
-        foreignKeyCountPassed = keyCountCheck(visPattern.foreignKey, foreignPkCount);
+        return localKeyCountPassed && foreignKeyCountPassed;
     } else {
-        foreignKeyCountPassed = true;
+        const localPkCount = localPkUnique.length;
+        localKeyCountPassed = keyCountCheck(visPattern.localKey, localPkCount)
+        
+        if (visPattern.type !== VISSCHEMATYPES.BASIC) {
+            const foreignTableName = relation.childRelations[0].table.tableName; // TODO: multi table?
+            const foreignPkAttributeList = relation.childRelations[0].table.pk.columns.map(col => `pk_${foreignTableName}_${col.colName}`);
+            const foreignPkFiltered = filteredData.map(d => foreignPkAttributeList.reduce((o, k) => {o[k] = d[k]; return o;}, {}));
+            
+            const foreignPkUnique = [];
+            foreignPkFiltered.forEach(d => {
+                if (foreignPkUnique.length === 0 || !foreignPkUnique.some(uniq => foreignPkAttributeList.every(attName => d[attName] === uniq[attName]))) {
+                    foreignPkUnique.push(d);
+                }
+            });
+    
+            const foreignPkCount = foreignPkUnique.length;
+            foreignKeyCountPassed = keyCountCheck(visPattern.foreignKey, foreignPkCount);
+        } else {
+            foreignKeyCountPassed = true;
+        }
+    
+        return localKeyCountPassed && foreignKeyCountPassed;
     }
-
-    return localKeyCountPassed && foreignKeyCountPassed;
 }
 
-const getKeyPairCountFromData = (filteredData: object[], selectedRelation: RelationNode, localPkAttributeList: string[]) => {
+const getKeyPairCountFromData = (filteredData: object[], localPkAttributeList: string[]) => {
     const keyCounter: {[key: string]: number} = {};
     filteredData.forEach(d => {
         const keySubsetString = JSON.stringify(localPkAttributeList.reduce((o, k) => {o[k] = d[k]; return o;}, {}));
@@ -126,14 +124,16 @@ const getKeyPairCountFromData = (filteredData: object[], selectedRelation: Relat
     });
 
     const keyPairCount = Math.max(...Object.values(keyCounter));
-    return keyPairCount;
+    return [Object.keys(keyCounter).length, keyPairCount];
 }
 
 export const getRelationOneManyStatus = (context: DBSchemaContextInterface) => {
     const selectedRelation = context.relationsList[context.relHierachyIndices[0][0]];
-    // if (selectedRelation.type !== VISSCHEMATYPES.ONEMANY && selectedRelation.type !== VISSCHEMATYPES.MANYMANY) return Promise.resolve(-1);
+    if (selectedRelation.type === VISSCHEMATYPES.MANYMANY) return Promise.resolve([-1, -1]);
+    
+    let fkIndex, fk;
+    fkIndex = selectedRelation.childRelations[0].fkIndex;
 
-    const fkIndex = selectedRelation.childRelations[0].fkIndex;
     const foreignTableName = selectedRelation.childRelations[0].table.tableName
     const fkMappedToPM: PatternMatchAttribute[] = selectedRelation.childRelations[0].table.fk[fkIndex].columns.map(col => {
         return {
@@ -146,7 +146,7 @@ export const getRelationOneManyStatus = (context: DBSchemaContextInterface) => {
         const filteredData = filterDataByFilters(data, context, context.filters);
         const fk = selectedRelation.childRelations[0].table.fk[fkIndex];
         const localPkAttributeList = fk.columns.map(col => `a_${foreignTableName}_${col.fkColName}`);
-        return getKeyPairCountFromData(filteredData, selectedRelation, localPkAttributeList);
+        return getKeyPairCountFromData(filteredData, localPkAttributeList);
     }));
 }
 

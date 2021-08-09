@@ -1,7 +1,7 @@
 import * as SchemaParser from "./SchemaParser";
 import {Attribute, RelationNode, Table, VisKey, VisParam, VISPARAMTYPES, VisSchema, VISSCHEMATYPES, PatternMatchResult, PatternMatchAttribute, PatternMismatchReason, PATTERN_MISMATCH_REASON_TYPE, ChildRelation} from "./ts/types";
 import * as TypeConstants from "./TypeConstants";
-import { getDatasetEntryCountStatus, getRelationOneManyStatus } from "./DatasetUtils";
+import { getRelationOneManyStatus } from "./DatasetUtils";
 import { DBSchemaContextInterface } from "./DBSchemaContext";
 
 export const keyCountCheck = (key: VisKey, nPks: number): boolean => {
@@ -534,7 +534,7 @@ const manyManyEntityMatch = (rel: RelationNode, vs: VisSchema, nKeys: number, ig
 }
 
 export const oneManyVisMatch = 
-    (rel: RelationNode, vs: VisSchema, ignoreKeyCountMismatch?: boolean, oneManyVisMatch?: number): PatternMatchResult[] => {
+    (rel: RelationNode, vs: VisSchema, ignoreKeyCountMismatch?: boolean, oneManyVisMatch?: number[]): PatternMatchResult[] => {
         if (rel.type !== VISSCHEMATYPES.WEAKENTITY && rel.type !== VISSCHEMATYPES.ONEMANY && rel.type !== VISSCHEMATYPES.MANYMANY) {
             return [failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.PATTERN_TYPE_MISMATCH})]
         };
@@ -542,7 +542,7 @@ export const oneManyVisMatch =
         if (vs.type !== VISSCHEMATYPES.ONEMANY) return;
         let keyIsMismatch = false;
         
-        if (!keyCountCheck(vs.localKey, rel.parentEntity.pk.keyCount)) {
+        if (!keyCountCheck(vs.localKey, oneManyVisMatch[0])) {
             if (ignoreKeyCountMismatch) {
                 keyIsMismatch = true;
             } else {
@@ -550,7 +550,7 @@ export const oneManyVisMatch =
             }
         }
 
-        if (oneManyVisMatch < 0 || oneManyVisMatch > vs.foreignKey.maxCount) {
+        if (oneManyVisMatch[1] < 0 || oneManyVisMatch[1] > vs.foreignKey.maxCount) {
             if (ignoreKeyCountMismatch) {
                 keyIsMismatch = true;
             } else {
@@ -654,7 +654,7 @@ export const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:
     return allPatternMatches;
 }
 
-const matchRelationWithVisPattern = (context: DBSchemaContextInterface, vs: VisSchema, oneManyMaxPairedVal?: number): PatternMatchResult[] => {
+const matchRelationWithVisPattern = (context: DBSchemaContextInterface, vs: VisSchema, oneManyMaxPairedVal?: number[]): PatternMatchResult[] => {
     const rel = context.relationsList[context.relHierachyIndices[0][0]]; // Primary relation
     // console.log(getDatasetEntryCountStatus(context.data, vs, rel));
     switch(vs.type) {
