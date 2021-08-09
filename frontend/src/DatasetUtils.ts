@@ -77,13 +77,26 @@ export const getDatasetEntryCountStatus = (filteredData: object[], visPattern: V
 
     if (visPattern.type === VISSCHEMATYPES.ONEMANY) {
         // Need to check fk per pk
-        const relFk = relation.childRelations[0].table.fk[relation.childRelations[0].fkIndex];
-        const pkAttributeNames = relFk.columns.map(col => `pk_${relation.parentEntity.tableName}_${col.pkColName}`);
-        const oneManyKeyPairCount = getKeyPairCountFromData(filteredData, pkAttributeNames);
-        const localKeyCountPassed = visPattern.localKey.maxCount >= oneManyKeyPairCount[0];
-        const foreignKeyCountPassed = oneManyKeyPairCount[1] >= 0 && visPattern.foreignKey.maxCount >= oneManyKeyPairCount[1];
+        if (relation.type === VISSCHEMATYPES.ONEMANY) {
+            // let localKeyCountPassed, foreignKeyCountPassed;
+            const relFk = relation.childRelations[0].table.fk[relation.childRelations[0].fkIndex];
+            const pkAttributeNames = relFk.columns.map(col => `pk_${relation.parentEntity.tableName}_${col.pkColName}`);
+            const oneManyKeyPairCount = getKeyPairCountFromData(filteredData, pkAttributeNames);
+            const localKeyCountPassed = visPattern.localKey.maxCount >= oneManyKeyPairCount[0];
+            const foreignKeyCountPassed = oneManyKeyPairCount[1] >= 0 && visPattern.foreignKey.maxCount >= oneManyKeyPairCount[1];
+            return localKeyCountPassed && foreignKeyCountPassed;
+        }
+        else {
+            const relFks = relation.childRelations.map(childRel => childRel.fkIndex).map(idx => relation.parentEntity.fk[idx]);
+            return relFks.some(fk => {
+                const pkAttributeNames = fk.columns.map(col => `pk_${relation.parentEntity.tableName}_${col.pkColName}`);
+                const oneManyKeyPairCount = getKeyPairCountFromData(filteredData, pkAttributeNames);
+                const localKeyCountPassed = visPattern.localKey.maxCount >= oneManyKeyPairCount[0];
+                const foreignKeyCountPassed = oneManyKeyPairCount[1] >= 0 && visPattern.foreignKey.maxCount >= oneManyKeyPairCount[1];
+                return localKeyCountPassed && foreignKeyCountPassed;
+            })
+        }
 
-        return localKeyCountPassed && foreignKeyCountPassed;
     } else {
         const localPkCount = localPkUnique.length;
         localKeyCountPassed = keyCountCheck(visPattern.localKey, localPkCount)
