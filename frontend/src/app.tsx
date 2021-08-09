@@ -1,12 +1,12 @@
 import * as React from 'react';
 import ReactDOM = require('react-dom');
 
-import { Filter, PatternMatchAttribute, PatternMatchResult, RelationNode, VisSchema } from './ts/types'
+import { Filter, PatternMatchResult, VisSchema } from './ts/types'
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { AppMainCont } from './AppMainCont';
 
 import { AppSidebar } from './AppSidebar';
-import { matchRelationWithAllVisPatterns, matchTableWithAllVisPatterns } from './VisSchemaMatcher'
+import { matchAllSelectedRelationsWithVisPatterns, matchRelationWithAllVisPatterns, matchTableWithAllVisPatterns } from './VisSchemaMatcher'
 
 import * as ComponentTypes from './ts/components';
 import * as Connections from './Connections';
@@ -227,11 +227,29 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 }
                 
                 Connections.getRelationBasedData(
-                    this.state.relHierachyIndices.flat()
+                    this.state.selectedRelationsIndices
                         .map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues(), 
                             newAttsObject, this.state.filters).then(getDataCallback.bind(this));
             }
         })
+    }
+
+    getAllPatternMatchesFromRelations = () => {
+        const getDataCallback = (data: object[]) => {
+            this.setState({
+                dataLoaded: true,
+                data: data
+            });
+        }
+
+        Connections.getRelationBasedData(this.state.selectedRelationsIndices.map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues())
+            .then(getDataCallback.bind(this))
+
+        const setStateCallback = (visSchemaMatchesFromRels => {
+            console.log(visSchemaMatchesFromRels)
+        });
+
+        this.getVisSchemaMatchesFromSelectedRelations().then(setStateCallback.bind(this));
     }
 
     onRelHierachyChange = (newHierachy: number[][]) => {
@@ -326,6 +344,10 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             this.setState({
                 selectedEntitesIndices: newEntities,
                 selectedRelationsIndices: newRelations
+            }, () => {
+                matchAllSelectedRelationsWithVisPatterns(this.getProviderValues()).then(result => {
+                    console.log(result);
+                });
             });
         }
     }
@@ -358,7 +380,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         }
         
         Connections.getRelationBasedData(
-            this.state.relHierachyIndices.flat()
+            this.state.selectedRelationsIndices
                 .map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues(), 
                     this.state.rendererSelectedAttributes, filters).then(getDataCallback);
     }
@@ -465,10 +487,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     }
 
     getVisSchemaMatchesFromSelectedRelations = () => {
-        return matchRelationWithAllVisPatterns(this.getProviderValues());
-        // return selectedRelations.map(rel => {
-        //     // TODO: more graceful way to remove key count restriction
-        // })
+        return matchRelationWithAllVisPatterns(this.getProviderValues(), this.state.relationsList[this.state.relHierachyIndices[0][0]]);
     }
     
     getTableMetadata = () => {
@@ -573,5 +592,3 @@ const readVisSchemaJSON = () => {
 
 let appContNode = document.getElementById("app-cont");
 ReactDOM.render(<Application />, appContNode);
-
-// TODO: refactor this to another file?

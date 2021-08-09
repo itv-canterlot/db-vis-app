@@ -30,17 +30,23 @@ export const foreignRelationsElement = (thisRels: RelationNode[], thisTable: Tab
             const getForeignTableList = (useParentFk: boolean) => {
                 return rel.childRelations.map((childRel, childIdx) => {
                     const childEntity = childRel.table;
+                    let fkName;
+                    if (rel.type === VISSCHEMATYPES.MANYMANY) {
+                        fkName = rel.parentEntity.fk[childRel.fkIndex].keyName;
+                    } else {
+                        fkName = childEntity.fk[childRel.fkIndex].keyName;
+                    }
                     if (childEntity === thisTable) return null; // TODO: write something else here
                     if (useParentFk) {
                         return (
                             <div key={childIdx}>
                                 <i className="fas fa-arrow-right me-1" /> 
-                                {childEntity.tableName}
+                                {childEntity.tableName} ({fkName})
                             </div>);
                     } else {
                         return (
                             <div key={childIdx}>
-                                <i className="fas fa-arrow-right me-1" /> {childEntity.tableName}
+                                <i className="fas fa-arrow-right me-1" /> {childEntity.tableName} ({fkName})
                             </div>);
                     }
                 }
