@@ -3,6 +3,7 @@ import {Attribute, RelationNode, Table, VisKey, VisParam, VISPARAMTYPES, VisSche
 import * as TypeConstants from "./TypeConstants";
 import { getRelationOneManyStatus } from "./DatasetUtils";
 import { DBSchemaContextInterface } from "./DBSchemaContext";
+import { readlink } from "node:fs";
 
 export const keyCountCheck = (key: VisKey, nPks: number): boolean => {
     const keyMinCount = key.minCount,
@@ -173,6 +174,21 @@ const isRelationReflexive = (rel: RelationNode) => {
     return Object.values(reflexCounter).some(v => v >= 2);
 }
 
+const isPatternMatchSuccessful = (result: PatternMatchResult, vs: VisSchema) => {
+    const eachMandatoryAttributeHasElem = result.mandatoryAttributes.every(ma => ma.length > 0);
+    if (eachMandatoryAttributeHasElem) {
+        // Length of each mandatory attribute match >= number of mandatory attributes
+        const maLength = vs.mandatoryParameters.length;
+        const mandatoryAttributeLengthLargerThanAvailableParams = 
+            result.mandatoryAttributes.every(ma => ma.length >= maLength)
+
+        return mandatoryAttributeLengthLargerThanAvailableParams;
+    } else {
+        return false;
+    }
+}
+
+/* Different matchers */
 export const matchTableWithAllVisPatterns = (table: Table, rels: RelationNode[], vss:VisSchema[], nKeys?: number): PatternMatchResult[][] => {
     let out = [];
     // If the table is in a set, treat the set as a big table
@@ -189,25 +205,21 @@ export const matchTableWithAllVisPatterns = (table: Table, rels: RelationNode[],
     return out;
 }
 
-// export const matchRelationWithAllVisPatterns = (rel: RelationNode, vss:VisSchema[], nKeys?: number): PatternMatchResult[][] => {
-export const matchRelationWithAllVisPatterns = (context: DBSchemaContextInterface, targetRelation: RelationNode): Promise<PatternMatchResult[][]> => {
-    return getRelationOneManyStatus(context, targetRelation).then(oneManyMaxPairedVal => {
-        let out = [];
-        const vss = context.visSchema;
-        // If the table is in a set, treat the set as a big table
-        // getTablesWithinSet(rels, tablesWithinSet, relsWithoutSubset);
-        vss.forEach((vs, idx) => {
-            const thisVisSchemaMatchResult = matchRelationWithVisPattern(targetRelation, vs, oneManyMaxPairedVal)
-            if (thisVisSchemaMatchResult) {
-                out.push(thisVisSchemaMatchResult);
-            } else {
-                out.push(undefined);
-            }
-        })
-    
-        return out;
+export const matchRelationWithAllVisPatterns = async (context: DBSchemaContextInterface, targetRelation: RelationNode): Promise<PatternMatchResult[][]> => {
+    const oneManyMaxPairedVal = await getRelationOneManyStatus(context, targetRelation);
+    let out = [];
+    const vss = context.visSchema;
+    // If the table is in a set, treat the set as a big table
+    // getTablesWithinSet(rels, tablesWithinSet, relsWithoutSubset);
+    vss.forEach((vs, idx) => {
+        const thisVisSchemaMatchResult = matchRelationWithVisPattern(targetRelation, vs, oneManyMaxPairedVal);
+        if (thisVisSchemaMatchResult) {
+            out.push(thisVisSchemaMatchResult);
+        } else {
+            out.push(undefined);
+        }
     });
-
+    return out;
 }
 
 export const matchAllSelectedRelationsWithVisPatterns = (context: DBSchemaContextInterface): Promise<PatternMatchResult[][][]> => {
@@ -217,20 +229,6 @@ export const matchAllSelectedRelationsWithVisPatterns = (context: DBSchemaContex
             return matchRelationWithAllVisPatterns(context, thisRelation);
         })
     )
-}
-
-const patternMatchSuccessful = (result: PatternMatchResult, vs: VisSchema) => {
-    const eachMandatoryAttributeHasElem = result.mandatoryAttributes.every(ma => ma.length > 0);
-    if (eachMandatoryAttributeHasElem) {
-        // Length of each mandatory attribute match >= number of mandatory attributes
-        const maLength = vs.mandatoryParameters.length;
-        const mandatoryAttributeLengthLargerThanAvailableParams = 
-            result.mandatoryAttributes.every(ma => ma.length >= maLength)
-
-        return mandatoryAttributeLengthLargerThanAvailableParams;
-    } else {
-        return false;
-    }
 }
 
 const failedPatternMatchObject = (vs: VisSchema, mismatchReason?: PatternMismatchReason): PatternMatchResult => {
@@ -271,7 +269,7 @@ const basicEntityVisMatch = (table: Table, vs: VisSchema, nKeys?: number, subset
         thisPatternMatchResult.mandatoryAttributes.push(thisConstMatchableIndices);
     }
 
-    if (patternMatchSuccessful(thisPatternMatchResult, vs)) {
+    if (isPatternMatchSuccessful(thisPatternMatchResult, vs)) {
         thisPatternMatchResult.matched = true;
     } else {
         return failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.NO_SUITABLE_ATTRIBUTE});
@@ -339,7 +337,7 @@ const weakEntityVisMatch = (table: Table, rel: RelationNode, vs: VisSchema, nKey
             thisPatternMatchResult.mandatoryAttributes = thisChildRelMandatoryParameters;
             // TODO: mirror the scalar key check above
 
-            if (patternMatchSuccessful(thisPatternMatchResult, vs)) {
+            if (isPatternMatchSuccessful(thisPatternMatchResult, vs)) {
                 thisPatternMatchResult.matched = true;
             } else {
                 return failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.NO_SUITABLE_ATTRIBUTE});
@@ -440,7 +438,7 @@ const weakEntityVisMatch = (table: Table, rel: RelationNode, vs: VisSchema, nKey
             getAllMatchingAttributesFromListOfParams(table, vs.mandatoryParameters);
         thisPatternMatchResult.mandatoryAttributes = thisChildRelMandatoryParameters;
 
-        if (patternMatchSuccessful(thisPatternMatchResult, vs)) {
+        if (isPatternMatchSuccessful(thisPatternMatchResult, vs)) {
             thisPatternMatchResult.matched = true;
         } else {
             return [failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.NO_SUITABLE_ATTRIBUTE})];
@@ -521,7 +519,7 @@ const manyManyEntityMatch = (rel: RelationNode, vs: VisSchema, nKeys: number, ig
                 thisPatternMatchResult.mandatoryAttributes.push(thisConstMatchableIndices);
             }
         
-            if (patternMatchSuccessful(thisPatternMatchResult, vs)) {
+            if (isPatternMatchSuccessful(thisPatternMatchResult, vs)) {
                 thisPatternMatchResult.matched = true;
             } else {
                 allPatternMatchResults.push(failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.NO_SUITABLE_ATTRIBUTE}));
@@ -543,15 +541,23 @@ const manyManyEntityMatch = (rel: RelationNode, vs: VisSchema, nKeys: number, ig
 }
 
 export const oneManyVisMatch = 
-    (rel: RelationNode, vs: VisSchema, ignoreKeyCountMismatch?: boolean, oneManyMaxPairedVal?: number[]): PatternMatchResult[] => {
+    (rel: RelationNode, vs: VisSchema, ignoreKeyCountMismatch?: boolean, oneManyMaxPairedVal?: any): PatternMatchResult[] => {
         if (rel.type !== VISSCHEMATYPES.WEAKENTITY && rel.type !== VISSCHEMATYPES.ONEMANY && rel.type !== VISSCHEMATYPES.MANYMANY) {
             return [failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.PATTERN_TYPE_MISMATCH})]
         };
 
         if (vs.type !== VISSCHEMATYPES.ONEMANY) return;
         let keyIsMismatch = false;
+
+        let pairCount, pairFkIndex;
+        if (Array.isArray(oneManyMaxPairedVal)) {
+            pairCount = oneManyMaxPairedVal;
+        } else {
+            pairCount = oneManyMaxPairedVal.pairCount;
+            pairFkIndex = oneManyMaxPairedVal.pairFkIndex;
+        }
         
-        if (!keyCountCheck(vs.localKey, oneManyMaxPairedVal[0])) {
+        if (!keyCountCheck(vs.localKey, pairCount[0])) {
             if (ignoreKeyCountMismatch) {
                 keyIsMismatch = true;
             } else {
@@ -559,7 +565,7 @@ export const oneManyVisMatch =
             }
         }
 
-        if (oneManyMaxPairedVal[1] < 0 || oneManyMaxPairedVal[1] > vs.foreignKey.maxCount) {
+        if (pairCount[1] < 0 || pairCount[1] > vs.foreignKey.maxCount) {
             if (ignoreKeyCountMismatch) {
                 keyIsMismatch = true;
             } else {
@@ -578,12 +584,17 @@ export const oneManyVisMatch =
 
         if (vs.mandatoryParameters) {
             if (rel.type === VISSCHEMATYPES.MANYMANY) {
+                // Find out which side of this relationship is "one"
+                if (pairFkIndex < 0) {
+                    return [failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.NO_SUITABLE_ATTRIBUTE})];
+                }
+                const oneSideChildEntity = rel.childRelations.find(rel => rel.fkIndex === pairFkIndex).table;
                 for (let mp of vs.mandatoryParameters) {
-                    let thisConstMatchableIndices = getMatchingAttributesByParameter(rel.parentEntity, mp);
+                    let thisConstMatchableIndices = getMatchingAttributesByParameter(oneSideChildEntity, mp);
                     thisPatternMatchResult.mandatoryAttributes.push(thisConstMatchableIndices);
                 }
     
-                if (patternMatchSuccessful(thisPatternMatchResult, vs)) {
+                if (isPatternMatchSuccessful(thisPatternMatchResult, vs)) {
                     thisPatternMatchResult.matched = true;
                 } else {
                     return [failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.NO_SUITABLE_ATTRIBUTE})];
@@ -594,22 +605,29 @@ export const oneManyVisMatch =
                     thisPatternMatchResult.mandatoryAttributes.push(thisConstMatchableIndices);
                 }
     
-                if (patternMatchSuccessful(thisPatternMatchResult, vs)) {
+                if (isPatternMatchSuccessful(thisPatternMatchResult, vs)) {
                     thisPatternMatchResult.matched = true;
                 } else {
                     return [failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.NO_SUITABLE_ATTRIBUTE})];
                 }
             }
         } else {
-            thisPatternMatchResult.matched = true;
+            if (rel.type === VISSCHEMATYPES.MANYMANY && pairFkIndex < 0) {
+                return [failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.NO_SUITABLE_ATTRIBUTE})];
+            } else {
+                thisPatternMatchResult.matched = true;
+            }
         }
     
         if (vs.optionalParameters) {
             if (rel.type === VISSCHEMATYPES.MANYMANY) {
-                for (let op of vs.optionalParameters) {
-                    let thisConstMatchableIndices = getMatchingAttributesByParameter(rel.parentEntity, op);
-                    thisPatternMatchResult.optionalAttributes.push(thisConstMatchableIndices);
-                }    
+                if (pairFkIndex >= 0) {
+                    const oneSideChildEntity = rel.childRelations.find(rel => rel.fkIndex === pairFkIndex).table;
+                    for (let op of vs.optionalParameters) {
+                        let thisConstMatchableIndices = getMatchingAttributesByParameter(oneSideChildEntity, op);
+                        thisPatternMatchResult.optionalAttributes.push(thisConstMatchableIndices);
+                    }    
+                }
             } else {
                 for (let op of vs.optionalParameters) {
                     let thisConstMatchableIndices = getMatchingAttributesByParameter(rel.childRelations[0].table, op);
@@ -683,7 +701,7 @@ export const matchTableWithVisPattern = (table: Table, rels: RelationNode[], vs:
     return allPatternMatches;
 }
 
-const matchRelationWithVisPattern = (targetRelation: RelationNode, vs: VisSchema, oneManyMaxPairedVal?: number[]): PatternMatchResult[] => {
+const matchRelationWithVisPattern = (targetRelation: RelationNode, vs: VisSchema, oneManyMaxPairedVal?: any): PatternMatchResult[] => {
     switch(vs.type) {
         case VISSCHEMATYPES.BASIC:
             let basicEntityMatchResult = 

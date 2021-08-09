@@ -7,7 +7,7 @@ import { getRelationBasedData } from "./Connections";
 export const filterDataByFilters = (data: object[], dbSchemaContext: DBSchemaContextInterface, filters?: Filter[]): any[] => {
     let filteredData;
 
-    if (filters) {
+    if (filters && filters.length > 0) {
         filteredData = data.filter(d => {
             return filters.every(filter => {
                 const thisTable = dbSchemaContext.allEntitiesList[filter.tableIndex];
@@ -58,6 +58,31 @@ export const filterDataByAttribute = (data: object[], dbSchemaContext: DBSchemaC
     return nullRemoved.map(d => d[attr.attname]);
 }
 
+const getOneManyCountPairFromManyManyRel = (relFks: ForeignKey[], filteredData: object[]) => {
+    const countCheckResult = relFks.map(fk => {
+        const pkAttributeNames = fk.columns.map(col => `pk_${fk.pkTableName}_${col.pkColName}`);
+        return getKeyPairCountFromData(filteredData, pkAttributeNames);
+    });
+    
+    const fkIndexOnOneSide = countCheckResult.findIndex(pair => pair[1] === 1);
+    if (fkIndexOnOneSide < 0) {
+        // None fits
+        return {
+            pairCount: undefined,
+            pairFkIndex: -1
+        };
+    } else {
+        let keyPairCountToCheck;
+        if (fkIndexOnOneSide === 0) keyPairCountToCheck = countCheckResult[1];
+        else keyPairCountToCheck = countCheckResult[0];
+
+        return {
+            pairCount: keyPairCountToCheck,
+            pairFkIndex: fkIndexOnOneSide === 0 ? 1 : 0
+        }
+    }
+}
+
 const oneManyKeyCountMatchWithPatternFromData = (relation: RelationNode, visPattern: VisSchema, filteredData: object[]): boolean => {
     if (visPattern.type !== VISSCHEMATYPES.ONEMANY) return false;
     // Need to check fk per pk
@@ -72,13 +97,16 @@ const oneManyKeyCountMatchWithPatternFromData = (relation: RelationNode, visPatt
     else {
         // For many-many and weak entity type transformations
         const relFks = relation.childRelations.map(childRel => childRel.fkIndex).map(idx => relation.parentEntity.fk[idx]);
-        return relFks.some(fk => {
-            const pkAttributeNames = fk.columns.map(col => `pk_${relation.parentEntity.tableName}_${col.pkColName}`);
-            const oneManyKeyPairCount = getKeyPairCountFromData(filteredData, pkAttributeNames);
-            const localKeyCountPassed = visPattern.localKey.maxCount >= oneManyKeyPairCount[0];
-            const foreignKeyCountPassed = oneManyKeyPairCount[1] >= 0 && visPattern.foreignKey.maxCount >= oneManyKeyPairCount[1];
+        let {pairCount, pairFkIndex} = getOneManyCountPairFromManyManyRel(relFks, filteredData);
+        
+        if (pairFkIndex < 0) {
+            return false;
+        } else {
+            const localKeyCountPassed = visPattern.localKey.maxCount >= pairCount[0];
+            const foreignKeyCountPassed = pairCount[1] >= 0 && visPattern.foreignKey.maxCount >= pairCount[1];
             return localKeyCountPassed && foreignKeyCountPassed;
-        })
+        }
+
     }
 }
 
@@ -144,63 +172,56 @@ const getKeyPairCountFromData = (filteredData: object[], localPkAttributeList: s
     return [Object.keys(keyCounter).length, keyPairCount];
 }
 
-// const oneManyKeyCountMatchWithPatternFromData = (relation: RelationNode, visPattern: VisSchema, filteredData: object[]): boolean => {
-//     if (visPattern.type !== VISSCHEMATYPES.ONEMANY) return false;
-//     // Need to check fk per pk
-//     if (relation.type === VISSCHEMATYPES.ONEMANY) {
-//         const relFk = relation.childRelations[0].table.fk[relation.childRelations[0].fkIndex];
-//         const pkAttributeNames = relFk.columns.map(col => `pk_${relation.parentEntity.tableName}_${col.pkColName}`);
-//         const oneManyKeyPairCount = getKeyPairCountFromData(filteredData, pkAttributeNames);
-//         const localKeyCountPassed = visPattern.localKey.maxCount >= oneManyKeyPairCount[0];
-//         const foreignKeyCountPassed = oneManyKeyPairCount[1] >= 0 && visPattern.foreignKey.maxCount >= oneManyKeyPairCount[1];
-//         return localKeyCountPassed && foreignKeyCountPassed;
-//     }
-//     else {
-//         // For many-many and weak entity type transformations
-//         const relFks = relation.childRelations.map(childRel => childRel.fkIndex).map(idx => relation.parentEntity.fk[idx]);
-//         return relFks.some(fk => {
-//             const pkAttributeNames = fk.columns.map(col => `pk_${relation.parentEntity.tableName}_${col.pkColName}`);
-//             const oneManyKeyPairCount = getKeyPairCountFromData(filteredData, pkAttributeNames);
-//             const localKeyCountPassed = visPattern.localKey.maxCount >= oneManyKeyPairCount[0];
-//             const foreignKeyCountPassed = oneManyKeyPairCount[1] >= 0 && visPattern.foreignKey.maxCount >= oneManyKeyPairCount[1];
-//             return localKeyCountPassed && foreignKeyCountPassed;
-//         })
-//     }
-// }
-
 export const getRelationOneManyStatus = (context: DBSchemaContextInterface, targetRelation?: RelationNode) => {
     const selectedRelation = targetRelation ? targetRelation : context.relationsList[context.relHierachyIndices[0][0]];
-    if (selectedRelation.type === VISSCHEMATYPES.MANYMANY) return Promise.resolve([-1, -1]);
+    let getDataPromise = Promise.resolve(context.data);
     
-    let fkIndex, fk;
-    fkIndex = selectedRelation.childRelations[0].fkIndex;
-
-    const foreignTableName = selectedRelation.childRelations[0].table.tableName
-    const fkMappedToPM: PatternMatchAttribute[] = selectedRelation.childRelations[0].table.fk[fkIndex].columns.map(col => {
-        return {
-            table: selectedRelation.childRelations[0].table,
-            attributeIndex: col.fkColPos - 1
+    getDataPromise = getDataPromise.then(data => {
+        if (data === undefined) {
+            return getRelationBasedData([selectedRelation], context, undefined, context.filters);
+        } else {
+            return data;
         }
     })
 
-    return Promise.resolve(getRelationBasedData([selectedRelation], context, [fkMappedToPM], context.filters).then(data => {
-        const filteredData = filterDataByFilters(data, context, context.filters);
-        // const fk = selectedRelation.childRelations[0].table.fk[fkIndex];
-        // const localPkAttributeList = fk.columns.map(col => `a_${foreignTableName}_${col.fkColName}`);
-        if (selectedRelation.type === VISSCHEMATYPES.ONEMANY) {
+    if (selectedRelation.type === VISSCHEMATYPES.MANYMANY) {
+        // Which side is the "one" side?
+        return Promise.resolve(getDataPromise.then(data => {
+            const filteredData = filterDataByFilters(data, context, context.filters);
+            let {pairCount, pairFkIndex} = getOneManyCountPairFromManyManyRel(selectedRelation.parentEntity.fk, filteredData);
+            // For these key-pair counts, the one with pair[1] = 1 indicates it is on the "one" side of the one-to-many relation
+            // For simplicity, assuming this is binary
+            if (pairFkIndex < 0) {
+                // None fits
+                pairCount = [-1, -1];
+                return {
+                    pairCount: pairCount,
+                    pairFkIndex: pairFkIndex
+                }
+            } else {
+                return {
+                    pairCount, pairFkIndex
+                }
+            }
+        }));
+    } else {
+        let fkIndex, fk;
+        fkIndex = selectedRelation.childRelations[0].fkIndex;
+    
+        let fkMappedToPM: PatternMatchAttribute[] = selectedRelation.childRelations[0].table.fk[fkIndex].columns.map(col => {
+            return {
+                table: selectedRelation.childRelations[0].table,
+                attributeIndex: col.fkColPos - 1
+            }
+        })
+    
+        return Promise.resolve(getRelationBasedData([selectedRelation], context, [fkMappedToPM], context.filters).then(data => {
+            const filteredData = filterDataByFilters(data, context, context.filters);
             const relFk = selectedRelation.childRelations[0].table.fk[selectedRelation.childRelations[0].fkIndex];
             const pkAttributeNames = relFk.columns.map(col => `pk_${selectedRelation.parentEntity.tableName}_${col.pkColName}`);
-            return getKeyPairCountFromData(filteredData, pkAttributeNames);
-        }
-        else {
-            // For many-many and weak entity type transformations
-            const relFks = selectedRelation.childRelations.map(childRel => childRel.fkIndex).map(idx => selectedRelation.parentEntity.fk[idx]);
-            return relFks.map(fk => {
-                const pkAttributeNames = fk.columns.map(col => `pk_${selectedRelation.parentEntity.tableName}_${col.pkColName}`);
-                return getKeyPairCountFromData(filteredData, pkAttributeNames);
-            })[0]
-        }
-    }));
+            return getKeyPairCountFromData(filteredData, pkAttributeNames);            
+        }));
+    }    
 }
 
 export const getStandardDeviation = (array) => {

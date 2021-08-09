@@ -361,22 +361,17 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     updateRelationBasedDataWithFilter = (filters: Filter[], newStates?: object, thisObj?: object) => {
         const getDataCallback = (data: object[]) => {
             const filteredData = filterDataByFilters(data, this.getProviderValues(), filters);
-            
-            const mainRelation = this.state.relHierachyIndices[0].map(relIdx => this.state.relationsList[relIdx])
-            // const visSchemaMatchesFromRels = 
-            //     this.getVisSchemaMatchesFromSelectedRelations();
-
-            const setStateCallback = (visSchemaMatchesFromRels) => {
-                this.setState({
-                    dataLoaded: true,
-                    data: filteredData,
-                    filters: filters,
-                    visSchemaMatchStatus: visSchemaMatchesFromRels
-                })
-            }
-
-            this.getVisSchemaMatchesFromSelectedRelations().then(setStateCallback.bind(this));
-            
+            this.setState({
+                data: filteredData,
+                dataLoaded: true
+            }, () => {
+                const setStateCallback = (visSchemaMatchesFromRels) => {
+                    this.setState({
+                        visSchemaMatchStatus: visSchemaMatchesFromRels
+                    })
+                }
+                this.getVisSchemaMatchesFromSelectedRelations().then(setStateCallback.bind(this));
+            })
         }
         
         Connections.getRelationBasedData(
@@ -388,7 +383,11 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     onFilterChange = (filters: Filter[]) => {
         // TODO: temporary divergence
         if (this.state.selectedEntitesIndices.length === 0) {
-            this.updateRelationBasedDataWithFilter(filters, {}, this);
+            this.setState({
+                filters: filters
+            }, () => {
+                this.updateRelationBasedDataWithFilter(filters, {}, this);
+            })
         } else {
             const filteredData = filterDataByFilters(this.state.data, this.getProviderValues(), filters);
             const {

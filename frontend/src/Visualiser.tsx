@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as d3 from 'd3';
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext'
-import { VisTemplateBuilder } from './ts/types'
+import { VISSCHEMATYPES, VisTemplateBuilder } from './ts/types'
 
 import visTemplates from './visTemplates';
 import { VisualiserProps, VisualiserStates } from './ts/components';
@@ -94,10 +94,11 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                     }
                 }));
     
+            const primaryRelation = context.relationsList[context.relHierachyIndices[0][0]];
             firstTablePrimaryKeyNames = 
-                context.relationsList[context.relHierachyIndices[0][0]].parentEntity
+                primaryRelation.parentEntity
                     .pk.columns.map(col => {
-                        return `pk_${context.relationsList[context.relHierachyIndices[0][0]].parentEntity.tableName}_${col.colName}`;
+                        return `pk_${primaryRelation.parentEntity.tableName}_${col.colName}`;
                     });
     
             selectedAttributesPublicKeyNames = 
@@ -110,9 +111,13 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                         .find(cr => cr.table.idx === att.table.idx);
                 if (responsibleFkInRel) {
                     // If defined:
-                    return att.table.fk
-                        [responsibleFkInRel.fkIndex]
-                            .columns.map(col => `pk_${att.table.tableName}_${col.fkColName}`);
+                    // NOTE: Wrong for many-many?
+                    const responsibleFk = 
+                        (primaryRelation.type === VISSCHEMATYPES.MANYMANY) ? 
+                            primaryRelation.parentEntity.fk[responsibleFkInRel.fkIndex] : 
+                            att.table.fk[responsibleFkInRel.fkIndex];
+                    return responsibleFk
+                            .columns.map(col => `pk_${responsibleFk.pkTableName}_${col.fkColName}`);
                 } else {
                     // If not defined: return undefined
                     return undefined;

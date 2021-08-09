@@ -226,22 +226,21 @@ const getStandaloneFilterAttributes =
             let filterMatchAttributes = getFilterMappedPMAttributes(allEntitiesList, filters);
             // const filterMatchAttributes = getFilterMappedPMAttributes(filters)
             filterMatchAttributes.forEach(fma => {
-                let mandatoryAttrsMatchResult = true, optionalAttrsMatchResult = true
-                if (mandatoryAttrs) {
-                    mandatoryAttrsMatchResult = mandatoryAttrs.some(ma => {
+                let fmaExitsInMandatoryAtts = false, fmaExitsInOptionalAtts = false;
+                if (mandatoryAttrs && mandatoryAttrs.length > 0) {
+                    fmaExitsInMandatoryAtts = mandatoryAttrs.some(ma => {
                         return ma && (ma.table.idx === fma.table.idx && ma.attributeIndex === fma.attributeIndex);
                     });
-
                 }
 
-                if (optionalAttrs) {
-                    const optionalAttrsMatchResult = optionalAttrs.some(oa => {
+                if (optionalAttrs && optionalAttrs.length > 0) {
+                    fmaExitsInOptionalAtts = optionalAttrs.some(oa => {
                         return oa && (oa.table.idx === fma.table.idx && oa.attributeIndex === fma.attributeIndex);
                     });
                 }
 
 
-                if (!(mandatoryAttrsMatchResult || optionalAttrsMatchResult)) {
+                if (!fmaExitsInMandatoryAtts && !fmaExitsInOptionalAtts) {
                     standaloneFilterAttribute.push(fma);
                 }
             });
