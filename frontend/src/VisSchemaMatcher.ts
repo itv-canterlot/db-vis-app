@@ -3,7 +3,6 @@ import {Attribute, RelationNode, Table, VisKey, VisParam, VISPARAMTYPES, VisSche
 import * as TypeConstants from "./TypeConstants";
 import { getRelationOneManyStatus } from "./DatasetUtils";
 import { DBSchemaContextInterface } from "./DBSchemaContext";
-import { readlink } from "node:fs";
 
 export const keyCountCheck = (key: VisKey, nPks: number): boolean => {
     const keyMinCount = key.minCount,

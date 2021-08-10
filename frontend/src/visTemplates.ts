@@ -461,9 +461,6 @@ function renderTreeMap(parameters: VisTemplateBuilder) {
         .round(true)
         (d3.hierarchy(treeMapRoot).sum(d => d.value))
 
-    let leafId = 0;
-    let clipId = 0;
-
     const leaf = svg.selectAll("g")
         .data(treeMapObject.leaves())
         .join("g")
