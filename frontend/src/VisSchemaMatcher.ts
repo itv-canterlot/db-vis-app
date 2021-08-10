@@ -549,12 +549,12 @@ export const oneManyVisMatch =
         if (vs.type !== VISSCHEMATYPES.ONEMANY) return;
         let keyIsMismatch = false;
 
-        let pairCount, pairFkIndex;
+        let pairCount, pairFkOneIndex;
         if (Array.isArray(oneManyMaxPairedVal)) {
             pairCount = oneManyMaxPairedVal;
         } else {
             pairCount = oneManyMaxPairedVal.pairCount;
-            pairFkIndex = oneManyMaxPairedVal.pairFkIndex;
+            pairFkOneIndex = oneManyMaxPairedVal.pairFkOneIndex;
         }
         
         if (!keyCountCheck(vs.localKey, pairCount[0])) {
@@ -585,17 +585,19 @@ export const oneManyVisMatch =
         if (vs.mandatoryParameters) {
             if (rel.type === VISSCHEMATYPES.MANYMANY) {
                 // Find out which side of this relationship is "one"
-                if (pairFkIndex < 0) {
+                // Assume relation is binary
+                if (pairFkOneIndex < 0) {
                     return [failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.NO_SUITABLE_ATTRIBUTE})];
                 }
-                const oneSideChildEntity = rel.childRelations.find(rel => rel.fkIndex === pairFkIndex).table;
+                const manySideChildEntity = rel.childRelations.find(rel => rel.fkIndex === (pairFkOneIndex === 0 ? 1 : 0)).table;
                 for (let mp of vs.mandatoryParameters) {
-                    let thisConstMatchableIndices = getMatchingAttributesByParameter(oneSideChildEntity, mp);
+                    let thisConstMatchableIndices = getMatchingAttributesByParameter(manySideChildEntity, mp);
                     thisPatternMatchResult.mandatoryAttributes.push(thisConstMatchableIndices);
                 }
     
                 if (isPatternMatchSuccessful(thisPatternMatchResult, vs)) {
                     thisPatternMatchResult.matched = true;
+                    thisPatternMatchResult.manyManyOneSideFkIndex = pairFkOneIndex
                 } else {
                     return [failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.NO_SUITABLE_ATTRIBUTE})];
                 }
@@ -612,7 +614,7 @@ export const oneManyVisMatch =
                 }
             }
         } else {
-            if (rel.type === VISSCHEMATYPES.MANYMANY && pairFkIndex < 0) {
+            if (rel.type === VISSCHEMATYPES.MANYMANY && pairFkOneIndex < 0) {
                 return [failedPatternMatchObject(vs, {reason: PATTERN_MISMATCH_REASON_TYPE.NO_SUITABLE_ATTRIBUTE})];
             } else {
                 thisPatternMatchResult.matched = true;
@@ -621,8 +623,8 @@ export const oneManyVisMatch =
     
         if (vs.optionalParameters) {
             if (rel.type === VISSCHEMATYPES.MANYMANY) {
-                if (pairFkIndex >= 0) {
-                    const oneSideChildEntity = rel.childRelations.find(rel => rel.fkIndex === pairFkIndex).table;
+                if (pairFkOneIndex >= 0) {
+                    const oneSideChildEntity = rel.childRelations.find(rel => rel.fkIndex === pairFkOneIndex).table;
                     for (let op of vs.optionalParameters) {
                         let thisConstMatchableIndices = getMatchingAttributesByParameter(oneSideChildEntity, op);
                         thisPatternMatchResult.optionalAttributes.push(thisConstMatchableIndices);

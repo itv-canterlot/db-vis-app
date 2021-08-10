@@ -182,7 +182,8 @@ export type PatternMatchResult = {
     mismatchReason?: PatternMismatchReason,
     mandatoryAttributes: PatternMatchAttribute[][],
     optionalAttributes: PatternMatchAttribute[][],
-    responsibleRelation?: RelationNode
+    responsibleRelation?: RelationNode,
+    manyManyOneSideFkIndex?: number
 }
 
 export enum CONFIRMATION_STATUS {

@@ -21,7 +21,8 @@
                     "scalar": false,
                     "type": "COLOR"
                 }
-            ]
+            ],
+            "template": "treemap"
         }, {
             "name": "Hierachy Tree",
             "type": 2,

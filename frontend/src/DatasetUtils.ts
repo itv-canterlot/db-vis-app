@@ -188,19 +188,19 @@ export const getRelationOneManyStatus = (context: DBSchemaContextInterface, targ
         // Which side is the "one" side?
         return Promise.resolve(getDataPromise.then(data => {
             const filteredData = filterDataByFilters(data, context, context.filters);
-            let {pairCount, pairFkIndex} = getOneManyCountPairFromManyManyRel(selectedRelation.parentEntity.fk, filteredData);
-            // For these key-pair counts, the one with pair[1] = 1 indicates it is on the "one" side of the one-to-many relation
+            let {pairCount, pairFkIndex: pairFkOneIndex} = getOneManyCountPairFromManyManyRel(selectedRelation.parentEntity.fk, filteredData);
+            // For these key-pair counts, the one with pair[1] = 1 indicates it is on the "many" side of the one-to-many relation
             // For simplicity, assuming this is binary
-            if (pairFkIndex < 0) {
+            if (pairFkOneIndex < 0) {
                 // None fits
                 pairCount = [-1, -1];
                 return {
                     pairCount: pairCount,
-                    pairFkIndex: pairFkIndex
+                    pairFkOneIndex: pairFkOneIndex
                 }
             } else {
                 return {
-                    pairCount, pairFkIndex
+                    pairCount, pairFkOneIndex
                 }
             }
         }));

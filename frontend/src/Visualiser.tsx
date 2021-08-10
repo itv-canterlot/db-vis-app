@@ -95,11 +95,25 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                 }));
     
             const primaryRelation = context.relationsList[context.relHierachyIndices[0][0]];
-            firstTablePrimaryKeyNames = 
-                primaryRelation.parentEntity
-                    .pk.columns.map(col => {
-                        return `pk_${primaryRelation.parentEntity.tableName}_${col.colName}`;
-                    });
+            if (primaryRelation.type === VISSCHEMATYPES.MANYMANY && patternMatchStatus.vs.type === VISSCHEMATYPES.ONEMANY) {
+                const responsibleManyFk = primaryRelation.parentEntity.fk[(patternMatchStatus.manyManyOneSideFkIndex === 0) ? 1 : 0];
+                firstTablePrimaryKeyNames = 
+                    responsibleManyFk.columns.map(col => {
+                            return `pk_${primaryRelation.parentEntity.tableName}_${col.fkColName}`;
+                        });
+            } else if (patternMatchStatus.vs.type === VISSCHEMATYPES.ONEMANY) {
+                firstTablePrimaryKeyNames = 
+                    primaryRelation.childRelations[0].table.pk.columns.map(col => {
+                            return `pk_${primaryRelation.childRelations[0].table.tableName}_${col.colName}`;
+                        });
+            }
+            else {
+                firstTablePrimaryKeyNames = 
+                    primaryRelation.parentEntity
+                        .pk.columns.map(col => {
+                            return `pk_${primaryRelation.parentEntity.tableName}_${col.colName}`;
+                        });
+            }
     
             selectedAttributesPublicKeyNames = 
                 context.selectedAttributesIndices[0].map(att => att.table.pk.columns.map(col => `pk_${att.table.tableName}_${col.colName}`))
@@ -112,12 +126,15 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                 if (responsibleFkInRel) {
                     // If defined:
                     // NOTE: Wrong for many-many?
+                    if (primaryRelation.type === VISSCHEMATYPES.MANYMANY && patternMatchStatus.vs.type === VISSCHEMATYPES.ONEMANY) {
+                        const responsibleFk = primaryRelation.parentEntity.fk[patternMatchStatus.manyManyOneSideFkIndex];
+                        return responsibleFk
+                            .columns.map(col => `pk_${primaryRelation.parentEntity.tableName}_${col.fkColName}`);
+                    }
                     const responsibleFk = 
-                        (primaryRelation.type === VISSCHEMATYPES.MANYMANY) ? 
-                            primaryRelation.parentEntity.fk[responsibleFkInRel.fkIndex] : 
                             att.table.fk[responsibleFkInRel.fkIndex];
                     return responsibleFk
-                            .columns.map(col => `pk_${responsibleFk.pkTableName}_${col.fkColName}`);
+                            .columns.map(col => `pk_${responsibleFkInRel.table.tableName}_${col.fkColName}`);
                 } else {
                     // If not defined: return undefined
                     return undefined;
@@ -346,8 +363,8 @@ const renderVisualisation = (visSpecificCode: string, data: object[], args: obje
     
     // set the dimensions and margins of the graph
     var margin = {top: 10, right: 30, bottom: 30, left: 60},
-    width = 460 - margin.left - margin.right,
-    height = 400 - margin.top - margin.bottom;
+    width = 800 - margin.left - margin.right,
+    height = 800 - margin.top - margin.bottom;
 
     // append the svg object to the body of the page
     let svg = d3.select("#graph-cont")

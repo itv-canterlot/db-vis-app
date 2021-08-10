@@ -14,8 +14,12 @@ export default function visTemplates(graphType, parameters) {
             return;
         case "chord":
             return;
+        case "treemap":
+            renderTreeMap(parameters);
+            return;
         case "line":
             renderLinePlot(parameters);
+            return;
         default:
             return;
     }
@@ -395,6 +399,111 @@ function renderBarPlot(parameters: VisTemplateBuilder) {
             .attr("fill", "#69b3a2")
 }
 
+function renderTreeMap(parameters: VisTemplateBuilder) {
+    const width = parameters.width,
+        height = parameters.height,
+        svg = parameters.svg,
+        margin = parameters.margin,
+        xname = parameters.args["attributeNames"][0][0],
+        groupByKeyNames = parameters.args["selectedAttributesForeignKeyNames"],
+        individualKeyNames = parameters.args["firstTablePrimaryKeyNames"];
+
+    // Separate out null data points
+    let data = JSON.parse(JSON.stringify(parameters.data))
+    // Assume the plotted axis is numbers only?
+    data = data.map(d => {
+        let newD = d;
+        newD[xname] = parseFloat(newD[xname]);
+        return newD;
+    });
+
+    let nullPoints = [];
+    let nullFilterIndex = data.length - 1;
+
+    while (nullFilterIndex >= 0) {
+        const d = data[nullFilterIndex];
+        const hasNull = Object.values(d).some(x => x === null || x === '' || x === undefined || x === NaN);
+        if (hasNull) {
+            nullPoints.push(d);
+            data.splice(nullFilterIndex, 1)
+        }
+        nullFilterIndex--;
+    }
+
+    // Floating point values for the data points - for statistical use only, not for plotting
+    const xfloat = data
+        .map(d => parseFloat(d[xname]))
+        .filter(d => !isNaN(d));
+
+    // Find out the range of each data dimension
+    // const xmax = Math.max(...xfloat),
+    //     xmin = Math.min(...xfloat);
+
+    let dataGroupedByKeyNames = groupByMultipleKeys(data, groupByKeyNames);
+    let treeMapRoot: any = {
+        "name": "root",
+        "children": Object.keys(dataGroupedByKeyNames).map(key => {
+            return {
+                "name": JSON.parse(key).join(","),
+                "children": dataGroupedByKeyNames[key].map(object => {
+                    return {
+                        "name": individualKeyNames.map(kk => object[kk]).join(",    "),
+                        "value": object[xname]
+                    }
+                })
+            }
+        })
+    }
+    
+    const treeMapObject = d3.treemap()
+        .size([width, height])
+        .padding(1)
+        .round(true)
+        (d3.hierarchy(treeMapRoot).sum(d => d.value))
+
+    let leafId = 0;
+    let clipId = 0;
+
+    const leaf = svg.selectAll("g")
+        .data(treeMapObject.leaves())
+        .join("g")
+            .attr("transform", d => `translate(${d.x0},${d.y0})`);
+
+    leaf.append("rect")
+        .attr("id", (d, i) => {
+            const newId = "leaf" + i;
+            d.leadUid = newId;
+            return newId;
+        })
+        .attr("fill", d => { while (d.depth > 1) d = d.parent; return "#1c3a25"; })
+        .attr("fill-opacity", 0.6)
+        .attr("width", d => d.x1 - d.x0)
+        .attr("height", d => d.y1 - d.y0);
+    
+    leaf.append("clipPath")
+        .attr("id", (d, i) => {
+            const newId = "clip" + i;
+            d.clipUId = newId;
+            return newId;
+        })
+        .append("use")
+            .attr("xlink:href", (d, i) => "#leaf" + i);
+
+    leaf.append("text")
+        .attr("clip-path", (d, i) => "url(#clip" + i + ")")
+        .selectAll("tspan")
+        // .data(d => d.data.name.split(/(?=[A-Z][a-z])|\s+/g).concat(d3.format(d.value)))
+        .data(d => d.data.name.split(/(?=[A-Z][a-z])|\s+/g))
+        .enter()
+        .append("tspan")
+            .attr("x", 4)
+            // .attr("y", (d, i, nodes) => `${(i === nodes.length - 1) * 0.3 + 1.1 + i * 0.9}em`)
+            .attr("y", (d, i, nodes) => `${ 1.1 + i * 0.9}em`)
+            // .attr("fill-opacity", (d, i, nodes) => i === nodes.length - 1 ? 0.7 : null)
+            .text(d => d);
+
+}
+
 function renderLinePlot(parameters: VisTemplateBuilder) {
     const width = parameters.width,
         height = parameters.height,
@@ -414,7 +523,6 @@ function renderLinePlot(parameters: VisTemplateBuilder) {
 
     // Separate out null data points
     let data = JSON.parse(JSON.stringify(parameters.data))
-    // Assume the plotted axis is numbers only?
     let dataGroupedByNames = d3.group(data, d => d[selectedAttributesFKNames[0]]);
 
     let nullPoints = [];
@@ -505,4 +613,19 @@ const getSecondSmallestNumberInArray = (min: number, array: number[]) => {
 const formatNumberAsExponential = (n: number): string => {
     const expFormat = d3.format(".0e");
     return expFormat(n);
+}
+
+const groupByMultipleKeys = (xs: object[], keys: string[]) => {
+    let out: {[key: string]: object[]} = {};
+    xs.forEach(x => {
+        // const {...keys, ...subObject} = x;
+        const mappedKey = JSON.stringify(keys.map(k => x[k]));
+        if (mappedKey in out) {
+            out[mappedKey].push(x)
+        } else {
+            out[mappedKey] = [x];
+        }
+    });
+
+    return out;
 }
