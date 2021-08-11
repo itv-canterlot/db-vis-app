@@ -13,6 +13,7 @@ export default function visTemplates(graphType, parameters) {
             renderBarPlot(parameters);
             return;
         case "chord":
+            renderChordPlot(parameters);
             return;
         case "treemap":
             renderTreeMap(parameters);
@@ -595,6 +596,133 @@ function renderLinePlot(parameters: VisTemplateBuilder) {
                     .y(d => y(d[attName]))
                     (d[1])
             })
+}
+
+const renderChordPlot = (parameters: VisTemplateBuilder) => {
+    const width = parameters.width,
+        height = parameters.height,
+        attName = parameters.args["attributeNames"][0][0];
+
+    const outerRadius = Math.min(width, height) * 0.5 - 60,
+        innerRadius = outerRadius - 10;
+
+    let svg = parameters.svg;
+    svg.attr("viewBox", [-width / 2, -height / 2, width, height])
+        .attr("transform", `translate(${width / 2}, ${height / 2})`);
+    
+    const publicKeyNames: string[] = parameters.args["firstTablePrimaryKeyNames"];
+    let data: object[] = JSON.parse(JSON.stringify(parameters.data));
+
+    // Get public key values for each of the PK names
+    if (publicKeyNames.length !== 2) {
+        return;
+    }
+
+    const uniqueEntriesPerKey = publicKeyNames.map(pkName => {
+        const allEntryNames = data.map(d => d[pkName]);
+        return [...new Set(allEntryNames)];
+    })
+
+    let allUniqueEntries = [...new Set([...uniqueEntriesPerKey[0], ...uniqueEntriesPerKey[1]])];
+    // Filter dataset entries that are not contained within the set?
+    // allUniqueEntries = allUniqueEntries.filter(key => uniqueEntriesPerKey.every(entries => entries.includes(key)));
+    const allUniqueEntriesMapByIndex = allUniqueEntries.reduce((map, obj, idx) => {
+        map[obj] = idx;
+        return map;
+    }, {});
+    const uniqueEntryCount = allUniqueEntries.length;
+
+    let matrix: number[][] = Array.from(Array(uniqueEntryCount), _ => Array(uniqueEntryCount).fill(0));
+
+    data.forEach(d => {
+        const k1 = d[publicKeyNames[0]];
+        const k2 = d[publicKeyNames[1]];
+        const v = parseFloat(d[attName]);
+
+        const i1 = allUniqueEntriesMapByIndex[k1];
+        const i2 = allUniqueEntriesMapByIndex[k2];
+        // Check if both indices are able to be mapped into the matrix
+        if (i1 !== undefined && i2 !== undefined) {
+            matrix[i1][i2] = v;
+            matrix[i2][i1] = v;
+        }
+    })
+
+    const chordDataObject = Object.assign(matrix, {
+        "names": allUniqueEntries
+    });
+
+    const chords = d3.chord()
+        .padAngle(10 / innerRadius)
+        .sortSubgroups(d3.descending)
+        .sortChords(d3.descending)
+        (chordDataObject);
+    
+    const arc = d3.arc()
+        .innerRadius(innerRadius)
+        .outerRadius(outerRadius);
+
+    const group = svg.append("g")
+        .attr("font-size", 10)
+        .attr("font-family", "sans-serif")
+        .selectAll("g")
+            .data(chords.groups)
+            .join("g")
+
+    group.append("path")
+        .attr("fill", "#69b3a2")
+        .attr("d", arc);
+    
+    group.append("title")
+        .attr("id", (d, i) => "title" + i)
+        .text(d => `${allUniqueEntries[d.index]}`);
+
+    const tickStep = d3.tickStep(0, d3.sum(chordDataObject.flat()), 100)
+
+    function ticks({startAngle, endAngle, value}) {
+        const k = (endAngle - startAngle) / value;
+        return d3.range(0, value, tickStep).map(value => {
+            return {value, angle: value * k + startAngle};
+        });
+    }
+
+    const groupTick = group.append("g")
+        .selectAll("g")
+        .data(ticks)
+        .join("g")
+          .attr("transform", d => `rotate(${d.angle * 180 / Math.PI - 90}) translate(${outerRadius},0)`);
+    
+    //   groupTick.append("line")
+    //       .attr("stroke", "currentColor")
+    //       .attr("x2", 6);
+    
+      groupTick.append("text")
+          .attr("x", 8)
+          .attr("dy", "0.35em")
+          .attr("transform", d => d.angle > Math.PI ? "rotate(180) translate(-16)" : null)
+          .attr("text-anchor", d => d.angle > Math.PI ? "end" : null)
+        //   .text(d => d.value);
+
+    group.select("text")
+        .attr("font-weight", "bold")
+        .text(function(d) {
+          return this.getAttribute("text-anchor") === "end"
+              ? `↑ ${allUniqueEntries[d.index]} (${matrix[d.index].reduce((a, b) => a + b, 0)})`
+              : `${allUniqueEntries[d.index]} (${matrix[d.index].reduce((a, b) => a + b, 0)}) ↓`;
+        });
+
+    const ribbon = d3.ribbon()
+        .radius(innerRadius - 1)
+        .padAngle(1 / innerRadius);
+
+    svg.append("g")
+        .attr("fill-opacity", 0.8)
+        .selectAll("path")
+        .data(chords)
+        .join("path")
+            .style("mix-blend-mode", "multiply")
+            .attr("fill", d => "#69b3a2")
+            .attr("d", ribbon)
 }
 
 const getSecondSmallestNumberInArray = (min: number, array: number[]) => {
