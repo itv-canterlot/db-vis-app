@@ -29,7 +29,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             selectedEntitesIndices: [],
             selectedRelationsIndices: [],
             selectedPatternIndex: -1,
-            relHierachyIndices: [[], [], []],
+            relHierarchyIndices: [[], [], []],
             rendererSelectedAttributes: [[], []],
             rerender: true,
             dataLoaded: false,
@@ -162,7 +162,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 }
 
                 Connections.getRelationBasedData(
-                        this.state.relHierachyIndices.flat()
+                        this.state.relHierarchyIndices.flat()
                             .map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues(), newParamAttrs, this.state.filters)
                     .then(getDataCallback.bind(this))
             }
@@ -211,7 +211,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 const getDataCallback = (data: object[]) => {
                     const filteredData = filterDataByFilters(data, this.getProviderValues(), this.state.filters);
                     
-                    const mainRelation = this.state.relHierachyIndices[0].map(relIdx => this.state.relationsList[relIdx])
+                    const mainRelation = this.state.relHierarchyIndices[0].map(relIdx => this.state.relationsList[relIdx])
                     // const visSchemaMatchesFromRels = 
                     //     this.getVisSchemaMatchesFromSelectedRelations();
                     const setStateCallback = visSchemaMatchesFromRels => {
@@ -252,9 +252,9 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         this.getVisSchemaMatchesFromSelectedRelations().then(setStateCallback.bind(this));
     }
 
-    onRelHierachyChange = (newHierachy: number[][]) => {
+    onRelHierarchyChange = (newHierarchy: number[][]) => {
         this.setState({
-            relHierachyIndices: newHierachy
+            relHierarchyIndices: newHierarchy
         }, () => {
             const getDataCallback = (data: object[]) => {
                 this.setState({
@@ -263,10 +263,10 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 });
             }
     
-            Connections.getRelationBasedData(newHierachy.flat().map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues())
+            Connections.getRelationBasedData(newHierarchy.flat().map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues())
                 .then(getDataCallback)
                 
-            if (newHierachy[0].length === 0) {
+            if (newHierarchy[0].length === 0) {
                 this.setState({
                     visSchemaMatchStatus: undefined
                 })
@@ -486,7 +486,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     }
 
     getVisSchemaMatchesFromSelectedRelations = () => {
-        return matchRelationWithAllVisPatterns(this.getProviderValues(), this.state.relationsList[this.state.relHierachyIndices[0][0]]);
+        return matchRelationWithAllVisPatterns(this.getProviderValues(), this.state.relationsList[this.state.relHierarchyIndices[0][0]]);
     }
     
     getTableMetadata = () => {
@@ -537,7 +537,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             selectedMatchResultIndexInPattern: this.state.selectedMatchResultIndexInPattern,
             selectedEntitiesIndices: this.state.selectedEntitesIndices,
             selectedRelationsIndices: this.state.selectedRelationsIndices,
-            relHierachyIndices: this.state.relHierachyIndices,
+            relHierarchyIndices: this.state.relHierarchyIndices,
             selectedAttributesIndices: this.state.rendererSelectedAttributes
         };
     }
@@ -571,7 +571,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                         onMatchResultIndexChange={this.onMatchResultIndexChange}
                         onSelectedAttributeIndicesChange={this.onSelectedAttributeIndicesChange}
                         onClickShowFilterSelectModal={this.onClickShowFilterSelectModal}
-                        onRelHierachyChange={this.onRelHierachyChange}
+                        onRelHierarchyChange={this.onRelHierarchyChange}
                          />
                 </div>
             </DBSchemaContext.Provider>

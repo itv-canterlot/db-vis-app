@@ -83,7 +83,7 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
                                 onClickShowFilterSelectModal={this.props.onClickShowFilterSelectModal}
                                 onMatchResultIndexChange={this.props.onMatchResultIndexChange}
                                 onSelectedAttributeIndicesChange={this.props.onSelectedAttributeIndicesChange}
-                                onRelHierachyChange={this.props.onRelHierachyChange}
+                                onRelHierarchyChange={this.props.onRelHierarchyChange}
                                  />
                         </div>
                         <h2 className="accordion-header" id="flush-headingOne">

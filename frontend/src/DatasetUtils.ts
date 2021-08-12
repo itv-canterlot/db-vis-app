@@ -173,7 +173,7 @@ const getKeyPairCountFromData = (filteredData: object[], localPkAttributeList: s
 }
 
 export const getRelationOneManyStatus = (context: DBSchemaContextInterface, targetRelation?: RelationNode) => {
-    const selectedRelation = targetRelation ? targetRelation : context.relationsList[context.relHierachyIndices[0][0]];
+    const selectedRelation = targetRelation ? targetRelation : context.relationsList[context.relHierarchyIndices[0][0]];
     let getDataPromise = Promise.resolve(context.data);
     
     getDataPromise = getDataPromise.then(data => {

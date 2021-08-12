@@ -24,7 +24,7 @@
             ],
             "template": "treemap"
         }, {
-            "name": "Hierachy Tree",
+            "name": "Hierarchy Tree",
             "type": 2,
             "localKey": {
                 "minCount": 1,

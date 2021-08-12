@@ -94,8 +94,16 @@ const doesAttributeMatchVisParamType = (attr: Attribute, param: VisParam) => {
 const getMatchingAttributesByParameter = (table: Table, param: VisParam) => {
     let paramMatchableIndices: PatternMatchAttribute[] = [];
     for (let i = 0; i < table.attr.length; i++) {
+        // If param type is colour, process the parameter separately
+        if (param.type === VISPARAMTYPES.COLOR) {
+            // For now, just add it into the list?
+            paramMatchableIndices.push({
+                table: table,
+                attributeIndex: i
+            });
+        }
         const thisAttr = table.attr[i];
-        // Skip pks(?)
+        // Skip pks
         if (SchemaParser.isAttributeInPrimaryKey(i + 1, table.pk)) continue;
         // Check specific types first
         if (!doesAttributeMatchVisParamType(thisAttr, param)) continue;
@@ -132,8 +140,14 @@ const getMatchAttributesFromSet = (rel: RelationNode, param: VisParam) => {
     const tablesInSet = getTablesWithinSet(rel);
     tablesInSet.forEach(table => {
         for (let i = 0; i < table.attr.length; i++) {
+            if (param.type === VISPARAMTYPES.COLOR) {
+                // For now, just add it into the list?
+                matchResult.push({
+                    table: table,
+                    attributeIndex: i
+                });
+            }
             const thisAttr = table.attr[i];
-            // Skip pks(?)
             if (SchemaParser.isAttributeInPrimaryKey(i + 1, table.pk)) continue;
             // Check specific types first
             if (doesAttributeMatchVisParamType(thisAttr, param)) {
@@ -712,7 +726,6 @@ const matchRelationWithVisPattern = (targetRelation: RelationNode, vs: VisSchema
             } else {
                 basicEntityMatchResult.keyCountMatched = true
             }
-
             return [basicEntityMatchResult];
         case VISSCHEMATYPES.WEAKENTITY:
             return weakEntityVisMatch(targetRelation.parentEntity, targetRelation, vs, undefined, true);
@@ -723,8 +736,6 @@ const matchRelationWithVisPattern = (targetRelation: RelationNode, vs: VisSchema
         default:
             return;
     }
-
-    return undefined;
 }
 
 const getTablesWithinSet = (rel: RelationNode) => {

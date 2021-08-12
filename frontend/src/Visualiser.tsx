@@ -94,7 +94,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                     }
                 }));
     
-            const primaryRelation = context.relationsList[context.relHierachyIndices[0][0]];
+            const primaryRelation = context.relationsList[context.relHierarchyIndices[0][0]];
             if (primaryRelation.type === VISSCHEMATYPES.MANYMANY && patternMatchStatus.vs.type === VISSCHEMATYPES.ONEMANY) {
                 const responsibleManyFk = primaryRelation.parentEntity.fk[(patternMatchStatus.manyManyOneSideFkIndex === 0) ? 1 : 0];
                 firstTablePrimaryKeyNames = 

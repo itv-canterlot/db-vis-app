@@ -4,6 +4,7 @@ import { SchemaExplorerProps, SchemaExplorerStates } from './ts/components';
 import { CONFIRMATION_STATUS, PatternMatchAttribute, PatternMatchResult, PATTERN_MISMATCH_REASON_TYPE, RelationNode, VisParam, VISSCHEMATYPES, visSchemaTypeToReadableString } from './ts/types';
 import { getDatasetEntryCountStatus } from './DatasetUtils';
 import { groupBySecondLevelAttr } from './AppMainCont';
+import * as bootstrap from 'bootstrap';
 
 export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaExplorerStates> {
     constructor(props) {
@@ -406,19 +407,19 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
         this.props.onClickShowFilterSelectModal(e);
     };
 
-    onClickRelPillForHierachy = (e: React.BaseSyntheticEvent) => {
+    onClickRelPillForHierarchy = (e: React.BaseSyntheticEvent) => {
         const context: DBSchemaContextInterface = this.context;
         const selectedRelationsIndices = context.selectedRelationsIndices;
         const clickedBubblePatternIndex = selectedRelationsIndices[parseInt(e.currentTarget.getAttribute("data-rel-index"))];
         console.log(clickedBubblePatternIndex);
 
-        // Process the new relation hierachy array
-        let newHiearchyArray = context.relHierachyIndices;
-        let [mainPatternIndex, subordinatePatternIndex, auxillaryPatternIndex] = newHiearchyArray;
+        // Process the new relation hierarchy array
+        let newHierarchyArray = context.relHierarchyIndices;
+        let [mainPatternIndex, subordinatePatternIndex, auxillaryPatternIndex] = newHierarchyArray;
         if (mainPatternIndex.length === 0) {
             mainPatternIndex.push(clickedBubblePatternIndex);
             // TODO
-            this.props.onRelHierachyChange(newHiearchyArray);
+            this.props.onRelHierarchyChange(newHierarchyArray);
             return;
         }
 
@@ -430,17 +431,17 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
         if (clickedIndexInMain >= 0) {
             // Clicked index in main, remove
             mainPatternIndex.splice(clickedIndexInMain, 1);
-            this.props.onRelHierachyChange(newHiearchyArray);
+            this.props.onRelHierarchyChange(newHierarchyArray);
             return;
         }
         if (clickedInSubordinate >= 0) {
             // Clicked index in main, remove
             subordinatePatternIndex.splice(clickedInSubordinate, 1);
-            this.props.onRelHierachyChange(newHiearchyArray);
+            this.props.onRelHierarchyChange(newHierarchyArray);
             return;
         } else {
             subordinatePatternIndex.push(clickedBubblePatternIndex);
-            this.props.onRelHierachyChange(newHiearchyArray);
+            this.props.onRelHierarchyChange(newHierarchyArray);
             return;
         }
         // if (clickedInAuxillary >= 0) {
@@ -479,7 +480,7 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
                         return (
                             <div key={key} className="badge bg-info d-inline-flex me-2 no-select cursor-pointer"
                                 data-rel-index={key} 
-                                onClick={this.onClickRelPillForHierachy}
+                                onClick={this.onClickRelPillForHierarchy}
                                 >
                                 <div>
                                     {thisRel.parentEntity.tableName} ➔ {thisRel.childRelations.map(cr => cr.table.tableName).join("/")}
@@ -559,21 +560,13 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
                                 </div>
                             </div>
 
-                            <div className="row g-0">
+                            <div className="row g-0 mt-2">
                                 <div className="col">
-                                    {JSON.stringify(context.relHierachyIndices)}
+                                    <SERelationsHierarchyElement />
                                 </div>
                             </div>
 
-
-                            <div className="row g-0">
-                                <div className="col">
-                                    <div>
-                                        {JSON.stringify(context.relHierachyIndices)}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="row g-0">
+                            <div className="row g-0 mt-2">
                                 <div className="col">
                                     Mandatory attributes:
                                     {thisPatternMatchResultGroup === undefined ? null : this.mandatoryAttributeDropdownGroup(thisPatternMatchResultGroup[context.selectedMatchResultIndexInPattern])}
@@ -601,7 +594,7 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
                                 New unique key count check: {thisPatternMatchResultGroup ?
                                     JSON.stringify(getDatasetEntryCountStatus(
                                         context.data, context.visSchema[context.selectedPatternIndex],
-                                        context.relationsList[context.relHierachyIndices[0][0]])) :
+                                        context.relationsList[context.relHierarchyIndices[0][0]])) :
                                     "N/A"}
                             </div>
                         </div>
@@ -612,3 +605,121 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
     }
 }
 SchemaExplorer.contextType = DBSchemaContext;
+
+class SERelationsHierarchyElement extends React.Component<{}, {}> {
+    constructor(props) {
+        super(props);
+    }
+
+    renderRelationBox = (rel: RelationNode, hierIndex: number, relIndex: number) => {
+        const relParentName = rel.parentEntity.tableName;
+        const relType = rel.type;
+        const relChildrenNames = rel.childRelations.map(rel => rel.table.tableName);
+        const childrenListTooLong = relChildrenNames.length > 3;
+        
+        let visTypeClassName = "type-tip tip-hierarchy";
+        let hierClassSuffix;
+        switch (hierIndex) {
+            case 0:
+                hierClassSuffix = "-main"
+                break;
+            case 1:
+                hierClassSuffix = "-sub"
+                break;
+            case 2:
+                hierClassSuffix = "-aux"
+                break;
+            default:
+                break;
+        }
+
+        return (
+            <div className={"mb-2 cursor-pointer no-select hierarchy-rel-box-wrapper hierarchy-rel-box-wrapper" + hierClassSuffix} key={relIndex}>
+                <div className={"hierarchy-rel-box-content hierarchy-rel-box-content" + hierClassSuffix}>
+                    <div>
+                        <strong>{relParentName}</strong>
+                    </div>
+                    <ul className="hierarchy-rel-ul mb-1">
+                        {relChildrenNames.slice(0, Math.min(3, relChildrenNames.length)).map((name, i) => (
+                            <li key={i}>
+                                <div className="ms-1">
+                                    {name}
+                                </div>
+                            </li>
+                        ))}
+                        {childrenListTooLong ? 
+                            <li className="hierarchy-overflow-li" data-bs-toggle="tooltip" data-bs-placement="bottom" title={relChildrenNames.slice(3).join(",")}>
+                                <div className="ms-1">
+                                    (+ {relChildrenNames.length - 3} more)
+                                </div>
+                            </li>
+                            : null}
+                    </ul>
+                    <div className="d-flex">
+                        <div className={visTypeClassName}>
+                            {visSchemaTypeToReadableString(relType)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    renderListOfRelations = (relList: RelationNode[], index: number) => {
+        let relationTypeText;
+        let relationTypeClassName;
+
+        switch (index) {
+            case 0:
+                relationTypeText = "Main relation";
+                relationTypeClassName = "hierarchy-main-rel-wrapper"
+                break;
+            case 1:
+                relationTypeText = "Subordinate relation(s)";
+                relationTypeClassName = "hierarchy-sub-rel-wrapper"
+                break;
+            case 2:
+                relationTypeText = "Auxilliary relation(s)";
+                relationTypeClassName = "hierarchy-aux-rel-wrapper"
+                break;
+            default:
+                break;
+        }
+        return (
+            <div className={"me-2 hierarchy-rel-categories-wrapper " + relationTypeClassName} key={index}>
+                <div className="mb-2 ms-1 me-1">
+                    <strong>{relationTypeText}</strong>
+                </div>
+                {relList.length === 0 ?
+                    (<div className="ms-1 me-1">
+                        <em>None selected</em>
+                    </div>) :
+                    (<div>
+                        {relList.map((rel, i) => this.renderRelationBox(rel, index, i))}
+                    </div>)
+                }
+            </div>
+        )   
+    }
+
+    componentDidUpdate() {
+        Array.from(document.getElementsByClassName("hierarchy-overflow-li"))
+            .forEach(el => {
+                let thisTooltip = new bootstrap.Tooltip(el)
+            });
+    }
+
+    render() {
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        const hierarchyList = dbSchemaContext.relHierarchyIndices.map(indices => indices.map(idx => dbSchemaContext.relationsList[idx]));
+
+        const mainRelations = hierarchyList[0],
+            subordinateRelations = hierarchyList[1],
+            auxilliaryRelations = hierarchyList[2];
+
+        return <div className="d-flex">
+            {hierarchyList.map((rels, i) => this.renderListOfRelations(rels, i))}
+        </div>;
+    }
+}
+SERelationsHierarchyElement.contextType = DBSchemaContext;

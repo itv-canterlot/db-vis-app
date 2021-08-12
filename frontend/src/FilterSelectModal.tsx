@@ -626,7 +626,7 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
     getListOfAttributesInRels = () => {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
         // Ignoring the auxilliary relations
-        return [...dbSchemaContext.relHierachyIndices[0], ...dbSchemaContext.relHierachyIndices[1]]
+        return [...dbSchemaContext.relHierarchyIndices[0], ...dbSchemaContext.relHierarchyIndices[1]]
                 .flatMap(relIdx => {
                     const thisRelation = dbSchemaContext.relationsList[relIdx];
                     const parentTableAtts = thisRelation.parentEntity.attr.map(attr => {
@@ -722,7 +722,7 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
         const dbSchemaContext: DBSchemaContextInterface = this.context;
         const newtableAttr = this.state.tableAttrList[listIndex];
         Connections.getRelationBasedData(
-            dbSchemaContext.relHierachyIndices.flat()
+            dbSchemaContext.relHierarchyIndices.flat()
                 .map(relIdx => dbSchemaContext.relationsList[relIdx]), dbSchemaContext, 
                     [
                     [...dbSchemaContext.selectedAttributesIndices[0], 

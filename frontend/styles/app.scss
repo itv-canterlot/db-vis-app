@@ -75,8 +75,17 @@ body, html {
     background-color: #ccc;
 }
 
+$color-tip-red: #fe4a49;
+$color-bar-purple: #4D3271;
+
+.tip-hierarchy {
+    background-color: $color-bar-purple;
+    color: white;
+    font-weight: bold;
+}
+
 .tip-parent {
-    background-color: #fe4a49;
+    background-color: $color-tip-red;
     color: white;
     font-weight: bold;
 }
@@ -105,7 +114,7 @@ body, html {
 }
 
 #app-sidebar-cont {
-    background-color: #4D3271;
+    background-color: $color-bar-purple;
 }
 
 .app-sidebar-bubbleblock {
@@ -159,6 +168,89 @@ body, html {
 
 .foreign-relations-group-item:hover {
     background-color: $gray-200;
+}
+
+/* SchemaExplorer.tsx */
+$color-main-rel-hierarchy-box-light: #319eaf;
+$color-main-rel-hierarchy-box-dark: #1f656f;
+$color-sub-rel-hierarchy-box-light: #ff6b6b;
+$color-sub-rel-hierarchy-box-dark: #ff1f1f;
+$color-aux-rel-hierarchy-box-light: #ffe66d;
+$color-aux-rel-hierarchy-box-dark: #ffda1f;
+
+.hierarchy-rel-categories-wrapper {
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.hierarchy-main-rel-wrapper {
+    background-color: $color-main-rel-hierarchy-box-dark;
+    color: white;
+}
+
+.hierarchy-sub-rel-wrapper {
+    background-color: $color-sub-rel-hierarchy-box-dark;
+    color: white;
+}
+
+.hierarchy-aux-rel-wrapper {
+    background-color: $color-aux-rel-hierarchy-box-dark;
+}
+
+.hierarchy-rel-box-wrapper {
+    border-radius: 10px;
+    padding: 5px;
+}
+
+.hierarchy-rel-box-wrapper-main {
+    background-color: $color-main-rel-hierarchy-box-light;
+}
+
+.hierarchy-rel-box-wrapper-sub {
+    border-radius: 10px;
+    background-color: $color-sub-rel-hierarchy-box-light;
+    padding: 5px;
+}
+
+.hierarchy-rel-box-wrapper-aux {
+    border-radius: 10px;
+    background-color: $color-aux-rel-hierarchy-box-light;
+    padding: 5px;
+}
+
+.hierarchy-rel-box-content {
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.hierarchy-rel-box-content-main {
+    border: 2px solid $color-main-rel-hierarchy-box-dark;
+    background-color: $color-main-rel-hierarchy-box-light;
+    color: white;
+}
+
+.hierarchy-rel-box-content-sub {
+    border: 2px solid $color-sub-rel-hierarchy-box-dark;
+    background-color: $color-sub-rel-hierarchy-box-light;
+    color: white;
+}
+
+.hierarchy-rel-box-content-aux {
+    border: 2px solid $color-aux-rel-hierarchy-box-dark;
+    background-color: $color-aux-rel-hierarchy-box-light;
+    color: white;
+}
+
+.hierarchy-rel-ul {
+    font-size: 0.8em;
+    list-style-type: "\2192";
+    display: inline-block;
+    max-height: 7.5rem;
+    overflow-y: hidden;
+}
+
+.hierarchy-rel-ul li {
+    line-height: 1.5em;
 }
 
 /* Chrome, Safari, Edge, Opera */
