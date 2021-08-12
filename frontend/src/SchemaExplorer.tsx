@@ -90,58 +90,6 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
         }
     };
 
-    getAttributeListWithMultipleTables = (
-        groupedAttMatchStatuses: { [name: string]: PatternMatchAttribute[]; },
-        patternAttributeIndex: number,
-        currentlySelectedAttribute: PatternMatchAttribute) => {
-        return Object.keys(groupedAttMatchStatuses).map((tableName, index) => {
-            const isTableActive = tableName === currentlySelectedAttribute.table.tableName;
-            return (
-                <li key={index} className="dropdown dropend">
-                    <a className={"dropdown-item dropdown-toggle dropdown-nested-level" + (isTableActive ? " active" : "")}
-                        id={`ma-${patternAttributeIndex}-list-${index}`}
-                        href="#"
-                        data-mandatory="true"
-                        data-bs-toggle="dropdown"
-                        aria-haspopup="true"
-                        aria-expanded="false">
-                        <div>
-                            <i className="fas fa-table me-2" />{tableName}
-                        </div>
-                    </a>
-                    <ul className="dropdown-menu dropdown-nested-level-ul"
-                        aria-labelledby={`ma-${patternAttributeIndex}-list-${index}`}
-                        data-patternatt-index={patternAttributeIndex}
-                        data-table-index={index}
-                    >
-                        {this.getAttributeListWithSingleTable(groupedAttMatchStatuses[tableName], patternAttributeIndex, currentlySelectedAttribute)}
-                    </ul>
-                </li>
-            );
-        });
-    };
-
-    getAttributeListWithSingleTable = (attMatchStatus: PatternMatchAttribute[], patternAttributeIndex: number, currentlySelectedAttribute: PatternMatchAttribute) => {
-        return attMatchStatus.map((matchAttr, listIndex) => {
-            const thisAttribute = matchAttr.table.attr[matchAttr.attributeIndex];
-            const isActive = currentlySelectedAttribute.table.idx === matchAttr.table.idx
-                && thisAttribute.attnum === currentlySelectedAttribute.attributeIndex + 1;
-            return (
-                <li key={listIndex}>
-                    <a className={"dropdown-item small" + (isActive ? " active" : "")}
-                        href="#"
-                        data-mandatory="true"
-                        data-pattern-att-idx={patternAttributeIndex}
-                        data-list-idx={listIndex}
-                        data-match-idx={matchAttr.matchIndex}
-                        onClick={this.props.onSelectedAttributeIndicesChange}>
-                        {thisAttribute.attname}
-                    </a>
-                </li>
-            );
-        });
-    };
-
     relationNodeDropdownGroup = (thisPatternMatchResultGroup: PatternMatchResult[]) => {
         const context: DBSchemaContextInterface = this.context;
         if (!thisPatternMatchResultGroup)
@@ -225,51 +173,7 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
         );
     };
 
-    mandatoryAttributeDropdownGroup = (thisPatternMatchResult: PatternMatchResult) => {
-        const context: DBSchemaContextInterface = this.context;
-        if (!thisPatternMatchResult || !thisPatternMatchResult.mandatoryAttributes)
-            return null;
-        const mandatorySelectedAttributes = context.selectedAttributesIndices[0];
-
-        // Group attributes by table name
-        let attributeGroupElement = thisPatternMatchResult.mandatoryAttributes.map((attributeMatchStatus, patternAttributeIndex) => {
-            // For each match result of each mandatory attribute, group them by their origin table
-            const patternMatchGroupedByTable: { [name: string]: PatternMatchAttribute[]; } = groupBySecondLevelAttr(attributeMatchStatus, "table", "tableName");
-            const selectedTable = context.selectedAttributesIndices[0][patternAttributeIndex].table;
-            const selectedAttribute = selectedTable.attr[context.selectedAttributesIndices[0][patternAttributeIndex].attributeIndex];
-            // If there are more than one table involved, render the attribute list grouped by table names
-            if (Object.entries(patternMatchGroupedByTable).length > 1) {
-                const thisAttributeDropdownItemList = this.getAttributeListWithMultipleTables(
-                    patternMatchGroupedByTable, patternAttributeIndex, mandatorySelectedAttributes[patternAttributeIndex]);
-                return (
-                    <div className="btn-group ms-2 attribute-list-dropdown" key={patternAttributeIndex}>
-                        <button className="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            ma{patternAttributeIndex}: {selectedAttribute.attname}
-                        </button>
-                        <ul className="dropdown-menu">
-                            {thisAttributeDropdownItemList}
-                        </ul>
-                    </div>
-                );
-            } else {
-                // Otherwise, render the attribute list directly
-                const thisAttributeDropdownItemList = this.getAttributeListWithSingleTable(
-                    attributeMatchStatus, patternAttributeIndex, mandatorySelectedAttributes[patternAttributeIndex]);
-                return (
-                    <div className="btn-group ms-2" key={patternAttributeIndex}>
-                        <button className="btn btn-secondary btn-sm dropdown-toggle attribute-list-dropdown" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            ma{patternAttributeIndex}: {selectedAttribute.attname}
-                        </button>
-                        <ul className="dropdown-menu">
-                            {thisAttributeDropdownItemList}
-                        </ul>
-                    </div>
-                );
-            }
-        });
-
-        return attributeGroupElement;
-    };
+    
 
     getInnerTextForAttributes = (params: VisParam[]) => {
         if (params.length === 0) {
@@ -521,15 +425,21 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
                                     {this.relationNodeDropdownGroup(thisPatternMatchResultGroup)}
                             </div>
                         </div>
-                        <div className="row">
+                        {/* <div className="row">
                             <div className="col">
                                 Mandatory attributes:
-                                {this.mandatoryAttributeDropdownGroup(thisPatternMatchResultGroup[context.selectedMatchResultIndexInPattern])}
+                                {this.attributeDropdownGroup(thisPatternMatchResultGroup[context.selectedMatchResultIndexInPattern])}
                             </div>
                         </div>
                         <div className="row">
                             <div className="col">
                                 Optional attributes:
+                            </div>
+                        </div> */}
+                        <div className="row g-0 mt-2">
+                            <div className="col">
+                                <SEAttributesElement
+                                    onSelectedAttributeIndicesChange={this.props.onSelectedAttributeIndicesChange} />
                             </div>
                         </div>
                     </div>
@@ -550,7 +460,7 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
                         {schemaDropdown}
                     </div>
                     <div className="mt-2 row g-0 ps-2 pe-2">
-                        <div className="col">
+                        <div className="col-6 pe-2">
                             <div className="row g-0">
                                 <div className="col d-flex">
                                     <div>
@@ -565,16 +475,24 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
                                     <SERelationsHierarchyElement />
                                 </div>
                             </div>
-
-                            <div className="row g-0 mt-2">
+                        </div>
+                        <div className="col-6 ps-2">
+                            {/* <div className="row g-0 mt-2">
                                 <div className="col">
                                     Mandatory attributes:
-                                    {thisPatternMatchResultGroup === undefined ? null : this.mandatoryAttributeDropdownGroup(thisPatternMatchResultGroup[context.selectedMatchResultIndexInPattern])}
+                                    {thisPatternMatchResultGroup === undefined ? null : this.attributeDropdownGroup(thisPatternMatchResultGroup[context.selectedMatchResultIndexInPattern])}
                                 </div>
                             </div>
                             <div className="row g-0">
                                 <div className="col">
                                     Optional attributes:
+                                    {thisPatternMatchResultGroup === undefined ? null : this.attributeDropdownGroup(thisPatternMatchResultGroup[context.selectedMatchResultIndexInPattern])}
+                                </div>
+                            </div> */}
+                            <div className="row g-0 mt-2">
+                                <div className="col">
+                                    <SEAttributesElement 
+                                        onSelectedAttributeIndicesChange={this.props.onSelectedAttributeIndicesChange} />
                                 </div>
                             </div>
                         </div>
@@ -634,8 +552,8 @@ class SERelationsHierarchyElement extends React.Component<{}, {}> {
         }
 
         return (
-            <div className={"mb-2 cursor-pointer no-select hierarchy-rel-box-wrapper hierarchy-rel-box-wrapper" + hierClassSuffix} key={relIndex}>
-                <div className={"hierarchy-rel-box-content hierarchy-rel-box-content" + hierClassSuffix}>
+            <div className={"mb-2 cursor-pointer no-select box-wrapper hierarchy-rel-box-wrapper" + hierClassSuffix} key={relIndex}>
+                <div className={"box-content hierarchy-rel-box-content" + hierClassSuffix}>
                     <div>
                         <strong>{relParentName}</strong>
                     </div>
@@ -686,7 +604,7 @@ class SERelationsHierarchyElement extends React.Component<{}, {}> {
                 break;
         }
         return (
-            <div className={"me-2 hierarchy-rel-categories-wrapper " + relationTypeClassName} key={index}>
+            <div className={"me-2 categories-wrapper " + relationTypeClassName} key={index}>
                 <div className="mb-2 ms-1 me-1">
                     <strong>{relationTypeText}</strong>
                 </div>
@@ -719,3 +637,158 @@ class SERelationsHierarchyElement extends React.Component<{}, {}> {
     }
 }
 SERelationsHierarchyElement.contextType = DBSchemaContext;
+
+class SEAttributesElement extends React.Component<{onSelectedAttributeIndicesChange: React.MouseEventHandler}, {}> {
+    constructor(props) {
+        super(props);
+    }
+
+    getAttributeListWithMultipleTables = (
+        groupedAttMatchStatuses: { [name: string]: PatternMatchAttribute[]; },
+        patternAttributeIndex: number,
+        currentlySelectedAttribute: PatternMatchAttribute) => {
+        return Object.keys(groupedAttMatchStatuses).map((tableName, index) => {
+            const isTableActive = tableName === currentlySelectedAttribute.table.tableName;
+            return (
+                <li key={index} className="dropdown dropend">
+                    <a className={"dropdown-item dropdown-toggle dropdown-nested-level" + (isTableActive ? " active" : "")}
+                        id={`ma-${patternAttributeIndex}-list-${index}`}
+                        href="#"
+                        data-mandatory="true"
+                        data-bs-toggle="dropdown"
+                        aria-haspopup="true"
+                        aria-expanded="false">
+                        <div>
+                            <i className="fas fa-table me-2" />{tableName}
+                        </div>
+                    </a>
+                    <ul className="dropdown-menu dropdown-nested-level-ul"
+                        aria-labelledby={`ma-${patternAttributeIndex}-list-${index}`}
+                        data-patternatt-index={patternAttributeIndex}
+                        data-table-index={index}
+                    >
+                        {this.getAttributeListWithSingleTable(groupedAttMatchStatuses[tableName], patternAttributeIndex, currentlySelectedAttribute)}
+                    </ul>
+                </li>
+            );
+        });
+    };
+
+    getAttributeListWithSingleTable = (attMatchStatus: PatternMatchAttribute[], patternAttributeIndex: number, currentlySelectedAttribute: PatternMatchAttribute) => {
+        return attMatchStatus.map((matchAttr, listIndex) => {
+            const thisAttribute = matchAttr.table.attr[matchAttr.attributeIndex];
+            const isActive = currentlySelectedAttribute.table.idx === matchAttr.table.idx
+                && thisAttribute.attnum === currentlySelectedAttribute.attributeIndex + 1;
+            return (
+                <li key={listIndex}>
+                    <a className={"dropdown-item small" + (isActive ? " active" : "")}
+                        href="#"
+                        data-mandatory="true"
+                        data-pattern-att-idx={patternAttributeIndex}
+                        data-list-idx={listIndex}
+                        data-match-idx={matchAttr.matchIndex}
+                        onClick={this.props.onSelectedAttributeIndicesChange}>
+                        {thisAttribute.attname}
+                    </a>
+                </li>
+            );
+        });
+    };
+
+    attributeDropdownGroup = (thisPatternMatchResult: PatternMatchResult, isOptional?: boolean) => {
+        const attributeGroupMatchInfo = isOptional === true ? thisPatternMatchResult.optionalAttributes : thisPatternMatchResult.mandatoryAttributes;
+        const context: DBSchemaContextInterface = this.context;
+        if (!thisPatternMatchResult || !attributeGroupMatchInfo)
+            return null;
+        const selectedAttributeIndices = isOptional === true ? context.selectedAttributesIndices[1] : context.selectedAttributesIndices[0];
+
+        // Group attributes by table name
+        let attributeGroupElement = attributeGroupMatchInfo.map((attributeMatchStatus, patternAttributeIndex) => {
+            // For each match result of each mandatory attribute, group them by their origin table
+            const patternMatchGroupedByTable: { [name: string]: PatternMatchAttribute[]; } = groupBySecondLevelAttr(attributeMatchStatus, "table", "tableName");
+            const selectedTable = selectedAttributeIndices[patternAttributeIndex].table;
+            const selectedAttribute = selectedTable.attr[selectedAttributeIndices[patternAttributeIndex].attributeIndex];
+            const thisAttributeInfoInPattern = attributeGroupMatchInfo[patternAttributeIndex];
+
+            const hasMultiplePatternMatchGroups = Object.entries(patternMatchGroupedByTable).length > 1;
+            const attributeListDropdownClassString = " attribute-list-dropdown";
+            
+            // If there are more than one table involved, render the attribute list grouped by table names
+            // Otherwise, render the attribute list directly
+            let thisAttributeDropdownItemList: JSX.Element[];
+            
+            if (hasMultiplePatternMatchGroups) {
+                thisAttributeDropdownItemList = this.getAttributeListWithMultipleTables(
+                    patternMatchGroupedByTable, patternAttributeIndex, selectedAttributeIndices[patternAttributeIndex]);
+            } else {
+                thisAttributeDropdownItemList = this.getAttributeListWithSingleTable(
+                    attributeMatchStatus, patternAttributeIndex, selectedAttributeIndices[patternAttributeIndex]);
+            }
+
+            let attributeListDropdown = (
+                <div className={"btn-group" + (hasMultiplePatternMatchGroups ? attributeListDropdownClassString : "")}>
+                    <button 
+                        className={"btn box-button btn-sm dropdown-toggle attr-box-button-" + (isOptional ? "opt" : "man") + (!hasMultiplePatternMatchGroups ? attributeListDropdownClassString : "")} 
+                        type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            {selectedAttribute.attname}
+                    </button>
+                    <ul className="dropdown-menu">
+                        {thisAttributeDropdownItemList}
+                    </ul>
+                </div>
+            );
+            
+
+            return (
+                <div key={patternAttributeIndex} className={"me-1 ms-1 box-wrapper attr-box-wrapper-" + (isOptional ? "opt" : "man")}>
+                    <div className={"box-content attr-box-content-" + (isOptional ? "opt" : "man")}>
+                        <div>
+                            <strong>
+                                #{patternAttributeIndex}
+                            </strong>
+                        </div>
+                        <div>
+                            {attributeListDropdown}
+                        </div>
+                    </div>
+                </div>
+            )
+        });
+
+        return attributeGroupElement;
+    };
+
+    render() {
+        const context: DBSchemaContextInterface = this.context;
+        const patternIndex = context.selectedPatternIndex;
+        const thisPatternMatchResultGroup: PatternMatchResult[] = (patternIndex < 0) ? undefined : context.visSchemaMatchStatus[patternIndex];
+        if (thisPatternMatchResultGroup === undefined) {
+            return null;
+        }
+        return (
+            <div>
+                <div className="p-3 mb-2 categories-wrapper attr-list-wrapper-man">
+                    <div className="mb-2 ms-2">
+                        <strong>
+                            {"Mandatory parameters"}
+                        </strong>
+                    </div>
+                    <div className="d-flex">
+                        {this.attributeDropdownGroup(thisPatternMatchResultGroup[context.selectedMatchResultIndexInPattern])}
+                    </div>
+                </div>
+                <div className="p-3 categories-wrapper attr-list-wrapper-opt">
+                    <div className="mb-2 ms-2">
+                        <strong>
+                            {"Optional parameters"}
+                        </strong>
+                    </div>
+                    <div className="d-flex">
+                        {this.attributeDropdownGroup(thisPatternMatchResultGroup[context.selectedMatchResultIndexInPattern], true)}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+}
+SEAttributesElement.contextType = DBSchemaContext;
