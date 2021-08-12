@@ -36,6 +36,8 @@ function renderScatterPlot(parameters: VisTemplateBuilder) {
         xlogScale = parameters.args["xLogScale"],
         ylogScale = parameters.args["yLogScale"];
 
+    const dotRadius = 3
+
     // Separate out null data points
     let data = JSON.parse(JSON.stringify(parameters.data))
     let nullPoints = [];
@@ -197,7 +199,7 @@ function renderScatterPlot(parameters: VisTemplateBuilder) {
             let yValue = parseFloat(d[yname]) + yShiftValue + ySmallNumber;
             return y(yValue); 
         })
-        .attr("r", 1.5)
+        .attr("r", dotRadius)
         .style("fill", "#69b3a2")
 }
 
@@ -209,6 +211,8 @@ function renderBubblePlot(parameters: VisTemplateBuilder) {
         xname = parameters.args["attributeNames"][0][0],
         yname = parameters.args["attributeNames"][0][1],
         zname = parameters.args["attributeNames"][0][2];
+
+    const zRange = [2, 80];
         
     // Separate out null data points
     let data = parameters.data
@@ -274,7 +278,7 @@ function renderBubblePlot(parameters: VisTemplateBuilder) {
     // Add scale for bubble size
     var z = d3.scaleLinear()
     .domain([zmin, zmax])
-    .range([ 1, 40]); // TODO: hard-coded
+    .range(zRange); // TODO: hard-coded
 
     // Add X axis label:
     svg.append("text")

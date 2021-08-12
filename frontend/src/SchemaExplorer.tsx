@@ -713,10 +713,6 @@ class SERelationsHierarchyElement extends React.Component<{}, {}> {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
         const hierarchyList = dbSchemaContext.relHierarchyIndices.map(indices => indices.map(idx => dbSchemaContext.relationsList[idx]));
 
-        const mainRelations = hierarchyList[0],
-            subordinateRelations = hierarchyList[1],
-            auxilliaryRelations = hierarchyList[2];
-
         return <div className="d-flex">
             {hierarchyList.map((rels, i) => this.renderListOfRelations(rels, i))}
         </div>;
