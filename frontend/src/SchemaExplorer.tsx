@@ -315,7 +315,6 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
         const context: DBSchemaContextInterface = this.context;
         const selectedRelationsIndices = context.selectedRelationsIndices;
         const clickedBubblePatternIndex = selectedRelationsIndices[parseInt(e.currentTarget.getAttribute("data-rel-index"))];
-        console.log(clickedBubblePatternIndex);
 
         // Process the new relation hierarchy array
         let newHierarchyArray = context.relHierarchyIndices;
@@ -708,7 +707,7 @@ class SEAttributesElement extends React.Component<{onSelectedAttributeIndicesCha
             const patternMatchGroupedByTable: { [name: string]: PatternMatchAttribute[]; } = groupBySecondLevelAttr(attributeMatchStatus, "table", "tableName");
             const selectedTable = selectedAttributeIndices[patternAttributeIndex].table;
             const selectedAttribute = selectedTable.attr[selectedAttributeIndices[patternAttributeIndex].attributeIndex];
-            const thisAttributeInfoInPattern = attributeGroupMatchInfo[patternAttributeIndex];
+            const thisAttributeInfoInPattern = attributeGroupMatchInfo[0][patternAttributeIndex];
 
             const hasMultiplePatternMatchGroups = Object.entries(patternMatchGroupedByTable).length > 1;
             const attributeListDropdownClassString = " attribute-list-dropdown";
@@ -748,6 +747,9 @@ class SEAttributesElement extends React.Component<{onSelectedAttributeIndicesCha
                             </strong>
                         </div>
                         <div>
+                            <div className="ms-2 mb-1" style={{fontSize: "0.8rem"}}>
+                                <i className="fas fa-table me-1" />{selectedTable.tableName} →
+                            </div>
                             {attributeListDropdown}
                         </div>
                     </div>
