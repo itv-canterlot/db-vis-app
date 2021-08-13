@@ -645,15 +645,15 @@ class SEAttributesElement extends React.Component<{onSelectedAttributeIndicesCha
     getAttributeListWithMultipleTables = (
         groupedAttMatchStatuses: { [name: string]: PatternMatchAttribute[]; },
         patternAttributeIndex: number,
-        currentlySelectedAttribute: PatternMatchAttribute) => {
+        currentlySelectedAttribute: PatternMatchAttribute, isOptional: boolean) => {
         return Object.keys(groupedAttMatchStatuses).map((tableName, index) => {
             const isTableActive = tableName === currentlySelectedAttribute.table.tableName;
             return (
                 <li key={index} className="dropdown dropend">
                     <a className={"dropdown-item dropdown-toggle dropdown-nested-level" + (isTableActive ? " active" : "")}
-                        id={`ma-${patternAttributeIndex}-list-${index}`}
+                        id={`${isOptional ? "oa" : "ma"}-${patternAttributeIndex}-list-${index}`}
                         href="#"
-                        data-mandatory="true"
+                        data-mandatory={isOptional ? "false" : "true"}
                         data-bs-toggle="dropdown"
                         aria-haspopup="true"
                         aria-expanded="false">
@@ -662,18 +662,19 @@ class SEAttributesElement extends React.Component<{onSelectedAttributeIndicesCha
                         </div>
                     </a>
                     <ul className="dropdown-menu dropdown-nested-level-ul"
-                        aria-labelledby={`ma-${patternAttributeIndex}-list-${index}`}
+                        aria-labelledby={`${isOptional ? "oa" : "ma"}-${patternAttributeIndex}-list-${index}`}
                         data-patternatt-index={patternAttributeIndex}
                         data-table-index={index}
                     >
-                        {this.getAttributeListWithSingleTable(groupedAttMatchStatuses[tableName], patternAttributeIndex, currentlySelectedAttribute)}
+                        {this.getAttributeListWithSingleTable(groupedAttMatchStatuses[tableName], patternAttributeIndex, currentlySelectedAttribute, isOptional)}
                     </ul>
                 </li>
             );
         });
     };
 
-    getAttributeListWithSingleTable = (attMatchStatus: PatternMatchAttribute[], patternAttributeIndex: number, currentlySelectedAttribute: PatternMatchAttribute) => {
+    getAttributeListWithSingleTable = (
+        attMatchStatus: PatternMatchAttribute[], patternAttributeIndex: number, currentlySelectedAttribute: PatternMatchAttribute, isOptional: boolean) => {
         return attMatchStatus.map((matchAttr, listIndex) => {
             const thisAttribute = matchAttr.table.attr[matchAttr.attributeIndex];
             const isActive = currentlySelectedAttribute.table.idx === matchAttr.table.idx
@@ -682,7 +683,7 @@ class SEAttributesElement extends React.Component<{onSelectedAttributeIndicesCha
                 <li key={listIndex}>
                     <a className={"dropdown-item small" + (isActive ? " active" : "")}
                         href="#"
-                        data-mandatory="true"
+                        data-mandatory={isOptional ? "false" : "true"}
                         data-pattern-att-idx={patternAttributeIndex}
                         data-list-idx={listIndex}
                         data-match-idx={matchAttr.matchIndex}
@@ -718,10 +719,10 @@ class SEAttributesElement extends React.Component<{onSelectedAttributeIndicesCha
             
             if (hasMultiplePatternMatchGroups) {
                 thisAttributeDropdownItemList = this.getAttributeListWithMultipleTables(
-                    patternMatchGroupedByTable, patternAttributeIndex, selectedAttributeIndices[patternAttributeIndex]);
+                    patternMatchGroupedByTable, patternAttributeIndex, selectedAttributeIndices[patternAttributeIndex], isOptional);
             } else {
                 thisAttributeDropdownItemList = this.getAttributeListWithSingleTable(
-                    attributeMatchStatus, patternAttributeIndex, selectedAttributeIndices[patternAttributeIndex]);
+                    attributeMatchStatus, patternAttributeIndex, selectedAttributeIndices[patternAttributeIndex], isOptional);
             }
 
             let attributeListDropdown = (
@@ -746,8 +747,8 @@ class SEAttributesElement extends React.Component<{onSelectedAttributeIndicesCha
                                 #{patternAttributeIndex}
                             </strong>
                         </div>
-                        <div>
-                            <div className="ms-2 mb-1" style={{fontSize: "0.8rem"}}>
+                        <div className="d-flex align-items-baseline">
+                            <div className="mb-1 me-1" style={{fontSize: "0.8rem"}}>
                                 <i className="fas fa-table me-1" />{selectedTable.tableName} →
                             </div>
                             {attributeListDropdown}
