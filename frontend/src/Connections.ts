@@ -317,8 +317,15 @@ export async function getRelationBasedData
     let mandatoryAttrList: object[] = [], optionalAttrList: object[] = [];
     if (attrs) {
         [mandatoryAtts, optionalAtts] = attrs;
-        mandatoryAttrList = mapPatternMatchAttributesToTableAndColumnNames(mandatoryAtts);
-        mandatoryAttrList.forEach(col => col["listIndex"] = tableNames.findIndex(n => n === col["tableName"]));
+        if (mandatoryAtts !== undefined) {
+            mandatoryAttrList = mapPatternMatchAttributesToTableAndColumnNames(mandatoryAtts);
+            mandatoryAttrList.forEach(col => col["listIndex"] = tableNames.findIndex(n => n === col["tableName"]));
+        }
+
+        if (optionalAtts !== undefined) {
+            optionalAttrList = mapPatternMatchAttributesToTableAndColumnNames(optionalAtts);
+            optionalAttrList.forEach(col => col["listIndex"] = tableNames.findIndex(n => n === col["tableName"]));
+        }
     }
     
     const standaloneFilterAttributes = mapPatternMatchAttributesToTableAndColumnNames(
@@ -330,7 +337,7 @@ export async function getRelationBasedData
         tableNames: tableNames,
         primaryKeys: primaryKeyAttributes,
         foreignKeys: foreignKeyAttributes,
-        attributes: [[...mandatoryAttrList, ...standaloneFilterAttributes]]
+        attributes: [[...mandatoryAttrList, ...standaloneFilterAttributes], optionalAttrList]
     };
     
     const rawResponse = fetch("http://localhost:3000/get-rel-based-data", {

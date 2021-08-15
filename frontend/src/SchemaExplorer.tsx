@@ -476,18 +476,6 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
                             </div>
                         </div>
                         <div className="col-6 ps-2">
-                            {/* <div className="row g-0 mt-2">
-                                <div className="col">
-                                    Mandatory attributes:
-                                    {thisPatternMatchResultGroup === undefined ? null : this.attributeDropdownGroup(thisPatternMatchResultGroup[context.selectedMatchResultIndexInPattern])}
-                                </div>
-                            </div>
-                            <div className="row g-0">
-                                <div className="col">
-                                    Optional attributes:
-                                    {thisPatternMatchResultGroup === undefined ? null : this.attributeDropdownGroup(thisPatternMatchResultGroup[context.selectedMatchResultIndexInPattern])}
-                                </div>
-                            </div> */}
                             <div className="row g-0 mt-2">
                                 <div className="col">
                                     <SEAttributesElement 
