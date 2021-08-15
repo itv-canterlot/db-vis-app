@@ -265,11 +265,14 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             if (newHierarchy[0].length === 0) {
                 this.setState({
                     dataLoaded: false,
-                    data: undefined
+                    data: undefined,
+                    selectedPatternIndex: -1,
+                    rendererSelectedAttributes: [[], []],
+                    visSchemaMatchStatus: undefined
                 });
                 return;
             }
-            
+
             const getDataCallback = (data: object[]) => {
                 this.setState({
                     dataLoaded: true,
@@ -280,13 +283,6 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             Connections.getRelationBasedData(newHierarchy.flat().map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues())
                 .then(getDataCallback)
                 
-            if (newHierarchy[0].length === 0) {
-                this.setState({
-                    visSchemaMatchStatus: undefined
-                })
-                return;
-            }
-
             const setStateCallback = (visSchemaMatchesFromRels => {
                 this.setState({
                     visSchemaMatchStatus: visSchemaMatchesFromRels
