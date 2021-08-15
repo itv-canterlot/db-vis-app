@@ -409,7 +409,6 @@ async function getTableMetatdata() {
                 "columns": tablePksColumns,
             };
             const pkCountQuery = totalCountByColumnGroup(tableName, tablePksColumns.map(col => col["colName"]));
-            console.log(pkCountQuery)
             return singlePoolRequest(pkCountQuery).then(res => {
                 return res[0]["count"]
             });
