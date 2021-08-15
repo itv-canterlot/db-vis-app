@@ -261,6 +261,15 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         this.setState({
             relHierarchyIndices: newHierarchy
         }, () => {
+            // If primary relation is not selected, clear screen and data
+            if (newHierarchy[0].length === 0) {
+                this.setState({
+                    dataLoaded: false,
+                    data: undefined
+                });
+                return;
+            }
+            
             const getDataCallback = (data: object[]) => {
                 this.setState({
                     dataLoaded: true,

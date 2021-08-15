@@ -7,6 +7,19 @@ const { exception } = require("console");
 const dataSelectByTableNameAndFields = (tableName, fields) => `SELECT ${fields.length === 0 ? "*" : fields.join(", ")} FROM ${tableName};`;
 
 const dataSelectByRelationshipsQuery = (attrs, fks, parentTableNames, primaryKeys) => {
+    // If no parent table has been selected, or no attrs/fks/pks has been selected, return undefined
+    if (parentTableNames.length === 0) {
+        return undefined;
+    }
+    
+    if ((attrs[0] === undefined || attrs[0].length === 0) && (attrs[1] === undefined || attrs[1].length === 0)) {
+        if (primaryKeys === undefined || primaryKeys.length === 0) {
+            if (fks === undefined || fks.length === 0) {
+                return undefined;           
+            }
+        }
+    }
+
 
     primaryKeyAttributeQueries = primaryKeys.map(pk => {
         const columnName = pk["columnName"],
@@ -73,8 +86,6 @@ const dataSelectByRelationshipsQuery = (attrs, fks, parentTableNames, primaryKey
     }
 
     const completedQuery = `SELECT ${primaryKeyAttributeQueries} ${mandatoryAttrQueries} FROM ${tableJoinQueries.join(" ")};`;
-
-    console.log(completedQuery)
 
     return completedQuery;
 }
@@ -452,6 +463,9 @@ async function getDataMultiTable(attrs, fks, parentTableName, primaryKeys) {
 
 async function getDataRelationshipBased(attrs, fks, parentTableName, primaryKeys) {
     const query = dataSelectByRelationshipsQuery(attrs, fks, parentTableName, primaryKeys);
+    if (query === undefined) {
+        return {};
+    }
     return await singlePoolRequest(query);
 }
 
