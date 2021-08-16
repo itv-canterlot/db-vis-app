@@ -47,6 +47,10 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
     // Event handlers
     onClickShowStartingTableSelectModal = () => {
+        if (this.state.allEntitiesList.length == 0) {
+            this.getTableMetadata();
+        }
+        
         this.setState({
             showStartingTableSelectModal: true,
         });
