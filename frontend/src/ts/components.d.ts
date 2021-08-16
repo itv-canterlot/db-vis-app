@@ -122,6 +122,7 @@ export type TableBasedFilterModalContentProps = {
     onFilterRangeChange: Function,
     cachedFilterValueRef: React.RefObject<HTMLInputElement>
     parentStates: FilterSelectModalStates,
+    onClickDeleteFilter: Function
 }
 
 export type RelationBasedFilterModalContentProps = {
@@ -130,6 +131,7 @@ export type RelationBasedFilterModalContentProps = {
     onFilterSelectionConfirm: React.MouseEventHandler,
     onConfirmCachedFilter: Function,
     cachedFilterValueRef: React.RefObject<HTMLInputElement>,
+    onClickDeleteFilter: Function,
     parentState: FilterSelectModalStates
 }
 
@@ -148,6 +150,7 @@ export type DatasetFilteringElementProps = {
     onFilterConditionChanged: Function,
     onConfirmCachedFilter: React.MouseEventHandler,
     onChangeFilterType: React.MouseEventHandler,
+    onClickDeleteFilter: Function,
     filterList: Filter[]
 }
 

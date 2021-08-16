@@ -21,7 +21,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         this.state = {
             cachedFilterSelection: undefined,
             cachedFilterType: FilterType.getAllFilterTypes()[0],
-            cachedFiltersList: [],
+            cachedFiltersList: [...this.props.filters],
             cachedForeignTableSelected: -1,
             filterRange: 0,
             tableAttributeList: []
@@ -33,7 +33,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
     modalComponent: bootstrap.Modal = undefined;
 
     onFilterSelectionConfirm = (e: React.BaseSyntheticEvent) => {
-        this.props.onFilterChange([...this.props.filters, ...this.state.cachedFiltersList]);
+        this.props.onFilterChange(this.state.cachedFiltersList);
         if (this.modalComponent) {
             this.modalComponent.hide();
         }
@@ -118,6 +118,12 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         });
     };
 
+    onClickDeleteFilter = (filterIdx: number) => {
+        this.setState({
+            cachedFiltersList: this.state.cachedFiltersList.filter((v, i) => i !== filterIdx)
+        });
+    }
+
     onConfirmCachedFilter = (e: React.BaseSyntheticEvent, filter?: Filter, filterType?: FilterType) => {
         const filterInputValue = this.cachedFilterValueRef.current as HTMLInputElement;
         let cachedFilter;
@@ -167,7 +173,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             filterRange: newFilterRange,
             cachedFilterSelection: undefined,
             cachedForeignTableFKIndex: -1,
-            cachedFiltersList: [],
+            cachedFiltersList: [...this.props.filters],
             cachedForeignTableSelected: -1
         });
     }
@@ -199,9 +205,9 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         height = 300 - margin.top - margin.bottom, 
         color = "steelblue";
 
-        const combinedFilterList = [...this.props.filters, ...this.state.cachedFiltersList]
+        // const combinedFilterList = [...this.props.filters, ...this.state.cachedFiltersList]
 
-        const filteredData = DatasetUtils.filterDataByAttribute(data, dbSchemaContext, attr, combinedFilterList).map(d => parseFloat(d), true)
+        const filteredData = DatasetUtils.filterDataByAttribute(data, dbSchemaContext, attr, this.state.cachedFiltersList).map(d => parseFloat(d), true)
         const n_bins = d3.thresholdSturges(filteredData);
 
         let bins = d3.bin().thresholds(n_bins)(filteredData);
@@ -326,13 +332,13 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             return baseClassList;
         };
 
-        const combinedFilterList = [...this.props.filters, ...this.state.cachedFiltersList]
+        // const combinedFilterList = [...this.props.filters, ...this.state.cachedFiltersList]
         if (dbSchemaContext.selectedEntitiesIndices.length !== 0) {
             return (
                 <div className="modal fade d-block" role="dialog" id="starting-table-select-modal">
                     <div className="modal-dialog modal-dialog-centered" role="document" style={{ maxWidth: "80%" }}>
                         <TableBasedFilterModalContent 
-                            filterList={combinedFilterList}
+                            filterList={this.state.cachedFiltersList}
                             handleOnClose={this.handleOnClose}
                             onFilterRangeChange={this.onFilterRangeChange}
                             onFilterSelectionConfirm={this.onFilterSelectionConfirm}
@@ -341,6 +347,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                             onChangeFilterType={this.onChangeFilterType}
                             onConfirmCachedFilter={this.onConfirmCachedFilter}
                             onFilterConditionChanged={this.onFilterConditionChanged}
+                            onClickDeleteFilter={this.onClickDeleteFilter}
                             parentStates={this.state} />
                     </div>
                 </div>
@@ -350,11 +357,12 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                 <div className="modal fade d-block" role="dialog" id="starting-table-select-modal">
                     <div className="modal-dialog modal-dialog-centered" role="document" style={{ maxWidth: "80%" }}>
                         <RelationBasedFilterModalContent
-                            filterList={combinedFilterList}
+                            filterList={this.state.cachedFiltersList}
                             handleOnClose={this.handleOnClose}
                             onFilterSelectionConfirm={this.onFilterSelectionConfirm}
                             onConfirmCachedFilter={this.onConfirmCachedFilter}
                             cachedFilterValueRef={this.cachedFilterValueRef}
+                            onClickDeleteFilter={this.onClickDeleteFilter}
                             parentState={this.state} />
                     </div>
                 </div>
@@ -376,7 +384,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                                 </div>
                             </div>
                             <div className="modal-footer">
-                                <button type="button" className={"btn btn-primary" + (combinedFilterList.length === 0 ? " disabled" : "")} onClick={this.onFilterSelectionConfirm}>Confirm</button>
+                                <button type="button" className={"btn btn-primary" + (this.state.cachedFiltersList.length === 0 ? " disabled" : "")} onClick={this.onFilterSelectionConfirm}>Confirm</button>
                                 <button type="button" className="btn btn-secondary" onClick={this.handleOnClose}>Cancel</button>
                             </div>
                         </div>
@@ -446,6 +454,7 @@ class TableBasedFilterModalContent extends React.Component<TableBasedFilterModal
                         onChangeFilterType={this.props.onChangeFilterType}
                         onConfirmCachedFilter={this.props.onConfirmCachedFilter}
                         onFilterConditionChanged={this.props.onFilterConditionChanged}
+                        onClickDeleteFilter={this.props.onClickDeleteFilter}
 
                          />
                 </div>
@@ -555,6 +564,7 @@ class TableBasedFilterModalContent extends React.Component<TableBasedFilterModal
                     {cachedFilterElem()}
                     <ul className="list-group">
                         <FilterList 
+                            onClickDeleteFilter={this.props.onClickDeleteFilter}
                             filterList={this.props.filterList}
                             entitiesList={dbSchemaContext.allEntitiesList} />
                     </ul>
@@ -678,6 +688,7 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
                     }
                     <ul className="list-group">
                         <FilterList 
+                            onClickDeleteFilter={this.props.onClickDeleteFilter}
                             filterList={this.props.filterList} 
                             entitiesList={dbSchemaContext.allEntitiesList} />
                     </ul>
@@ -966,6 +977,7 @@ class DatasetFilteringElement extends React.Component<DatasetFilteringElementPro
                     {this.props.cachedFilterSelection ? this.filterFormElem() : null}
                     <ul className="list-group">
                         <FilterList 
+                            onClickDeleteFilter={this.props.onClickDeleteFilter}
                             filterList={this.props.filterList} 
                             entitiesList={dbSchemaContext.allEntitiesList} />
                     </ul>
@@ -977,7 +989,12 @@ class DatasetFilteringElement extends React.Component<DatasetFilteringElementPro
 }
 DatasetFilteringElement.contextType = DBSchemaContext;
 
-class FilterList extends React.Component<{filterList: Filter[], entitiesList: Table[]}, {}> {
+class FilterList extends React.Component<{filterList: Filter[], entitiesList: Table[], onClickDeleteFilter: Function}, {}> {
+    onClickDeleteFilter = (e: React.BaseSyntheticEvent) => {
+        const filterIndex = parseInt(e.currentTarget.getAttribute("data-filter-index"));
+        this.props.onClickDeleteFilter(filterIndex);
+    }
+
     render() {
         const combinedList = this.props.filterList;
         if (combinedList.length > 0) {
@@ -985,24 +1002,30 @@ class FilterList extends React.Component<{filterList: Filter[], entitiesList: Ta
                 const thisFilterTable = this.props.entitiesList[filter.tableIndex];
                 const thisFilterAttribute = thisFilterTable.attr[filter.attNum - 1];
                 return (
-                <li className="list-group-item" key={idx}>
-                    <div className="type-tip bg-tip-grey">
-                        {filter.condition.filterType.toString()}
+                <li className="align-items-center d-flex justify-content-between list-group-item" key={idx}>
+                    <div className="me-3 curser-pointer" onClick={this.onClickDeleteFilter} data-filter-index={idx}>
+                        <i className="fas fa-minus-circle"/>
                     </div>
-                    <div className="d-inline-flex">
-                        <div>{thisFilterTable.tableName}/{thisFilterAttribute.attname}</div>
-                        <div className="ms-1">
-                            {filter.condition.friendlyName[0]}
+                    <div className="w-100">
+                        <div className="type-tip bg-tip-grey">
+                            {filter.condition.filterType.toString()}
                         </div>
-                        <div className="ms-1">
-                            {filter.value}
-                        </div>
-                        {
-                            filter.condition.friendlyTextInfix ? 
+                        <div className="d-inline-flex">
+                            <div>{thisFilterTable.tableName}/{thisFilterAttribute.attname}</div>
                             <div className="ms-1">
-                                {filter.condition.friendlyName[1]}
-                            </div> : null
-                        }
+                                {filter.condition.friendlyName[0]}
+                            </div>
+                            <div className="ms-1">
+                                {filter.value}
+                            </div>
+                            {
+                                filter.condition.friendlyTextInfix ? 
+                                <div className="ms-1">
+                                    {filter.condition.friendlyName[1]}
+                                </div> : null
+                            }
+                        </div>
+
                     </div>
                 </li>);
             });
