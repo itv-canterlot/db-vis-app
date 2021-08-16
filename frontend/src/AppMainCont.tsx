@@ -98,6 +98,7 @@ export class AppMainCont extends React.Component<AppMainContProps, AppMainContSt
                         {
                             renderVisualiser() ? 
                             <Visualiser 
+                                showVisKeyCountConfirmModal={this.props.showVisKeyCountConfirmModal}
                                 rerender={this.props.rerender}
                                 onDataChange={this.onDataChange} />
                                 : null

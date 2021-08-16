@@ -5,7 +5,7 @@ import { VISSCHEMATYPES, VisTemplateBuilder } from './ts/types'
 
 import visTemplates from './visTemplates';
 import { VisualiserProps, VisualiserStates } from './ts/components';
-import { filterDataByFilters } from './DatasetUtils';
+import { filterDataByFilters, getDatasetEntryCountStatus } from './DatasetUtils';
 
 export class Visualiser extends React.Component<VisualiserProps, VisualiserStates> {
     constructor(props) {
@@ -18,13 +18,13 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
     }
 
     visualisationHandler = () => {
-        console.log("Vis handler")
         if (!this.props.rerender) return;
 
         let context: DBSchemaContextInterface = this.context;
-        const selectedPattern = context.selectedPatternIndex;
-        const patternMatchStatus = context.visSchemaMatchStatus[selectedPattern][context.selectedMatchResultIndexInPattern];
-        const selectedPatternTemplateCode = context.visSchema[selectedPattern].template
+        const selectedPatternIndex = context.selectedPatternIndex;
+        const selectedPattern = context.visSchema[selectedPatternIndex];
+        const patternMatchStatus = context.visSchemaMatchStatus[selectedPatternIndex][context.selectedMatchResultIndexInPattern];
+        const selectedPatternTemplateCode = selectedPattern.template
         
         if (!context.dataLoaded) {
             if (this.state.renderedDataLoaded) {
@@ -41,18 +41,17 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                 renderedAttributesIndices: context.selectedAttributesIndices,
                 renderedTableIndex: context.selectedEntitiesIndices[0],
                 renderedMatchResultIndex: context.selectedMatchResultIndexInPattern,
-                renderedVisSchemaIndex: selectedPattern,
+                renderedVisSchemaIndex: selectedPatternIndex,
                 renderedFilters: context.filters,
                 renderedDataLoaded: context.dataLoaded
             })
             renderEmptyChart();
             return;
         }
+
+        const filteredData = filterDataByFilters(context.data, context, context.filters);
         
-        // Figure out if there is a foreign key involved in the match
-
         // Temporary: split the case on table/relation based selection
-
         // Map matched attributes to their names
         let attributeNames, firstTablePrimaryKeyNames, selectedAttributesPublicKeyNames, selectedAttributesForeignKeyNames;
         if (context.selectedEntitiesIndices.length !== 0) {
@@ -92,9 +91,28 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                         const attName = matchAttr.table.attr[matchAttr.attributeIndex].attname;
                         return `a_${matchAttr.table.tableName}_${attName}`;
                     }
-                }));
-    
+            }));
+            
             const primaryRelation = context.relationsList[context.relHierarchyIndices[0][0]];
+            const datasetEntryCountStatus = getDatasetEntryCountStatus(filteredData, selectedPattern, primaryRelation);
+            if (!datasetEntryCountStatus) {
+                // Print warning?
+                if (!context.visKeyOverride) {
+                    this.props.showVisKeyCountConfirmModal();
+                    return;
+                }
+                // this.setState({
+                //     renderFailed: true,
+                //     renderedAttributesIndices: context.selectedAttributesIndices,
+                //     renderedTableIndex: context.selectedEntitiesIndices[0],
+                //     renderedMatchResultIndex: context.selectedMatchResultIndexInPattern,
+                //     renderedVisSchemaIndex: selectedPatternIndex,
+                //     renderedFilters: context.filters,
+                //     renderedDataLoaded: context.dataLoaded
+                // });
+                // renderEmptyChart(true);
+            }
+
             if (primaryRelation.type === VISSCHEMATYPES.MANYMANY && patternMatchStatus.vs.type === VISSCHEMATYPES.ONEMANY) {
                 const responsibleManyFk = primaryRelation.parentEntity.fk[(patternMatchStatus.manyManyOneSideFkIndex === 0) ? 1 : 0];
                 firstTablePrimaryKeyNames = 
@@ -159,7 +177,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                 renderedAttributesIndices: context.selectedAttributesIndices,
                 renderedTableIndex: context.selectedEntitiesIndices[0],
                 renderedMatchResultIndex: context.selectedMatchResultIndexInPattern,
-                renderedVisSchemaIndex: selectedPattern,
+                renderedVisSchemaIndex: selectedPatternIndex,
                 renderedFilters: context.filters,
                 renderedDataLoaded: context.dataLoaded
             });
@@ -167,13 +185,13 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
             return;
         }
         
-        renderVisualisation(selectedPatternTemplateCode, filterDataByFilters(context.data, context, context.filters), params);
+        renderVisualisation(selectedPatternTemplateCode, filteredData, params);
         this.setState({
             renderFailed: false,
             renderedAttributesIndices: context.selectedAttributesIndices,
             renderedMatchResultIndex: context.selectedMatchResultIndexInPattern,
             renderedTableIndex: context.selectedEntitiesIndices[0],
-            renderedVisSchemaIndex: selectedPattern,
+            renderedVisSchemaIndex: selectedPatternIndex,
             renderedFilters: context.filters,
             renderedDataLoaded: context.dataLoaded
         })
@@ -233,6 +251,9 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
 
     renderStateDidChange = () => {
         let context: DBSchemaContextInterface = this.context;
+        if (context.showVisKeyCountConfirmModal) {
+            return false;
+        }
         if (context.dataLoaded) {
             if (context.dataLoaded === this.state.renderedDataLoaded) {
                 // Data load status check
@@ -335,11 +356,11 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
 
 Visualiser.contextType = DBSchemaContext;
 
-const renderEmptyChart = () => {
+const renderEmptyChart = (isCountFailed?: boolean) => {
     // set the dimensions and margins of the graph
     var margin = {top: 10, right: 30, bottom: 30, left: 60},
-    width = 460 - margin.left - margin.right,
-    height = 400 - margin.top - margin.bottom;
+    width = 800 - margin.left - margin.right,
+    height = 800 - margin.top - margin.bottom;
 
     // append the svg object to the body of the page
     let svg = d3.select("#graph-cont")
@@ -355,7 +376,7 @@ const renderEmptyChart = () => {
                 "translate(" + margin.left + "," + margin.top + ")")
     }
 
-    svg.append("text").text("Oh no!");
+    svg.append("text").text(isCountFailed ? "Key count does not match pattern constraints" : "Render failed");
 }
 
 const renderVisualisation = (visSpecificCode: string, data: object[], args: object) => {

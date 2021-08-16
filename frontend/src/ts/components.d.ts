@@ -63,6 +63,8 @@ export type ApplicationStates = {
     showStartingTableSelectModal?: boolean,
     showMatchedSchemasModal?: boolean,
     showFilterSelectModal?: boolean,
+    showVisKeyCountConfirmModal?: boolean,
+    visKeyOverride?: boolean,
     visSchemaMatchStatus?: PatternMatchResult[][]
 }
 
@@ -169,6 +171,7 @@ export type AppMainContProps = {
     onVisPatternIndexChange: Function,
     onMatchResultIndexChange: Function,
     onRelHierarchyChange: Function,
+    showVisKeyCountConfirmModal: Function
     onSelectedAttributeIndicesChange: React.MouseEventHandler,
     onClickShowFilterSelectModal: React.MouseEventHandler,
     onDataChange?: Function
@@ -181,6 +184,7 @@ export type AppMainContStates = {
 
 /* Visualiser.tsx */
 export type VisualiserProps = {
+    showVisKeyCountConfirmModal: Function
     rerender: boolean
     onDataChange?: Function
 }

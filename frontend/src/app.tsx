@@ -16,6 +16,7 @@ import { StartingTableSelectModal } from "./StartingTableSelectModal";
 import "../styles/app.scss"
 import { FilterSelectModal } from './FilterSelectModal';
 import { filterDataByFilters } from './DatasetUtils';
+import { VisKeyCountConfirmModal } from './VisKeyCountConfirmModal';
 
 let visSchema: VisSchema[] = [];
 
@@ -38,14 +39,16 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             databaseLocation: "http://localhost:5432", // Placeholder
             showStartingTableSelectModal: false,
             showMatchedSchemasModal: false,
-            showFilterSelectModal: false
+            showFilterSelectModal: false,
+            showVisKeyCountConfirmModal: false,
+            visKeyOverride: false
         };
     }
 
     // Event handlers
     onClickShowStartingTableSelectModal = () => {
         this.setState({
-            showStartingTableSelectModal: true
+            showStartingTableSelectModal: true,
         });
     }
 
@@ -67,6 +70,34 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         });
     }
 
+    showVisKeyCountConfirmModal = () => {
+        this.setState({
+            showVisKeyCountConfirmModal: true
+        })
+    }
+
+    onCloseVisKeyCountConfirmModal = (cancel: boolean) => {
+        const newSelectedPatternIndex = cancel ? -1 : this.state.selectedPatternIndex;
+        this.setState({
+            showVisKeyCountConfirmModal: false,
+            selectedPatternIndex: newSelectedPatternIndex
+        })
+    }
+
+    onConfirmVisKeyCountConfirmModal = () => {
+        this.setState({
+            showVisKeyCountConfirmModal: false,
+            visKeyOverride: true
+        })
+    }
+
+    onSelectFilteringFromConfirmModal = () => {
+        this.setState({
+            showVisKeyCountConfirmModal: false
+        })
+    }
+    
+    
     onMatchResultIndexChange = (newIndex: number) => {
         const newPatternMatchStatusesByIndex: PatternMatchResult[] =
             this.state.visSchemaMatchStatus[this.state.selectedPatternIndex];
@@ -92,7 +123,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
         this.setState({
             selectedMatchResultIndexInPattern: newIndex,
-            rendererSelectedAttributes: newParamAttrs
+            rendererSelectedAttributes: newParamAttrs,
+            visKeyOverride: false
         });
     }
 
@@ -141,7 +173,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                         data: data,
                         selectedPatternIndex: newIndex,
                         selectedMatchResultIndexInPattern: newSelectedMatchResultIndexInPattern,
-                        rendererSelectedAttributes: newParamAttrs
+                        rendererSelectedAttributes: newParamAttrs,
+                        visKeyOverride: false
                     })
                 };
     
@@ -157,7 +190,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                         data: data,
                         selectedPatternIndex: newIndex,
                         selectedMatchResultIndexInPattern: newSelectedMatchResultIndexInPattern,
-                        rendererSelectedAttributes: newParamAttrs
+                        rendererSelectedAttributes: newParamAttrs,
+                        visKeyOverride: false
                     });
                 }
 
@@ -204,7 +238,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     this.setState({
                         dataLoaded: true,
                         data: data,
-                        rendererSelectedAttributes: newAttsObject
+                        rendererSelectedAttributes: newAttsObject,
+                        visKeyOverride: false
                     });
                 }
                 Connections.getDataByMatchAttrs(newAttsObject, 
@@ -224,7 +259,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                             dataLoaded: true,
                             data: filteredData,
                             visSchemaMatchStatus: visSchemaMatchesFromRels,
-                            rendererSelectedAttributes: newAttsObject
+                            rendererSelectedAttributes: newAttsObject,
+                            visKeyOverride: false
                         })
                     };
                     
@@ -268,7 +304,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     data: undefined,
                     selectedPatternIndex: -1,
                     rendererSelectedAttributes: [[], []],
-                    visSchemaMatchStatus: undefined
+                    visSchemaMatchStatus: undefined,
+                    visKeyOverride: false
                 });
                 return;
             }
@@ -285,7 +322,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 
             const setStateCallback = (visSchemaMatchesFromRels => {
                 this.setState({
-                    visSchemaMatchStatus: visSchemaMatchesFromRels
+                    visSchemaMatchStatus: visSchemaMatchesFromRels,
+                    visKeyOverride: false
                 })
             });
 
@@ -340,7 +378,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                         rerender: entitiesIndicesChanged,
                         visSchemaMatchStatus: visSchemaMatchStatus,
                         selectedPatternIndex: selectedPatternIndex ? selectedPatternIndex : -1,
-                        rendererSelectedAttributes: rendererSelectedAttributes
+                        rendererSelectedAttributes: rendererSelectedAttributes,
+                        visKeyOverride: false
                     });
                 }
     
@@ -353,7 +392,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         } else {            
             this.setState({
                 selectedEntitesIndices: newEntities,
-                selectedRelationsIndices: newRelations
+                selectedRelationsIndices: newRelations,
+                visKeyOverride: false
             }, () => {
                 matchAllSelectedRelationsWithVisPatterns(this.getProviderValues()).then(result => {
                     console.log(result);
@@ -377,7 +417,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             }, () => {
                 const setStateCallback = (visSchemaMatchesFromRels) => {
                     this.setState({
-                        visSchemaMatchStatus: visSchemaMatchesFromRels
+                        visSchemaMatchStatus: visSchemaMatchesFromRels,
+                        visKeyOverride: false
                     })
                 }
                 this.getVisSchemaMatchesFromSelectedRelations().then(setStateCallback.bind(this));
@@ -394,7 +435,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         // TODO: temporary divergence
         if (this.state.selectedEntitesIndices.length === 0) {
             this.setState({
-                filters: filters
+                filters: filters,
+                visKeyOverride: false
             }, () => {
                 this.updateRelationBasedDataWithFilter(filters, {}, this);
             })
@@ -411,6 +453,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                     data: data,
                     filters: filters,
                     visSchemaMatchStatus: visSchemaMatchStatus,
+                    visKeyOverride: false
                 });
             }
 
@@ -518,7 +561,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 this.setState({
                     allEntitiesList: preprocessResult.tableList,
                     relationsList: preprocessResult.relationsList,
-                    listLoaded: true
+                    listLoaded: true,
+                    visKeyOverride: false
                 });
             });
             
@@ -548,6 +592,8 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             selectedEntitiesIndices: this.state.selectedEntitesIndices,
             selectedRelationsIndices: this.state.selectedRelationsIndices,
             relHierarchyIndices: this.state.relHierarchyIndices,
+            visKeyOverride: this.state.visKeyOverride,
+            showVisKeyCountConfirmModal: this.state.showVisKeyCountConfirmModal,
             selectedAttributesIndices: this.state.rendererSelectedAttributes
         };
     }
@@ -567,6 +613,13 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                         filters={this.state.filters}
                         onFilterChange={this.onFilterChange} /> 
                     : null}
+
+                {this.state.showVisKeyCountConfirmModal ? 
+                    <VisKeyCountConfirmModal 
+                        onClose={this.onCloseVisKeyCountConfirmModal}
+                        onConfirm={this.onConfirmVisKeyCountConfirmModal}
+                        onSelectFiltering={this.onSelectFilteringFromConfirmModal} /> 
+                    : null}
                 <div className="row" id="app-wrapper">
                     <AppSidebar 
                         databaseLocation={this.state.databaseLocation}
@@ -582,6 +635,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                         onSelectedAttributeIndicesChange={this.onSelectedAttributeIndicesChange}
                         onClickShowFilterSelectModal={this.onClickShowFilterSelectModal}
                         onRelHierarchyChange={this.onRelHierarchyChange}
+                        showVisKeyCountConfirmModal={this.showVisKeyCountConfirmModal}
                          />
                 </div>
             </DBSchemaContext.Provider>
