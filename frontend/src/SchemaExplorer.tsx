@@ -458,7 +458,7 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
                         </div>
                         {schemaDropdown}
                     </div>
-                    <div className="mt-2 row g-0 ps-2 pe-2">
+                    <div className="mt-2 row g-0 ps-2 pe-2 mb-2">
                         <div className="col-6 pe-2">
                             <div className="row g-0">
                                 <div className="col d-flex">
@@ -484,7 +484,7 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
                             </div>
                         </div>
                     </div>
-                    <div className="row g-0 ps-2 pe-2">
+                    {/* <div className="row g-0 ps-2 pe-2">
                         <div className="col">
                             <div>
                                 Statuses:
@@ -503,7 +503,7 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
                                     "N/A"}
                             </div>
                         </div>
-                    </div>
+                    </div> */}
                 </div>
             );
         }
