@@ -95,7 +95,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
             
             const primaryRelation = context.relationsList[context.relHierarchyIndices[0][0]];
             const datasetEntryCountStatus = getDatasetEntryCountStatus(filteredData, selectedPattern, primaryRelation);
-            if (!datasetEntryCountStatus) {
+            if (filteredData.length > 0 && !datasetEntryCountStatus) {
                 // Print warning?
                 if (!context.visKeyOverride) {
                     this.props.showVisKeyCountConfirmModal();
