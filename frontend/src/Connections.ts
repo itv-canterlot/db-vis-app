@@ -30,42 +30,6 @@ export async function readVisSchemaJSON() {
         });
 }
 
-export async function getTableDistCounts(tableName:string, columnNames?:string[]) {
-    const rawResponse = fetch("http://localhost:3000/table-dist-counts", {
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        method: "POST",
-        body: JSON.stringify({
-            "tableName": tableName,
-            "columnNames": columnNames === undefined ? [] : columnNames
-        }),  
-    });
-
-    return rawResponse.then(val => {
-        return val.json();
-    });
-}
-
-export async function getDataFromSingleTableByName(tableName:string, columnNames?:string[]) {
-    const rawResponse = fetch("http://localhost:3000/data-single-table-name-fields", {
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        method: "POST",
-        body: JSON.stringify({
-            "tableName": tableName,
-            "columnNames": columnNames === undefined ? [] : columnNames
-        }),  
-    });
-
-    return rawResponse.then(val => {
-        return val.json();
-    });
-}
-
 const mapTablePrimaryKeyColumnsToQuery = (table: Table) => {
     return table.pk.columns
         .map(col => {
