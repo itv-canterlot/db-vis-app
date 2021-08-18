@@ -336,7 +336,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
         return (
             <div className="row g-0" id="main-vis-cont">
                 <div className="col">
-                    <div className="btn-group btn-group-sm" id="a1-scale-btn-group" role="group" aria-label="Axis log scale radio buttons">
+                    {/* <div className="btn-group btn-group-sm" id="a1-scale-btn-group" role="group" aria-label="Axis log scale radio buttons">
                         <input type="radio" className="btn-check" name="btnradio" id="btnradio1" autoComplete="off"
                             data-att-index="a1" data-is-log={false} onChange={this.onAxisScaleChange} />
                         <label className="btn btn-outline-primary" htmlFor="btnradio1">Linear scale</label>
@@ -344,7 +344,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
                         <input type="radio" className="btn-check" name="btnradio" id="btnradio2" autoComplete="off" 
                             data-att-index="a1" data-is-log={true}  onChange={this.onAxisScaleChange}/>
                         <label className="btn btn-outline-primary" htmlFor="btnradio2">Log scale</label>
-                    </div>
+                    </div> */}
                     <div id="graph-cont">
                     </div>
                 {/* {this.filterButton()} */}

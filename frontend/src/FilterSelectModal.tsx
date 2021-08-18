@@ -1003,7 +1003,7 @@ class FilterList extends React.Component<{filterList: Filter[], entitiesList: Ta
                 const thisFilterAttribute = thisFilterTable.attr[filter.attNum - 1];
                 return (
                 <li className="align-items-center d-flex justify-content-between list-group-item" key={idx}>
-                    <div className="me-3 curser-pointer" onClick={this.onClickDeleteFilter} data-filter-index={idx}>
+                    <div className="me-3 cursor-pointer" onClick={this.onClickDeleteFilter} data-filter-index={idx}>
                         <i className="fas fa-minus-circle"/>
                     </div>
                     <div className="w-100">
@@ -1012,6 +1012,7 @@ class FilterList extends React.Component<{filterList: Filter[], entitiesList: Ta
                         </div>
                         <div className="d-inline-flex">
                             <div>{thisFilterTable.tableName}/{thisFilterAttribute.attname}</div>
+                            <div className="ms-1">is</div>
                             <div className="ms-1">
                                 {filter.condition.friendlyName[0]}
                             </div>

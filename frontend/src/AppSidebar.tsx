@@ -52,16 +52,40 @@ export class AppSidebar extends React.Component<ComponentTypes.AppSidebarProps, 
         const selectedTableBubbleHeader = (
             <div className="row">
                 <div className="col">
-                    <i className="fas fa-table me-2" />Starting table:
+                    <i className="fas fa-table me-2" />Starting table/relation:
                 </div>
             </div>);
+
+        const startingTableCount = selectedEntities.length;
+        const startingRelationsCount = context.selectedRelationsIndices.length;
+        let tableBubbleText: string = "", relationsBubbleText: string = "";
+        if (startingTableCount > 0) {
+            tableBubbleText = `${startingTableCount} table${startingTableCount !== 1 ? "s" : ""}`
+        }
+        if (startingRelationsCount > 0) {
+            relationsBubbleText = `${startingRelationsCount} relation${startingRelationsCount !== 1 ? "s" : ""}`
+        }
+
+        let completeBubbleText: string;
+        if (startingTableCount > 0 && startingRelationsCount > 0) {
+            completeBubbleText = tableBubbleText + " and " + relationsBubbleText;
+        } else if (startingTableCount > 0) {
+            completeBubbleText = tableBubbleText;
+        } else if (startingRelationsCount > 0) {
+            completeBubbleText = relationsBubbleText;
+        } else {
+            completeBubbleText = "None"
+        }
+
+        completeBubbleText = completeBubbleText + " selected";
+
 
         const selectedTableBubbleBody = (
             <div>
                 <div className="row">
                     <div className="col overflow-ellipses overflow-hidden">
                         <strong>
-                            {selectedEntities.length > 0 ? selectedEntities.map(ent => ent.tableName).join(",") : (<em>None selected</em>)}
+                            {completeBubbleText}
                         </strong>
                     </div>
                 </div>

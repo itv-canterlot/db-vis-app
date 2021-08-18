@@ -3,27 +3,27 @@ import { Filter, FilterCondition, FilterType } from "./types";
 export const scalarConditions: FilterCondition[] = [
     {
         filterType: FilterType.SCALAR_COMPARISON,
-        friendlyName: ["is equal to"],
+        friendlyName: ["equal to"],
         sqlCommand: "="
     }, {
         filterType: FilterType.SCALAR_COMPARISON,
-        friendlyName: ["is not equal to"],
+        friendlyName: ["not equal to"],
         sqlCommand: "!="
     }, {
         filterType: FilterType.SCALAR_COMPARISON,
-        friendlyName: ["is greater than"],
+        friendlyName: ["greater than"],
         sqlCommand: ">"
     }, {
         filterType: FilterType.SCALAR_COMPARISON,
-        friendlyName: ["is less than"],
+        friendlyName: ["less than"],
         sqlCommand: "<"
     }, {
         filterType: FilterType.SCALAR_COMPARISON,
-        friendlyName: ["is greater than or equal to"],
+        friendlyName: ["greater than or equal to"],
         sqlCommand: ">="
     }, {
         filterType: FilterType.SCALAR_COMPARISON,
-        friendlyName: ["is less than or equal to"],
+        friendlyName: ["less than or equal to"],
         sqlCommand: "<="
     }
 ];
@@ -31,11 +31,11 @@ export const scalarConditions: FilterCondition[] = [
 export const stringConditions: FilterCondition[] = [
     {
         filterType: FilterType.STRING_COMPARISON,
-        friendlyName: ["is equal to"],
+        friendlyName: ["equal to"],
         sqlCommand: "="
     }, {
         filterType: FilterType.STRING_COMPARISON,
-        friendlyName: ["is not equal to"],
+        friendlyName: ["not equal to"],
         sqlCommand: "!="
     }
 ]
@@ -53,7 +53,7 @@ export const getFilterConditionsByType = (type: FilterType) => {
 
 export const stdRangeCondition: FilterCondition = {
     filterType: FilterType.STD,
-    friendlyName: ["is within", "standard deviation(s)"],
+    friendlyName: ["within", "standard deviation(s)"],
     friendlyTextInfix: true
 }
 

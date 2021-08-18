@@ -15,7 +15,7 @@ export class FilterSelector extends React.Component<FilterSelectorProps, {}> {
         const filterRelatedTable = dbSchemaContext.allEntitiesList[filter.tableIndex];
         const filterRelatedAttName = filterRelatedTable.attr[filter.attNum - 1].attname;
         return (
-            <a href="#" className="btn btn-secondary btn me-2" role="button" aria-disabled="true">
+            <a href="#" className="btn btn-secondary btn-sm btn me-2" role="button" aria-disabled="true">
                 {filterRelatedTable.tableName}/{filterRelatedAttName}
             </a>
         );
@@ -34,8 +34,8 @@ export class FilterSelector extends React.Component<FilterSelectorProps, {}> {
         const currentFilterConditions = FilterConditions.getFilterConditionsByType(this.props.cachedFilterType);
         return (
             <div className="btn-group me-2">
-                <button type="button" className="btn btn-secondary">{conditionCached !== undefined ? conditionCached.friendlyName : "Select..."}</button>
-                <button type="button" className="btn btn-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                <button type="button" className="btn btn-sm btn-secondary">{conditionCached !== undefined ? conditionCached.friendlyName : "Select..."}</button>
+                <button type="button" className="btn btn-sm btn-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
                     <span className="visually-hidden">Toggle Dropdown</span>
                 </button>
                 <ul className="dropdown-menu">
@@ -54,7 +54,7 @@ export class FilterSelector extends React.Component<FilterSelectorProps, {}> {
     );
 
     valueInputNumber = (
-        <div className="input-group" style={{ maxWidth: "20%" }}>
+        <div className="input-group">
             <input ref={this.props.cachedFilterValueRef} type="number" className="form-control input-number-no-scroll" placeholder="Value" aria-label="Value" />
         </div>
     );
@@ -94,8 +94,13 @@ export class FilterSelector extends React.Component<FilterSelectorProps, {}> {
         switch (this.props.cachedFilterType) {
             case (FilterType.SCALAR_COMPARISON):
                 return (
-                    <div className="d-flex align-items-center">
-                        {this.filterRelatedAttListElem(this.props.filter)} {this.equality} {this.conditionDropdown()} {this.valueInputNumber}
+                    <div className="d-flex align-items-center justify-content-between">
+                        <div className="me-2">
+                            {this.filterRelatedAttListElem(this.props.filter)} {this.equality} {this.conditionDropdown()}
+                        </div>
+                        <div style={{ maxWidth: "40%" }}>
+                            {this.valueInputNumber}
+                        </div>
                     </div>
                 )
             case (FilterType.STRING_COMPARISON):
@@ -123,13 +128,13 @@ export class FilterSelector extends React.Component<FilterSelectorProps, {}> {
     render() {
         return (
             <div className="d-flex align-items-center justify-content-between">
-                <div>
+                <div className="p-4" style={{border: "2px solid #aaa", borderRadius: "10px"}}>
                     <div className="mb-2">
                         {this.filterTypeSelection()}                    
                     </div>
                     {this.getFilterSelectorByType()}
                 </div>
-                <div>
+                <div className="ms-3">
                     {this.cachedFilterSubmitButton}
                 </div>
             </div>
