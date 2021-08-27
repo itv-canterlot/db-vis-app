@@ -1,0 +1,109 @@
+{
+    "schema": [
+        {
+            "name": "Scatter Diagrams",
+            "type": 0,
+            "localKey": {
+                "minCount": 1
+            },
+            "mandatoryParameters": [
+                {
+                    "scalar": true
+                }, {
+                    "scalar": true
+                }
+            ],
+            "optionalParameters": [
+                {
+                    "scalar": false,
+                    "type": "COLOR"
+                }
+            ],
+            "template": "scatter"
+        }, {
+            "name": "Bubble Charts",
+            "type": 0,
+            "localKey": {
+                "minCount": 1
+            },
+            "mandatoryParameters": [
+                {
+                    "scalar": true
+                }, {
+                    "scalar": true
+                }, {
+                    "scalar": true
+                }
+            ],
+            "optionalParameters": [
+                {
+                    "scalar": false,
+                    "type": "COLOR"
+                }
+            ],
+            "template": "bubble"
+        }, {
+            "name": "Bar Chart",
+            "type": 0,
+            "localKey": {
+                "minCount": 1,
+                "maxCount": 100
+            },
+            "mandatoryParameters": [
+                {
+                    "scalar": true
+                }
+            ],
+            "template": "bar"
+        }, {
+            "name": "Calendar",
+            "type": 0,
+            "localKey": {
+                "minCount": 1
+            },
+            "mandatoryParameters": [
+                {
+                    "scalar": true,
+                    "type": "TEMPORAL"
+                }
+            ],
+            "optionalParameters": [
+                {
+                    "scalar": false,
+                    "type": "COLOR"
+                }
+            ]
+        }, {
+            "name": "Choropleth Maps",
+            "type": 0,
+            "localKey": {
+                "minCount": 1,
+                "type": "GEOGRAPHICAL"
+            },
+            "mandatoryParameters": [
+                {
+                    "scalar": false,
+                    "type": "COLOR"
+                }
+            ]
+        }, {
+            "name": "Word Clouds",
+            "type": 0,
+            "localKey": {
+                "minCount": 1,
+                "type": "LEXICAL"
+            },
+            "mandatoryParameters": [
+                {
+                    "scalar": true
+                }
+            ],
+            "optionalParameters": [
+                {
+                    "scalar": false,
+                    "type": "COLOR"
+                }
+            ]
+        }
+    ]
+}

@@ -1,4 +1,5 @@
-import {PrimaryKey, ForeignKey, Key, Table, Attribute} from './types'
+import React = require('react')
+import {PrimaryKey, ForeignKey, Table, Attribute, RelationNode, PatternMatchResult, PatternMatchAttribute, Filter, VisSchema, FilterType, TableAttributeComb} from './types'
 
 /** UIElements.tsx **/
 export type SearchDropdownListProps = {
@@ -9,8 +10,11 @@ export type SearchDropdownListProps = {
     onListSelectionChange: Function,
     arrayRenderer?: Function,
     objectRenderer?: Function,
-    updateListHandler?: Function
-    
+    updateListHandler?: Function,
+    innerVal?: string,
+    listFilter?: Function,
+    id?: string,
+    updateInnerText?: Function
 }
 
 /** app.tsx **/
@@ -24,12 +28,11 @@ export type FixedAttributeSelectorProps = {
 }
 
 export type EntitySelectorProps = {
-    state: ApplicationStates,
     onTableSelectChange: Function,
-    onAttributeSelectChange: Function,
-    onFKAttributeSelectChange: Function,
-    onForeignKeySelectChange: Function,
-    updateOnTableListFocus: Function
+    selectedEntityIndex?: number,
+    cachedSelectedEntitiesList?: number[],
+    cachedSelectedRelationsList?: number[],
+    id?: string
 }
 
 export type AttributeListSelectorProps = {
@@ -43,10 +46,170 @@ export type AttributeListSelectorProps = {
 
 export type ApplicationStates = {
     allEntitiesList?: Table[],
-    selectedTableIndex?: number,
-    selectedTableOID?: number,
-    selectedAttributeIndex?: number,
-    selectedForeignKeyIndex?: number,
-    selectedFKAttributeIndex?: number,
+    data?: object[],
+    dataLoaded?: boolean,
+    filters?: Filter[],
+    relationsList?: RelationNode[],
+    selectedEntitesIndices?: number[],
+    selectedRelationsIndices?: number[],
+    relHierarchyIndices?: number[][],
+    selectedPatternIndex?: number,
+    selectedMatchResultIndexInPattern?: number,
+    rendererSelectedAttributes?: PatternMatchAttribute[][],
+    rerender?: boolean,
+    load?: boolean,
+    listLoaded?: boolean,
+    databaseLocation?: string,
+    showStartingTableSelectModal?: boolean,
+    showMatchedSchemasModal?: boolean,
+    showFilterSelectModal?: boolean,
+    showVisKeyCountConfirmModal?: boolean,
+    visKeyOverride?: boolean,
+    visSchemaMatchStatus?: PatternMatchResult[][]
+}
+
+export type AppSidebarProps = {
+    databaseLocation: string,
+    onClickShowStartingTableSelectModal: React.MouseEventHandler,
+    onClickShowFilterSelectModal: React.MouseEventHandler
+}
+
+export type SidebarBubbleBlockProps = {
+    headerElement: JSX.Element,
+    bodyElement: JSX.Element,
+    isLoaded: boolean,
+    onClick?: React.MouseEventHandler
+}
+
+/* SidebarModals.tsx */
+export type StartingTableSelectModalProps = {
+    onClose: Function, 
+    onDatasetSchemaSelectChange: Function, 
+}
+
+export type StartingTableSelectModalStates = {
+    dataSelectByTable?: boolean
+    cachedSelectEntitiesIndices?: number[],
+    cachedSelectedRelationsIndices?: number[],
+    cachedDropdownSelectedIndex?: number,
+    cachedForeignRelationCardSelectedIndex?: number
+}
+
+export type FilterSelectModalProps = {
+    filters: Filter[]
+    onClose: Function,
+    onFilterChange: Function,
+}
+
+export type FilterSelectModalStates = {
+    cachedFilterSelection?: Filter,
+    cachedFiltersList?: Filter[],
+    cachedFilterType?: FilterType,
+    cachedForeignTableSelected?: number,
+    cachedForeignTableFKIndex?: number,
+    tableAttributeList?: TableAttributeComb[],
+    filterRange?: number
+}
+
+export type TableBasedFilterModalContentProps = {
+    handleOnClose: React.MouseEventHandler, 
+    onFilterSelectionConfirm: React.MouseEventHandler,
+    onConfirmCachedFilter: React.MouseEventHandler,
+    onChangeFilterType: React.MouseEventHandler,
+    onTableAttributeClick: React.MouseEventHandler,
+    onFilterConditionChanged: Function,
+    filterList: Filter[],
+    onFilterRangeChange: Function,
+    cachedFilterValueRef: React.RefObject<HTMLInputElement>
+    parentStates: FilterSelectModalStates,
+    onClickDeleteFilter: Function
+}
+
+export type RelationBasedFilterModalContentProps = {
+    filterList: Filter[],
+    handleOnClose: React.MouseEventHandler, 
+    onFilterSelectionConfirm: React.MouseEventHandler,
+    onConfirmCachedFilter: Function,
+    cachedFilterValueRef: React.RefObject<HTMLInputElement>,
+    onClickDeleteFilter: Function,
+    parentState: FilterSelectModalStates
+}
+
+export type RelationBasedFilterModalContentStates = {
+    tableAttrList?: TableAttributeComb[], 
+    selectedTableAttrListIndex?: number
+    newFilter?: Filter,
+    newFilterType?: FilterType,
+    sampleData?: object[]
+}
+
+export type DatasetFilteringElementProps = {
+    cachedFilterSelection: Filter, 
+    cachedFilterType: FilterType,
+    cachedFilterValueRef: React.RefObject<HTMLInputElement>,
+    onFilterConditionChanged: Function,
+    onConfirmCachedFilter: React.MouseEventHandler,
+    onChangeFilterType: React.MouseEventHandler,
+    onClickDeleteFilter: Function,
+    filterList: Filter[]
+}
+
+/* AppMainCont.tsx */
+export type SchemaExplorerProps = {
+    expanded: boolean, 
+    onVisPatternIndexChange: Function,
+    onMatchResultIndexChange: Function,
+    onSelectedAttributeIndicesChange: React.MouseEventHandler,
+    onRelHierarchyChange: Function,
+    onClickShowFilterSelectModal: React.MouseEventHandler,
+    onExpansionClick?: Function
+}
+
+export type SchemaExplorerStates = {
+}
+
+export type AppMainContProps = {
     load: boolean,
+    rerender: boolean,
+    onVisPatternIndexChange: Function,
+    onMatchResultIndexChange: Function,
+    onRelHierarchyChange: Function,
+    showVisKeyCountConfirmModal: Function
+    onSelectedAttributeIndicesChange: React.MouseEventHandler,
+    onClickShowFilterSelectModal: React.MouseEventHandler,
+    onDataChange?: Function
+}
+
+export type AppMainContStates = {
+    stateChanged?: boolean,
+    explorerExpanded: boolean,
+}
+
+/* Visualiser.tsx */
+export type VisualiserProps = {
+    showVisKeyCountConfirmModal: Function
+    rerender: boolean
+    onDataChange?: Function
+}
+
+export type VisualiserStates = {
+    load?: boolean,
+    renderedTableIndex?: number,
+    renderedMatchResultIndex?: number
+    renderedAttributesIndices?: PatternMatchAttribute[][],
+    renderedVisSchemaIndex?: number,
+    renderedFilters?: Filter[],
+    renderedDataLoaded?: boolean,
+    renderFailed: boolean,
+    axisScales?: object
+}
+
+/* FilterSelector.tsx */
+export type FilterSelectorProps = {
+    filter: Filter,
+    cachedFilterValueRef: React.RefObject<HTMLInputElement>,
+    cachedFilterType: FilterType,
+    changedCondition: Function,
+    onConfirmCachedFilter: React.MouseEventHandler,
+    onChangeFilterType: React.MouseEventHandler
 }

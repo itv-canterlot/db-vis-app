@@ -1,48 +1,74 @@
 const express = require('express');
+const fs = require('fs').promises;
+const path = require('path');
+const fetch = require('node-fetch')
 
 const app = express()
 const port = 3000
 const pgconnect = require('./pgconnect.js');
 app.use(express.json());
 
+const currentPath = path.resolve(__dirname);
+
 app.get('/', (req, res) => {
   res.send('Not implemented')
 });
 
-app.get('/tables', (_, webRes) => {
+app.get('/tables', (_, webRes, next) => {
   console.debug("GET /tables")
   pgconnect.getTableMetatdata().then(tabRes => {
     webRes.send(tabRes);
+  }).catch(err => {
+    next(new ErrorHandler(503, err.message))
   });
+
 });
 
-app.get('/temp-db-table-list', (req, res) => {
-  pgconnect.getTableNames().then(tabRes => {
+app.post('/table-dist-counts', (req, res) => {
+  console.debug("POST /table-dist-counts")
+  let reqBody = req.body;
+  pgconnect.getTableDistinctColumnCountByColumnName(reqBody["tableName"], reqBody["columnNames"]).then(tabRes => {
     res.send(tabRes);
   });
 });
 
-app.get('/temp-db-schema', (req, res) => {
-  pgconnect.getTableInfo().then(tabRes => {
-    res.send(tabRes);
-  });
-});
-
-app.post('/temp-data-table-name-fields', (req, res) => {
-  let fields = req.body["fields"];
-  let tableName = req.body["tableName"];
-  if (!fields || !tableName) {
-    return res.status(400).json("Input format error");
+app.post('/data-match-attrs', async (req, res, next) => {
+  console.debug("POST /data-match-attrs")
+  try {
+    let {attrs, foreignKeys, parentTableName, primaryKeys} = req.body;
+    pgconnect.getDataMultiTable(attrs, foreignKeys, parentTableName, primaryKeys)
+      .then(tabRes => {
+        if (tabRes instanceof Error) {
+          next(new ErrorHandler(500, tabRes.message));
+        }
+        else {
+          return res.send(tabRes);
+        }
+      })
+      .catch(err => {
+        next(new ErrorHandler(500, err.message))
+      });
+  } catch (err) {
+    next(new ErrorHandler(500, err.message));
   }
+});
 
-  pgconnect.getDataByTableNameAndFields(tableName, fields).then(tabRes => {
-    if (tabRes instanceof Error) {
-      return res.status(402).json("Internal error: " + tabRes.message);
-    }
-    else {
-      return res.send(tabRes);
-    }
-  });
+app.post('/get-rel-based-data', async (req, res, next) => {
+  console.debug("POST /get-rel-based-data")
+  try {
+    let {attributes, foreignKeys, primaryKeys, tableNames} = req.body;
+    pgconnect.getDataRelationshipBased(attributes, foreignKeys, tableNames, primaryKeys)
+      .then(tabRes => {
+        if (tabRes instanceof Error) {
+          next(new ErrorHandler(500, tabRes.message));
+        }
+        else {
+          return res.send(tabRes);
+        }
+      })
+  } catch (err) {
+    next(new ErrorHandler(500, err.message));
+  }
 });
 
 app.post('/temp-db-table-foreign-keys', (req, res) => {
@@ -75,16 +101,94 @@ app.post('/temp-db-table-foreign-keys', (req, res) => {
     })
     baseResponse["frelAtts"] = attrRes;
     res.send(baseResponse);
-  })
+  }).catch(err => {
+    next(new ErrorHandler(500, err.message));
+  });
 })
 
 app.get('/table-attributes', (req, webRes) => {
   console.debug("GET /table-attributes")
-  pgconnect.getTableAttributes(req.body["oid"]).then(tabRes => {
-    webRes.send(tabRes);
-  });
+  try {
+    pgconnect.getTableAttributes(req.body["oid"]).then(tabRes => {
+      webRes.send(tabRes);
+    }).catch(err => {
+      next(new ErrorHandler(500, err.message));
+    });
+  } catch (err) {
+    next(err);
+  }
 });
+
+app.get('/vis-encodings', (req, res) => {
+  console.debug("GET /vis-encodings");
+  const encodingPath = currentPath + "/vis-encodings/";
+
+  fs.readdir(encodingPath)
+    .then((files => {
+      return Promise.all(
+        files.map(f => {
+          return fs.lstat(encodingPath + f).then(stat => {
+            if (stat.isFile()) {
+              if (!f.endsWith(".json")) return null;
+              return fs.readFile(encodingPath + f, {encoding: 'utf8'})
+            } else {
+              return null;
+            }
+          })
+        }))
+    })).then(files => {
+      const ret = files
+        .filter(f => f != null)
+        .map(f => JSON.parse(f));
+      res.send(ret);
+    }).catch(err => {
+      next(new ErrorHandler(500, err.message));
+    });
+});
+
+app.post('/pivot-table', (req, res, next) => {
+  console.debug("POST /pivot-table");
+
+  try {
+    let {tableName, keyAtts, pivotAtt, conditionAtt, values} = req.body;
+    pgconnect.getPivotTable(tableName, keyAtts, pivotAtt, conditionAtt, values)
+      .then(tabRes => {
+        if (tabRes instanceof Error) {
+          next(new ErrorHandler(500, tabRes.message));
+        }
+        else {
+          return res.send(tabRes);
+        }
+      })
+      .catch(err => {
+        next(new ErrorHandler(500, err.message))
+      });
+  } catch (err) {
+    next(err);
+  }
+})
+
+app.use((err, req, res, next) => {
+  handleError(err, res);
+})
 
 app.listen(port, () => {
   console.log(`Background app listening at http://localhost:${port}`)
 })
+
+class ErrorHandler extends Error {
+  constructor(statusCode, message) {
+    super();
+    this.statusCode = statusCode;
+    this.message = message;
+  }
+}
+
+const handleError = (err, res) => {
+  const {statusCode, message} = err;
+  res.status(statusCode).json({
+    status: "error",
+    statusCode,
+    message
+  })
+}

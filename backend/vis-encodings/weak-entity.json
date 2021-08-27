@@ -1,0 +1,79 @@
+{
+    "schema": [
+        {
+            "name": "Line Chart",
+            "type": 1,
+            "localKey": {
+                "minCount": 1,
+                "maxCount": 20
+            },
+            "foreignKey": {
+                "minCount": 1,
+                "scalar": true
+            },
+            "complete": false,
+            "mandatoryParameters": [
+                {
+                    "scalar": true
+                }
+            ],
+            "optionalParameters": [
+                {
+                    "scalar": true
+                }
+            ],
+            "template": "line"
+        }, {
+            "name": "Stacked Bar Chart",
+            "type": 1,
+            "localKey": {
+                "minCount": 1,
+                "maxCount": 20
+            },
+            "foreignKey": {
+                "minCount": 1,
+                "maxCount": 20
+            },
+            "complete": true,
+            "mandatoryParameters": [
+                {
+                    "scalar": true
+                }
+            ]
+        }, {
+            "name": "Grouped Bar Chart",
+            "type": 1,
+            "localKey": {
+                "minCount": 1,
+                "maxCount": 20
+            },
+            "foreignKey": {
+                "minCount": 1,
+                "maxCount": 20
+            },
+            "complete": false,
+            "mandatoryParameters": [
+                {
+                    "scalar": true
+                }
+            ]
+        }, {
+            "name": "Spider Chart",
+            "type": 1,
+            "localKey": {
+                "minCount": 3,
+                "maxCount": 20
+            },
+            "foreignKey": {
+                "minCount": 1,
+                "maxCount": 10
+            },
+            "complete": true,
+            "mandatoryParameters": [
+                {
+                    "scalar": true
+                }
+            ]
+        }
+    ]
+}

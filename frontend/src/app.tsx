@@ -1,247 +1,24 @@
 import * as React from 'react';
-const ReactDOM = require('react-dom');
-import SearchDropdownList from './UIElements';
-import {ForeignKey, PrimaryKey, Table, Attribute} from './ts/types'
+import ReactDOM = require('react-dom');
+
+import { Filter, PatternMatchResult, VisSchema } from './ts/types'
+import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
+import { AppMainCont } from './AppMainCont';
+
+import { AppSidebar } from './AppSidebar';
+import { matchAllSelectedRelationsWithVisPatterns, matchRelationWithAllVisPatterns, matchTableWithAllVisPatterns } from './VisSchemaMatcher'
+
 import * as ComponentTypes from './ts/components';
-import {DBSchemaContext} from './DBSchemaContext'
+import * as Connections from './Connections';
+import * as SchemaParser from './SchemaParser';
+import { StartingTableSelectModal } from "./StartingTableSelectModal";
 
-class JunctionTableLinks extends React.Component<ComponentTypes.JunctionTableLinksProps, {}> {
-    constructor(props) {
-        super(props);
-    }
+import "../styles/app.scss"
+import { FilterSelectModal } from './FilterSelectModal';
+import { filterDataByFilters } from './DatasetUtils';
+import { VisKeyCountConfirmModal } from './VisKeyCountConfirmModal';
 
-    render() {
-        let selectedEntity = this.props.selectedEntity as Table;
-        let foreignKeyList = selectedEntity.fk;
-        let fkListNode = foreignKeyList.map(fk => {
-            return (
-                <FixedAttributeSelector key={fk.oid} entity={selectedEntity} fk={fk} />
-            );
-        });
-        return (
-            <div className="col">
-                {fkListNode}
-            </div>
-        );
-    }
-}
-
-class AttributeListSelector extends React.Component<ComponentTypes.AttributeListSelectorProps, {}> {
-    constructor(props) {
-        super(props);
-    }
-
-    attributeArrayRendererHandler = (item, index, onClickCallback, selectedIndex) => {
-        return attributeArrayRenderer(item, index, onClickCallback, selectedIndex, this.props.tablePrimaryKey, this.props.tableForeignKeys);
-    }
-
-    render() {
-        return (
-        <div className="row mt-2 ms-4 position-relative">
-            <SearchDropdownList placeholder="Select Attribute 1..." 
-                prependText={this.props.prependText} dropdownList={this.props.dropdownList} 
-                selectedIndex={this.props.selectedIndex}
-                onListSelectionChange={this.props.onListSelectionChange}
-                arrayRenderer={this.attributeArrayRendererHandler}
-                />
-        </div>
-        )
-    }
-}
-
-class FixedAttributeSelector extends React.Component<ComponentTypes.FixedAttributeSelectorProps, {selectedAttributeIndex?: number}> {
-    constructor(props) {
-        super(props);
-        this.state = {
-            selectedAttributeIndex: -1
-        }
-    }
-
-    onAttributeSelectionChange = (el: React.BaseSyntheticEvent) => {
-        console.log(el.target);
-        this.setState({
-            selectedAttributeIndex: el.target.getAttribute("data-index")
-        }); // TODO
-    }
-
-    render() {
-        let thisEntity = this.props.entity as Table;
-        let fk = this.props.fk as ForeignKey;
-
-        console.log(fk);
-        return (
-            <DBSchemaContext.Consumer>
-                {(context) => {
-                    let fkEntity = getEntityFromOID(context.allEntitiesList, fk.confrelid)
-                    return (<div className="mt-1 mb-1">
-                        <div className="text-muted">
-                            <div className="dropdown-tip bg-tip-fk d-inline-block">
-                                <i className="fas fa-link me-2" />{fk.conname}
-                            </div>
-                            <div className="ms-1 tip-fontsize d-inline-block">
-                            <i className="fas fa-arrow-right" />
-                            </div>
-                        </div>
-                        <div className="ms-2">
-                            <AttributeListSelector 
-                                dropdownList={fkEntity.attr}
-                                onListSelectionChange={this.onAttributeSelectionChange}
-                                prependText={fk.confname}
-                                selectedIndex={this.state.selectedAttributeIndex}
-                                tableForeignKeys={fkEntity.fk}
-                                tablePrimaryKey={fkEntity.pk}
-                            />
-                        </div>
-                    </div>);
-                    }
-                }
-            </DBSchemaContext.Consumer>
-        )
-    }
-}
-
-class EntitySelector extends React.Component<ComponentTypes.EntitySelectorProps> {
-    constructor(props) {
-        super(props);
-    }
-
-    FKArrayRenderer = (item, index, onClickCallback, selectedIndex) => { 
-        return <a className={"d-flex dropdown-item pe-auto" + (index == selectedIndex ? " active" : "")} 
-            data-key={item.confrelid} data-index={index} data-content={item.confname} key={index} href="#" onMouseDown={onClickCallback}>
-                <div className="d-flex pe-none">
-                {item.confname}
-                </div>
-                <div className="d-flex ms-auto pe-none">
-                    <div className="me-1 text-muted dropdown-tip bg-tip-fk" key={index}>fk: <em>{item.conname}</em></div>
-                </div>
-            </a>
-    }
-
-    entityArrayRenderer = (item: Table, index, onClickCallback) => { 
-        let oid = item.oid;
-        let relname = item.relname;
-        // Check this.props.state.selectedIndex
-        return <a className={"dropdown-item pe-auto" + (index == this.props.state.selectedTableIndex ? " active" : "")} 
-            data-key={oid} data-index={index} data-content={relname} key={index} href="#" onMouseDown={onClickCallback}>
-                {item.isJunction? <i className="fas fa-compress-alt me-1 pe-none" /> : null}{relname}
-            </a>
-    }
-
-    /* React components for entity selectors */
-    entitiesListNode = () => {
-        let selectedEntity = this.props.state.allEntitiesList[this.props.state.selectedTableIndex] as Table;
-        let selectedIsJunction = selectedEntity ? selectedEntity.isJunction : false;
-        return (<div className="row">
-            <div className="col">
-                <div className="row position-relative">
-                    <SearchDropdownList placeholder="Select Entity 1..." 
-                        prependText="E1" dropdownList={this.props.state.allEntitiesList} 
-                        updateListHandler={this.props.updateOnTableListFocus}
-                        selectedIndex={this.props.state.selectedTableIndex}
-                        onListSelectionChange={this.props.onTableSelectChange}
-                        arrayRenderer={this.entityArrayRenderer}
-                        />
-
-                </div>
-                {
-                    // Display the linked tables if the selected table is a junction table
-                    selectedIsJunction 
-                    ? <div className="row ms-4">
-                        <JunctionTableLinks selectedEntity={selectedEntity} />
-                    </div>
-                    : null
-                }
-            </div>
-        </div>)
-    }
-
-    attributeListNode = () => {
-        let selectedTable = this.props.state.allEntitiesList[this.props.state.selectedTableIndex];
-        if (this.props.state.selectedTableIndex >= 0) {
-            return (
-                <AttributeListSelector 
-                    dropdownList={selectedTable.attr}
-                    selectedIndex={this.props.state.selectedAttributeIndex}
-                    onListSelectionChange={this.props.onAttributeSelectChange}
-                    tablePrimaryKey={selectedTable.pk}
-                    tableForeignKeys={selectedTable.fk}
-                    prependText="a1"
-                />
-            )
-        } else {
-            return null;
-        }
-    }
-
-    foreignKeyNode = () => 
-        this.props.state.selectedTableIndex >= 0 
-        ? (
-            <div className="row mt-2 position-relative">
-                <SearchDropdownList placeholder="Select Entity 2..." 
-                    prependText="E2" 
-                    dropdownList={this.props.state.allEntitiesList[this.props.state.selectedTableIndex].fk}
-                    selectedIndex={this.props.state.selectedForeignKeyIndex}
-                    onListSelectionChange={this.props.onForeignKeySelectChange}
-                    arrayRenderer={this.FKArrayRenderer}
-                    />
-            </div>
-        ) 
-        : null;
-
-    attributeArrayRendererHandler = (item, index, onClickCallback, selectedIndex) => {
-        let selectedEntity = this.props.state.allEntitiesList[this.props.state.selectedTableIndex];
-        return attributeArrayRenderer(item, index, onClickCallback, selectedIndex, selectedEntity.pk, selectedEntity.fk);
-    }
-
-    fkAttributeListNode = () => {
-        if (this.props.state.selectedForeignKeyIndex >= 0) {
-            let selectedFkOID = this.props.state
-                .allEntitiesList[this.props.state.selectedTableIndex]
-                .fk[this.props.state.selectedForeignKeyIndex].confrelid
-            return (
-                <div className="row mt-2 ms-4 position-relative">
-                    <SearchDropdownList placeholder="Select Attribute 2..." 
-                        prependText="a2" dropdownList={getAttrsFromOID(this.props.state.allEntitiesList, selectedFkOID)} 
-                        selectedIndex={this.props.state.selectedFKAttributeIndex}
-                        onListSelectionChange={this.props.onFKAttributeSelectChange}
-                        arrayRenderer={this.attributeArrayRendererHandler}
-                        />
-                </div>
-            ) 
-        } else {
-            return null;
-        }
-    }
-
-    render() {
-        return (
-            <div className="col dropdown-custom-text-wrapper">
-                {this.entitiesListNode()}
-                {this.props.state.selectedTableIndex >= 0 ? this.attributeListNode() : null}
-                {this.props.state.selectedTableIndex >= 0 ? this.foreignKeyNode() : null}
-                {this.props.state.selectedTableIndex >= 0 && this.props.state.selectedForeignKeyIndex >= 0 ? this.fkAttributeListNode() : null}
-            </div>
-        )
-    }
-}
-
-class Visualiser extends React.Component {
-    constructor(props) {
-        super(props);
-    }
-
-    render() {
-        return (
-            <div className="col"></div>
-        )
-    }
-}
-
-enum EntityRelationshipTypes {
-    OneToOne,
-    OneToMany,
-    ManyToMany
-}
+let visSchema: VisSchema[] = [];
 
 class Application extends React.Component<{}, ComponentTypes.ApplicationStates> {
     constructor(props) {
@@ -249,161 +26,527 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
         this.state = {
             allEntitiesList: [],
-            selectedTableIndex: -1,
-            selectedTableOID: -1,
-            selectedAttributeIndex: -1,
-            selectedForeignKeyIndex: -1,
-            selectedFKAttributeIndex: -1,
-            load: false
+            filters: [],
+            selectedEntitesIndices: [],
+            selectedRelationsIndices: [],
+            selectedPatternIndex: -1,
+            relHierarchyIndices: [[], [], []],
+            rendererSelectedAttributes: [[], []],
+            rerender: true,
+            dataLoaded: false,
+            load: false,
+            listLoaded: false,
+            databaseLocation: "http://localhost:5432", // Placeholder
+            showStartingTableSelectModal: false,
+            showMatchedSchemasModal: false,
+            showFilterSelectModal: false,
+            showVisKeyCountConfirmModal: false,
+            visKeyOverride: false
         };
     }
 
-    // TO BE DEPRECATED
-    getEntityRelationshipType = () => {
-        let selectedEntity = this.state.allEntitiesList[this.state.selectedTableIndex];
-        let pkConKey = selectedEntity.pk.conkey;
-        let fks = selectedEntity.fk;
-
-        // Return nothing if no PK exist
-        if (!pkConKey || pkConKey.length === 0) {
-            // TODO: implement this
-            console.log("No primary key");
-            return undefined;
+    // Event handlers
+    onClickShowStartingTableSelectModal = () => {
+        if (this.state.allEntitiesList.length == 0) {
+            this.getTableMetadata();
         }
-
-        if (!fks) {
-            // TODO: check this
-            console.log("No foreign keys");
-            return undefined;
-        }
-
-        let fkConKeys = fks.map(e => e.conkey);
         
-        if (fks.length < 2) {
-            // If there is none or one foreign key, TODO
+        this.setState({
+            showStartingTableSelectModal: true,
+        });
+    }
+
+    onClickShowFilterSelectModal = () => {
+        this.setState({
+            showFilterSelectModal: true
+        });
+    }
+
+    onCloseShowStartingTableSelectModal = () => {
+        this.setState({
+            showStartingTableSelectModal: false
+        });
+    }
+
+    onCloseShowFilterSelectModal = () => {
+        this.setState({
+            showFilterSelectModal: false
+        });
+    }
+
+    showVisKeyCountConfirmModal = () => {
+        this.setState({
+            showVisKeyCountConfirmModal: true
+        })
+    }
+
+    onCloseVisKeyCountConfirmModal = (cancel: boolean) => {
+        const newSelectedPatternIndex = cancel ? -1 : this.state.selectedPatternIndex;
+        this.setState({
+            showVisKeyCountConfirmModal: false,
+            selectedPatternIndex: newSelectedPatternIndex
+        })
+    }
+
+    onConfirmVisKeyCountConfirmModal = () => {
+        this.setState({
+            showVisKeyCountConfirmModal: false,
+            visKeyOverride: true
+        })
+    }
+
+    onSelectFilteringFromConfirmModal = () => {
+        this.setState({
+            showVisKeyCountConfirmModal: false
+        })
+    }
+    
+    
+    onMatchResultIndexChange = (newIndex: number) => {
+        const newPatternMatchStatusesByIndex: PatternMatchResult[] =
+            this.state.visSchemaMatchStatus[this.state.selectedPatternIndex];
+        let newPatternMatchStatus = newPatternMatchStatusesByIndex[newIndex]
+
+        let mandatoryParamInitIndices, optionalParamInitIndices;
+        if (!newPatternMatchStatus) {
+            mandatoryParamInitIndices = [];
+            optionalParamInitIndices = [];
         } else {
-            // This entity might be a link table between many-to-many relationships
-            // For each FK, check if the PK set covered all of its constraints
-            var fkMatchCount = 0;
-            fks.forEach(element => {
-                // If this FK is a subset of the PK
-                if (element.conkey.every(v => pkConKey.includes(v))) {
-                    fkMatchCount++;
-                }
+            mandatoryParamInitIndices = newPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {
+                return Math.floor(Math.random() * mandMatch.length);
             });
             
-            if (fkMatchCount >= 2) {
-                // This is a many-to-many link table
-                // TODO: do things
-                return EntityRelationshipTypes.ManyToMany;
-            } else {
-                return undefined;
-            }
-            
-        }        
+            optionalParamInitIndices = newPatternMatchStatus.optionalAttributes.map((mandMatch, idx) => {
+                return Math.floor(Math.random() * mandMatch.length);
+            });
+        }
+
+        const mandatoryParamAttrs = mandatoryParamInitIndices.map((attIdx, listIdx) => newPatternMatchStatus.mandatoryAttributes[listIdx][attIdx])
+        const optionalParamAttrs = optionalParamInitIndices.map((attIdx, listIdx) => newPatternMatchStatus.optionalAttributes[listIdx][attIdx])
+        const newParamAttrs = [mandatoryParamAttrs, optionalParamAttrs];
+
+        this.setState({
+            selectedMatchResultIndexInPattern: newIndex,
+            rendererSelectedAttributes: newParamAttrs,
+            visKeyOverride: false
+        });
     }
 
-    tableIsJunction = (table: Table) => {
-        if (!table.pk) return false;
-        let pkConKey = table.pk.conkey;
-        // Return nothing if no PK/FK exist
-        if (!pkConKey || pkConKey.length === 0) {
-            return false;
-        }
+    onVisPatternIndexChange = (newIndex: number) => {
+        const newPatternMatchStatusesByIndex: PatternMatchResult[] =
+            this.state.visSchemaMatchStatus[newIndex];
+        let newSelectedMatchResultIndexInPattern;
+        let newPatternMatchStatus: PatternMatchResult;
 
-        if (!table.fk || table.fk.length < 2) {
-            return false;
-        }
-
-        // This entity might be a link table between many-to-many relationships
-        // For each FK, check if the PK set covered all of its constraints
-        var fkMatchCount = 0;
-        var comparedFKKeys = []; // Keeping track for duplicates
-        table.fk.forEach(element => {
-            // If this FK is a subset of the PK
-            let thisTableKey = element.conkey as [number];
-            for (let comparedIndex = 0; comparedIndex < comparedFKKeys.length; comparedIndex++) {
-                const comparedKey = comparedFKKeys[comparedIndex] as [number];
-                if (thisTableKey.length === comparedKey.length) {
-                    if (thisTableKey.every(v => comparedKey.includes(v))) {
-                        return false;
-                    }
-                }
-            }
-
-            if (thisTableKey.every(v => pkConKey.includes(v))) {
-                comparedFKKeys.push(thisTableKey);
-                fkMatchCount++;
-            }
-        });
-
-        if (fkMatchCount >= 2) {
-            // This is a many-to-many link table
-            // TODO: do things
-            return EntityRelationshipTypes.ManyToMany;
+        if (newPatternMatchStatusesByIndex.length > 0) {
+            newSelectedMatchResultIndexInPattern = newPatternMatchStatusesByIndex.findIndex(status => status.matched)
+            if (newSelectedMatchResultIndexInPattern < 0) return;
+            newPatternMatchStatus = 
+                newPatternMatchStatusesByIndex[newSelectedMatchResultIndexInPattern];
         } else {
-            return false;
+            return;
         }
+
+        let mandatoryParamInitIndices: number[], optionalParamInitIndices: number[];
+        if (!newPatternMatchStatus) {
+            mandatoryParamInitIndices = [];
+            optionalParamInitIndices = [];
+        } else {
+            // Obtain the selected attributes as much as possible
+            mandatoryParamInitIndices = newPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {
+                    return Math.floor(Math.random() * mandMatch.length);
+            });
             
-    }
+            optionalParamInitIndices = newPatternMatchStatus.optionalAttributes.map((mandMatch, idx) => {
+                    return Math.floor(Math.random() * mandMatch.length);
+            });
+        }
 
-    // Called when R1 is changed
-    onTableSelectChange = (e) => {
-        let tableIndex = parseInt(e.target.getAttribute("data-index"));
-        let tableKey = parseInt(e.target.getAttribute("data-key"));
-
-        if (tableIndex < 0) return;
-
-        this.setState({
-            selectedTableIndex: tableIndex,
-            selectedTableOID: tableKey,
-            selectedAttributeIndex: -1,
-            selectedForeignKeyIndex: -1,
-            selectedFKAttributeIndex: -1,
-            load: true
-        });
-    }
-
-    onAttributeSelectChange = (e) => {
-        let attributeIndex = parseInt(e.target.getAttribute("data-index"));
-
-        if (attributeIndex < 0) return;
+        const mandatoryParamAttrs = mandatoryParamInitIndices.map((attIdx, listIdx) => newPatternMatchStatus.mandatoryAttributes[listIdx][attIdx])
+        const optionalParamAttrs = optionalParamInitIndices.map((attIdx, listIdx) => newPatternMatchStatus.optionalAttributes[listIdx][attIdx])
+        const newParamAttrs = [mandatoryParamAttrs, optionalParamAttrs];
 
         this.setState({
-            selectedAttributeIndex: attributeIndex
+            dataLoaded: false,
+            data: undefined
         }, () => {
-            this.checkVisualisationPossibility();
+            if (this.state.selectedEntitesIndices.length !== 0) {
+                const getDataCallback = (data: object[]) => {
+                    this.setState({
+                        dataLoaded: true,
+                        data: data,
+                        selectedPatternIndex: newIndex,
+                        selectedMatchResultIndexInPattern: newSelectedMatchResultIndexInPattern,
+                        rendererSelectedAttributes: newParamAttrs,
+                        visKeyOverride: false
+                    })
+                };
+    
+                Connections.getDataByMatchAttrs(
+                    newParamAttrs, 
+                    this.state.visSchemaMatchStatus[newIndex][newSelectedMatchResultIndexInPattern],
+                    this.getProviderValues())
+                        .then(getDataCallback.bind(this));
+            } else {
+                const getDataCallback = (data: object[]) => {
+                    this.setState({
+                        dataLoaded: true,
+                        data: data,
+                        selectedPatternIndex: newIndex,
+                        selectedMatchResultIndexInPattern: newSelectedMatchResultIndexInPattern,
+                        rendererSelectedAttributes: newParamAttrs,
+                        visKeyOverride: false
+                    });
+                }
+
+                Connections.getRelationBasedData(
+                        this.state.relHierarchyIndices.flat()
+                            .map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues(), newParamAttrs, this.state.filters)
+                    .then(getDataCallback.bind(this))
+            }
+        })
+
+    }
+
+    onSelectedAttributeIndicesChange = (e: React.BaseSyntheticEvent) => {
+        const target = e.target;
+        const isMandatory = target.getAttribute("data-mandatory") === "true";
+        const isMandatoryIdx = isMandatory ? 0 : 1;
+        const patternAttIdx = parseInt(target.getAttribute("data-pattern-att-idx"));
+        const matchIdx = parseInt(target.getAttribute("data-match-idx"));
+        const currentPatternMatchResult = this.state.visSchemaMatchStatus[this.state.selectedPatternIndex][this.state.selectedMatchResultIndexInPattern];
+        let newMatchAttr;
+        if (isMandatory) {
+            newMatchAttr = currentPatternMatchResult.mandatoryAttributes[patternAttIdx][matchIdx];
+        } else {
+            newMatchAttr = currentPatternMatchResult.optionalAttributes[patternAttIdx][matchIdx]
+        }
+
+        let newAttsObject = [], editedAtts = [];
+        this.state.rendererSelectedAttributes[isMandatoryIdx].forEach((matchAttr, idx) => {
+            if (idx === patternAttIdx) {
+                editedAtts.push(newMatchAttr);
+            } else {
+                editedAtts.push(matchAttr);
+            }
+        });
+        newAttsObject[isMandatoryIdx] = editedAtts;
+        newAttsObject[Math.abs(isMandatoryIdx - 1)] = this.state.rendererSelectedAttributes[Math.abs(isMandatoryIdx - 1)];
+        
+        this.setState({
+            dataLoaded: false,
+            data: undefined
+        }, () => {
+            if (this.state.selectedEntitesIndices.length !== 0) {
+                const getDataCallback = (data: object[]) => {
+                    this.setState({
+                        dataLoaded: true,
+                        data: data,
+                        rendererSelectedAttributes: newAttsObject,
+                        visKeyOverride: false
+                    });
+                }
+                Connections.getDataByMatchAttrs(newAttsObject, 
+                    currentPatternMatchResult, 
+                    this.getProviderValues())
+                    .then(getDataCallback.bind(this))
+            } else {
+                // this.updateRelationBasedDataWithFilter(this.state.filters, undefined, this);
+                const getDataCallback = (data: object[]) => {
+                    const filteredData = filterDataByFilters(data, this.getProviderValues(), this.state.filters);
+                    
+                    const mainRelation = this.state.relHierarchyIndices[0].map(relIdx => this.state.relationsList[relIdx])
+                    // const visSchemaMatchesFromRels = 
+                    //     this.getVisSchemaMatchesFromSelectedRelations();
+                    const setStateCallback = visSchemaMatchesFromRels => {
+                        this.setState({
+                            dataLoaded: true,
+                            data: filteredData,
+                            visSchemaMatchStatus: visSchemaMatchesFromRels,
+                            rendererSelectedAttributes: newAttsObject,
+                            visKeyOverride: false
+                        })
+                    };
+                    
+                    this.getVisSchemaMatchesFromSelectedRelations().then(setStateCallback.bind(this));
+                }
+                
+                Connections.getRelationBasedData(
+                    this.state.selectedRelationsIndices
+                        .map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues(), 
+                            newAttsObject, this.state.filters).then(getDataCallback.bind(this));
+            }
+        })
+    }
+
+    getAllPatternMatchesFromRelations = () => {
+        const getDataCallback = (data: object[]) => {
+            this.setState({
+                dataLoaded: true,
+                data: data
+            });
+        }
+
+        Connections.getRelationBasedData(this.state.selectedRelationsIndices.map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues())
+            .then(getDataCallback.bind(this))
+
+        const setStateCallback = (visSchemaMatchesFromRels => {
+            console.log(visSchemaMatchesFromRels)
+        });
+
+        this.getVisSchemaMatchesFromSelectedRelations().then(setStateCallback.bind(this));
+    }
+
+    onRelHierarchyChange = (newHierarchy: number[][]) => {
+        this.setState({
+            relHierarchyIndices: newHierarchy
+        }, () => {
+            // If primary relation is not selected, clear screen and data
+            if (newHierarchy[0].length === 0) {
+                this.setState({
+                    dataLoaded: false,
+                    data: undefined,
+                    selectedPatternIndex: -1,
+                    rendererSelectedAttributes: [[], []],
+                    visSchemaMatchStatus: undefined,
+                    visKeyOverride: false
+                });
+                return;
+            }
+
+            const getDataCallback = (data: object[]) => {
+                this.setState({
+                    dataLoaded: true,
+                    data: data
+                });
+            }
+    
+            Connections.getRelationBasedData(newHierarchy.flat().map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues())
+                .then(getDataCallback)
+                
+            const setStateCallback = (visSchemaMatchesFromRels => {
+                this.setState({
+                    visSchemaMatchStatus: visSchemaMatchesFromRels,
+                    visKeyOverride: false
+                })
+            });
+
+            this.getVisSchemaMatchesFromSelectedRelations().then(setStateCallback.bind(this));
+
+            // const visSchemaMatchesFromRels = 
+            //     this.getVisSchemaMatchesFromSelectedRelations();
         });
 
     }
 
-    onForeignKeySelectChange = (e) => {
-        let fkIndex = parseInt(e.target.getAttribute("data-index"));
+    onDatasetSchemaSelectChange = (newEntities?: number[], newRelations?: number[]) => {
+        const entitiesIndicesChanged = this.state.selectedEntitesIndices !== newEntities
+        const relationIndicesChanged = this.state.selectedRelationsIndices !== newRelations
 
-        if (fkIndex < 0) return;
+        if (newEntities.length === 0 && newRelations.length === 0) {
+            this.setState({
+                load: true
+            });
+            return;
+        };
 
+        if (!entitiesIndicesChanged && !relationIndicesChanged) return;
+
+        // TODO: only process one array only; entity priority
+        // Entity case
+        if (newEntities.length !== 0 ) {
+            this.setState({
+                dataLoaded: false,
+                data: undefined,
+                filters: []
+            }, () => {
+                this.setState({
+                    selectedEntitesIndices: newEntities,
+                    selectedRelationsIndices: newRelations
+                })
+                const {
+                    visSchemaMatchStatus, 
+                    selectedPatternIndex, 
+                    selectedMatchResultIndexInPattern,
+                    rendererSelectedAttributes} = this.getAllMatchableVisSchemaPatterns(newEntities[0], undefined, true);
+
+                if (selectedPatternIndex < 0 || selectedMatchResultIndexInPattern < 0) {
+                    return;
+                }
+    
+                const getDataCallback = (data: object[]) => {
+                    this.setState({
+                        dataLoaded: true,
+                        data: data,
+                        selectedMatchResultIndexInPattern: selectedMatchResultIndexInPattern,
+                        rerender: entitiesIndicesChanged,
+                        visSchemaMatchStatus: visSchemaMatchStatus,
+                        selectedPatternIndex: selectedPatternIndex ? selectedPatternIndex : -1,
+                        rendererSelectedAttributes: rendererSelectedAttributes,
+                        visKeyOverride: false
+                    });
+                }
+    
+                Connections.getDataByMatchAttrs(
+                    rendererSelectedAttributes, 
+                    visSchemaMatchStatus[selectedPatternIndex][0],
+                    this.getProviderValues())
+                        .then(getDataCallback.bind(this));
+            })
+        } else {            
+            this.setState({
+                selectedEntitesIndices: newEntities,
+                selectedRelationsIndices: newRelations,
+                visKeyOverride: false
+            }, () => {
+                matchAllSelectedRelationsWithVisPatterns(this.getProviderValues()).then(result => {
+                    console.log(result);
+                });
+            });
+        }
+    }
+
+    onDataChange = (data) => {
         this.setState({
-            selectedForeignKeyIndex: fkIndex
-        }, () => {
-            this.checkVisualisationPossibility();
+            data: data
+        })
+    }
+
+    updateRelationBasedDataWithFilter = (filters: Filter[], newStates?: object, thisObj?: object) => {
+        const getDataCallback = (data: object[]) => {
+            const filteredData = filterDataByFilters(data, this.getProviderValues(), filters);
+            this.setState({
+                data: filteredData,
+                dataLoaded: true
+            }, () => {
+                const setStateCallback = (visSchemaMatchesFromRels) => {
+                    this.setState({
+                        visSchemaMatchStatus: visSchemaMatchesFromRels,
+                        visKeyOverride: false
+                    })
+                }
+                this.getVisSchemaMatchesFromSelectedRelations().then(setStateCallback.bind(this));
+            })
+        }
+        
+        Connections.getRelationBasedData(
+            this.state.selectedRelationsIndices
+                .map(relIdx => this.state.relationsList[relIdx]), this.getProviderValues(), 
+                    this.state.rendererSelectedAttributes, filters).then(getDataCallback);
+    }
+
+    onFilterChange = (filters: Filter[]) => {
+        // TODO: temporary divergence
+        if (this.state.selectedEntitesIndices.length === 0) {
+            this.setState({
+                filters: filters,
+                visKeyOverride: false
+            }, () => {
+                this.updateRelationBasedDataWithFilter(filters, {}, this);
+            })
+        } else {
+            const filteredData = filterDataByFilters(this.state.data, this.getProviderValues(), filters);
+            const {
+                visSchemaMatchStatus, 
+                selectedPatternIndex, 
+                selectedMatchResultIndexInPattern, 
+                rendererSelectedAttributes} = this.getAllMatchableVisSchemaPatterns(this.state.selectedEntitesIndices[0], filteredData.length, false);
+
+            const getDataCallback = (data: object[]) => {
+                this.setState({
+                    data: data,
+                    filters: filters,
+                    visSchemaMatchStatus: visSchemaMatchStatus,
+                    visKeyOverride: false
+                });
+            }
+
+            Connections.getDataByMatchAttrs(
+                this.state.rendererSelectedAttributes, 
+                visSchemaMatchStatus[this.state.selectedPatternIndex][this.state.selectedMatchResultIndexInPattern], 
+                this.getProviderValues())
+                    .then(getDataCallback.bind(this));
+        }
+    }
+
+    // Helpers
+    isPatternMatchResultValid = (res: PatternMatchResult) => {
+        if (typeof(res) == "undefined" || res == null) return false;
+        return res.matched;
+    }
+
+
+    getAllMatchableVisSchemaPatterns = (selectedFirstTableIndex: number, pkNum?: number, getFirstIndices?: boolean) => {
+        // Break if not all the components had been initiated
+        if (this.state.relationsList === undefined) return;
+        if (visSchema === undefined) return;
+
+        // Check type of the relation
+        let selectedEntity = this.state.allEntitiesList[selectedFirstTableIndex];
+        let entityRel = SchemaParser.getRelationsInListByName(this.state.relationsList, selectedEntity.tableName);
+    
+        const matchStatusForAllSchema: PatternMatchResult[][] = matchTableWithAllVisPatterns(selectedEntity, entityRel, visSchema, pkNum);
+
+        if (!getFirstIndices) return {
+            visSchemaMatchStatus: matchStatusForAllSchema,
+            selectedPatternIndex: undefined,
+            rendererSelectedAttributes: undefined
+        };;
+        
+        const firstValidPatternIndex = matchStatusForAllSchema.findIndex(res => res.length > 0 && this.isPatternMatchResultValid(res[0]));
+        if (firstValidPatternIndex < 0) {
+            return {
+                visSchemaMatchStatus: matchStatusForAllSchema,
+                selectedPatternIndex: -1,
+                selectedMatchResultIndexInPattern: -1,
+                rendererSelectedAttributes: [[], []]
+            }
+        }
+
+        const firstMatchResultIndex = 0;
+
+        // Find the first pattern-matching result that resulted in a match
+        const firstValidPatternMatchStatus: PatternMatchResult = matchStatusForAllSchema[firstValidPatternIndex][firstMatchResultIndex];
+        if (!firstValidPatternMatchStatus) {
+            return {
+            visSchemaMatchStatus: matchStatusForAllSchema,
+            selectedPatternIndex: firstValidPatternIndex,
+            selectedMatchResultIndexInPattern: -1,
+            rendererSelectedAttributes: [[], []]
+            }
+        };
+        
+        const mandatoryParamInitIndices = firstValidPatternMatchStatus.mandatoryAttributes.map((mandMatch, idx) => {
+            return Math.floor(Math.random() * mandMatch.length);
         });
+        const mandatoryParamInitAtts = mandatoryParamInitIndices.map((attIdx, listIdx) => firstValidPatternMatchStatus.mandatoryAttributes[listIdx][attIdx])
+
+        let optionalParamInitIndices, optionalParamInitAtts;
+        if (firstValidPatternMatchStatus.hasOwnProperty("optionalAttributes")) {
+            optionalParamInitIndices = firstValidPatternMatchStatus.optionalAttributes.map((mandMatch, idx) => {
+                return Math.floor(Math.random() * mandMatch.length);
+            });
+            optionalParamInitAtts = optionalParamInitIndices.map((attIdx, listIdx) => firstValidPatternMatchStatus.optionalAttributes[listIdx][attIdx])
+        } else {
+            optionalParamInitIndices = [];
+        }
+
+        // TODO: make sure the picked indices are not duplicates of each other
+        return {
+            visSchemaMatchStatus: matchStatusForAllSchema,
+            selectedPatternIndex: (firstValidPatternIndex >= 0) ? firstValidPatternIndex : -1,
+            selectedMatchResultIndexInPattern: firstMatchResultIndex,
+            rendererSelectedAttributes: [mandatoryParamInitAtts, optionalParamInitAtts]
+        };
+
         
     }
 
-    onFKAttributeSelectChange = (e) => {
-        let attributeIndex = parseInt(e.target.getAttribute("data-index"));
-
-        if (attributeIndex < 0) return;
-
-        this.setState({
-            selectedFKAttributeIndex: attributeIndex
-        }, () => {
-            this.checkVisualisationPossibility();
-        });
-        
+    getVisSchemaMatchesFromSelectedRelations = () => {
+        return matchRelationWithAllVisPatterns(this.getProviderValues(), this.state.relationsList[this.state.relHierarchyIndices[0][0]]);
     }
-
-    updateOnTableListFocus = () => {
+    
+    getTableMetadata = () => {
         if (this.state.allEntitiesList.length !== 0) {
             return;
         }
@@ -411,11 +554,19 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         this.setState({
             load: true
         }, () => {
-            let entitiesListPromise = this.getAllTableMetadata();
+            let entitiesListPromise = Connections.getAllTableMetadata();
 
+            if (!entitiesListPromise) {
+                return;
+            }
+            
             Promise.resolve(entitiesListPromise).then(res => {
+                let preprocessResult = SchemaParser.preprocessEntities(res);
                 this.setState({
-                    allEntitiesList: res
+                    allEntitiesList: preprocessResult.tableList,
+                    relationsList: preprocessResult.relationsList,
+                    listLoaded: true,
+                    visKeyOverride: false
                 });
             });
             
@@ -425,78 +576,71 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
         });
     }
 
-    checkVisualisationPossibility = () => {
-        // Check, based on state indexes, if it is possible to request data from the database
-        // -- 1 -- A first entity and one of its attributes have been selected
-        if (this.state.selectedTableIndex >= 0 && this.state.selectedAttributeIndex >= 0) {
-            // -- 2 -- A second entity/attribute pair have been selected
-            if (this.state.selectedForeignKeyIndex >= 0 && this.state.selectedFKAttributeIndex >= 0) {
-                // TODO
-                return;
-            } else {
-                // Single attribute: bar chart (more to be implemented)
-                // Check attribute data type
-                let tableAttributes = this.state.allEntitiesList[this.state.selectedTableIndex].attr;
-                let attributeEntry = tableAttributes[this.state.selectedAttributeIndex];
-                let attributeTypeCat = attributeEntry.typcategory;
-                let tableOID = this.state.selectedTableOID;
-                let tableIndex = this.state.selectedTableIndex;
-                if (attributeTypeCat === "N") {
-                    // TODO: Fitting the new table list
-                    // If it is a number, retrieve data from database
-                    fetch("http://localhost:3000/temp-data-table-name-fields", {
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json'
-                        },
-                        method: "POST",
-                        body: JSON.stringify({
-                            "tableName": this.state.allEntitiesList[tableIndex].relname,
-                            "fields": [
-                                attributeEntry.attname
-                            ]
-                        }),
-                    }).then(rawResponse => rawResponse.json())
-                    .then(data => {
-                        console.log(data);
-                    })
-                }
-            }
-        } else {
-            return;
-        }
+    async componentDidMount() {
+        // Can even do some loading screen stuff here
+        readVisSchemaJSON();
+        this.getTableMetadata();
     }
 
-    getAllTableMetadata = () => {
-        // TODO/Work under progress: new backend hook
-        return fetch('http://localhost:3000/tables')
-            .then(rawResponse => rawResponse.json())
-            .then(tableList => {
-                // Annotate each table based on its key relationships
-                let tableListTranscribed = {}; // TODO: TO BE DEPRECATED
-                tableList.forEach((item: Table, _) => {
-                    if (this.tableIsJunction(item) == EntityRelationshipTypes.ManyToMany) {
-                        item.isJunction = true;
-                    }
-                    tableListTranscribed[item.oid] = item.relname;
-                });
-                
-                return tableList;
-            });
+    getProviderValues = (): DBSchemaContextInterface => {
+        return {
+            allEntitiesList: this.state.allEntitiesList, 
+            relationsList: this.state.relationsList,
+            data: this.state.data,
+            dataLoaded: this.state.dataLoaded,
+            filters: this.state.filters,
+            visSchemaMatchStatus: this.state.visSchemaMatchStatus,
+            visSchema: visSchema,
+            selectedPatternIndex: this.state.selectedPatternIndex,
+            selectedMatchResultIndexInPattern: this.state.selectedMatchResultIndexInPattern,
+            selectedEntitiesIndices: this.state.selectedEntitesIndices,
+            selectedRelationsIndices: this.state.selectedRelationsIndices,
+            relHierarchyIndices: this.state.relHierarchyIndices,
+            visKeyOverride: this.state.visKeyOverride,
+            showVisKeyCountConfirmModal: this.state.showVisKeyCountConfirmModal,
+            selectedAttributesIndices: this.state.rendererSelectedAttributes
+        };
     }
 
     render() {
+        const providerValues = this.getProviderValues();
+
         return (
-            <DBSchemaContext.Provider value={{allEntitiesList: this.state.allEntitiesList}}>
-                <div className="row g-0">
-                    <EntitySelector state={this.state} 
-                    onTableSelectChange={this.onTableSelectChange}
-                    onAttributeSelectChange={this.onAttributeSelectChange}
-                    onFKAttributeSelectChange={this.onFKAttributeSelectChange}
-                    onForeignKeySelectChange={this.onForeignKeySelectChange}
-                    updateOnTableListFocus={this.updateOnTableListFocus}
-                    />
-                    <Visualiser />
+            <DBSchemaContext.Provider value={providerValues}>
+                {this.state.showStartingTableSelectModal ? 
+                    <StartingTableSelectModal 
+                        onClose={this.onCloseShowStartingTableSelectModal} onDatasetSchemaSelectChange={this.onDatasetSchemaSelectChange} /> 
+                    : null}
+                {this.state.showFilterSelectModal ? 
+                    <FilterSelectModal 
+                        onClose={this.onCloseShowFilterSelectModal}
+                        filters={this.state.filters}
+                        onFilterChange={this.onFilterChange} /> 
+                    : null}
+
+                {this.state.showVisKeyCountConfirmModal ? 
+                    <VisKeyCountConfirmModal 
+                        onClose={this.onCloseVisKeyCountConfirmModal}
+                        onConfirm={this.onConfirmVisKeyCountConfirmModal}
+                        onSelectFiltering={this.onSelectFilteringFromConfirmModal} /> 
+                    : null}
+                <div className="row" id="app-wrapper">
+                    <AppSidebar 
+                        databaseLocation={this.state.databaseLocation}
+                        onClickShowStartingTableSelectModal={this.onClickShowStartingTableSelectModal}
+                        onClickShowFilterSelectModal={this.onClickShowFilterSelectModal}
+                         />
+                    <AppMainCont
+                        onDataChange={this.onDataChange}
+                        load={this.state.load}
+                        rerender={this.state.rerender}
+                        onVisPatternIndexChange={this.onVisPatternIndexChange}
+                        onMatchResultIndexChange={this.onMatchResultIndexChange}
+                        onSelectedAttributeIndicesChange={this.onSelectedAttributeIndicesChange}
+                        onClickShowFilterSelectModal={this.onClickShowFilterSelectModal}
+                        onRelHierarchyChange={this.onRelHierarchyChange}
+                        showVisKeyCountConfirmModal={this.showVisKeyCountConfirmModal}
+                         />
                 </div>
             </DBSchemaContext.Provider>
 
@@ -504,103 +648,14 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
     }
 }
 
+// Code to run
+const readVisSchemaJSON = () => {
+    Connections.readVisSchemaJSON().then((res:VisSchema[][]) => {
+        res.forEach(vses => {
+            vses["schema"].forEach(vs => visSchema.push(vs));
+        })
+    })
+}
+
 let appContNode = document.getElementById("app-cont");
 ReactDOM.render(<Application />, appContNode);
-
-async function getAttributeContentFromDatabase(tableIndex) {
-    const rawResponse = fetch("http://localhost:3000/table-attributes", {
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        method: "POST",
-        body: JSON.stringify({
-            "oid": tableIndex
-        }),
-        
-    })
-
-    const response = rawResponse.then(val => {
-        return val.json();
-    })
-    return response;
-}
-
-// TODO: set operation(s)
-function symmetricDifference(setA, setB) {
-    let _difference = new Set(setA)
-    for (let elem of setB) {
-        if (_difference.has(elem)) {
-            _difference.delete(elem)
-        } else {
-            _difference.add(elem)
-        }
-    }
-    return _difference
-}
-
-const getEntityFromOID = (entities: Table[], oid: number) => {
-    let fkRelIndex;
-    for (let i = 0; i < entities.length; i++) {
-        if (entities[i].oid === oid) {
-            fkRelIndex = i;
-            break;
-        }
-    }
-
-    return entities[fkRelIndex];
-}
-
-const getAttrsFromOID = (entities: Table[], oid: number) => {
-    return getEntityFromOID(entities, oid).attr;
-}
-
-// TODO: refactor this to another file?
-const attributeArrayRenderer = (item:Attribute, index: number, onClickCallback, selectedIndex: number, tablePrimaryKey?: PrimaryKey, tableForeignKeys?: ForeignKey[]) => {
-    let itemIsPrimaryKey = false;
-    let itemIsForeignKey = false;
-    let pkConstraintName;
-    let fkConstraintNames = [];
-    if (tablePrimaryKey) {
-        if (tablePrimaryKey.conkey.includes(item.attnum)) {
-            itemIsPrimaryKey = true;
-            pkConstraintName = tablePrimaryKey.conname;
-        }
-    }
-    if (tableForeignKeys) {
-        tableForeignKeys.forEach(cons => {
-            if (cons.conkey.includes(item.attnum)) {
-                itemIsForeignKey = true;
-                fkConstraintNames.push(cons.conname);
-            }
-        });
-    }
-
-    return <a className={"d-flex dropdown-item pe-auto" + (index == selectedIndex ? " active" : "") + (itemIsPrimaryKey ? " disabled" : "")} 
-        data-key={index} data-index={index} data-content={item.attname} key={item.attnum} href="#" onMouseDown={onClickCallback}>
-            <div className="d-flex pe-none">
-            {item.attname}
-            </div>
-            <div className="d-flex ms-auto align-items-center">
-                {
-                    // Print primary key prompt
-                    itemIsPrimaryKey ?
-                    <div className="me-1 text-muted dropdown-tip bg-tip-pk">pk: <em>{pkConstraintName}</em></div> :
-                    null
-                }
-                {
-                    // Print foreign key prompt(s)
-                    itemIsForeignKey ?
-                    fkConstraintNames.map((fkConstraintName, index) => {
-                        return <div className="me-1 text-muted dropdown-tip bg-tip-fk" key={index}>fk: <em>{fkConstraintName}</em></div>;
-                    }) :
-                    null
-                }
-                <div className="bg-tip-type text-secondary dropdown-tip">
-                    <em>
-                    {item.typname}
-                    </em>
-                </div>
-            </div>
-        </a>
-}

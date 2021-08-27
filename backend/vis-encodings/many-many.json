@@ -1,0 +1,53 @@
+{
+    "schema": [
+        {
+            "name": "Sankey",
+            "type": 3,
+            "localKey": {
+                "minCount": 1,
+                "maxCount": 20
+            },
+            "foreignKey": {
+                "minCount": 1,
+                "maxCount": 20
+            },
+            "reflexive": false,
+            "mandatoryParameters": [
+                {
+                    "scalar": true
+                }
+            ],
+            "optionalParameters": [
+                {
+                    "scalar": false,
+                    "type": "COLOR"
+                }
+            ],
+            "template": "sankey"
+        }, {
+            "name": "Chord",
+            "type": 3,
+            "localKey": {
+                "minCount": 1,
+                "maxCount": 100
+            },
+            "foreignKey": {
+                "minCount": 1,
+                "maxCount": 100
+            },
+            "reflexive": true,
+            "mandatoryParameters": [
+                {
+                    "scalar": true
+                }
+            ],
+            "optionalParameters": [
+                {
+                    "scalar": false,
+                    "type": "COLOR"
+                }
+            ],
+            "template": "chord"
+        }
+    ]
+}
