@@ -350,7 +350,9 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 filters: [],
                 selectedEntitesIndices: [],
                 selectedRelationsIndices: [],
-                load: false
+                load: false,
+                selectedPatternIndex: -1,
+                relHierarchyIndices: [[], [], []]
             });
             return;
         };
