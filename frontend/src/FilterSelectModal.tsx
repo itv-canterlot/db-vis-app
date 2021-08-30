@@ -717,7 +717,19 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
     }
 
     onTableAttrCombSelect = (e: React.BaseSyntheticEvent) => {
-        const listIndex = parseInt(e.currentTarget.getAttribute("data-list-index"));
+        const currentTarget = e.currentTarget;
+        const
+            tableIdx = parseInt(currentTarget.getAttribute("data-table-idx")),
+            attNum = parseInt(currentTarget.getAttribute("data-attnum"));
+
+        const listIndex = this.state.tableAttrList.findIndex(attr => {
+            return attr.attr.attnum === attNum && attr.table.idx === tableIdx;
+        })
+
+        if (listIndex < 0) {
+            return;
+        }
+        
         const newFilter = this.setNewFilter(listIndex);
         this.setState({
             selectedTableAttrListIndex: listIndex,
