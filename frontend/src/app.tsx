@@ -399,9 +399,9 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 selectedRelationsIndices: newRelations,
                 visKeyOverride: false
             }, () => {
-                matchAllSelectedRelationsWithVisPatterns(this.getProviderValues()).then(result => {
-                    console.log(result);
-                });
+                if (newRelations.length === 1) {
+                    this.onRelHierarchyChange([[newRelations[0]], [], []])
+                }
             });
         }
     }
