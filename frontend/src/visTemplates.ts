@@ -452,7 +452,7 @@ function renderTreeMap(parameters: VisTemplateBuilder) {
                 "name": JSON.parse(key).join(","),
                 "children": dataGroupedByKeyNames[key].map(object => {
                     return {
-                        "name": individualKeyNames.map(kk => object[kk]).join(",    "),
+                        "name": individualKeyNames.map(kk => object[kk]).join(","),
                         "value": object[xname]
                     }
                 })
