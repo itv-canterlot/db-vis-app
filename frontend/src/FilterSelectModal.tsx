@@ -358,9 +358,7 @@ class TableBasedFilterModalContent extends React.Component<TableBasedFilterModal
                         onChangeFilterType={this.props.onChangeFilterType}
                         onConfirmCachedFilter={this.props.onConfirmCachedFilter}
                         onFilterConditionChanged={this.props.onFilterConditionChanged}
-                        onClickDeleteFilter={this.props.onClickDeleteFilter}
-
-                         />
+                        onClickDeleteFilter={this.props.onClickDeleteFilter} />
                 </div>
             </div>
         );
@@ -446,7 +444,8 @@ class TableBasedFilterModalContent extends React.Component<TableBasedFilterModal
                     cachedFilterType={this.props.parentStates.cachedFilterType}
                     changedCondition={this.props.onFilterConditionChanged}
                     onConfirmCachedFilter={this.props.onConfirmCachedFilter}
-                    onChangeFilterType={this.props.onChangeFilterType} />
+                    onChangeFilterType={this.props.onChangeFilterType}
+                    isAttributeScalar={true} />
             );
         };
 
@@ -616,7 +615,9 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
     }
 
     datasetFilteringElement = () => {
-        const dbSchemaContext: DBSchemaContextInterface = this.context;        
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        const thisTableAttr = this.state.tableAttrList[this.state.selectedTableAttrListIndex]
+        const isSelectedAttributeScalar = thisTableAttr ? isAttributeScalar(thisTableAttr.attr) : true;
         return (
             <div className="row">
                 <div className="col-6">
@@ -636,6 +637,7 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
                             filter={this.state.newFilter}
                             onChangeFilterType={this.onChangeFilterType}
                             onConfirmCachedFilter={this.onConfirmCachedFilter}
+                            isAttributeScalar={isSelectedAttributeScalar}
                         />
                     }
                     <ul className="list-group">
@@ -749,12 +751,15 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
         if (listIndex < 0) {
             return;
         }
+        const newtableAttr = this.state.tableAttrList[listIndex];
         
         const newFilter = this.setNewFilter(listIndex);
         this.setState({
             selectedTableAttrListIndex: listIndex,
             newFilter: newFilter,
-            newFilterType: FilterType.getAllFilterTypes()[0],
+            newFilterType: isAttributeScalar(newtableAttr.attr) ? 
+                FilterType.getAllFilterTypes()[0] : 
+                FilterType.getAllFilterTypes().find(type => !type.isScalar),
             statsGraphRendered: false
         });
 
@@ -765,7 +770,6 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
         })
 
         const dbSchemaContext: DBSchemaContextInterface = this.context;
-        const newtableAttr = this.state.tableAttrList[listIndex];
         Connections.getRelationBasedData(
             dbSchemaContext.relHierarchyIndices.flat()
                 .map(relIdx => dbSchemaContext.relationsList[relIdx]), dbSchemaContext, 
@@ -1021,7 +1025,8 @@ class DatasetFilteringElement extends React.Component<DatasetFilteringElementPro
                     cachedFilterType={this.props.cachedFilterType}
                     changedCondition={this.props.onFilterConditionChanged}
                     onConfirmCachedFilter={this.props.onConfirmCachedFilter}
-                    onChangeFilterType={this.props.onChangeFilterType} />
+                    onChangeFilterType={this.props.onChangeFilterType}
+                    isAttributeScalar={true} />
             </div>
         )
     }

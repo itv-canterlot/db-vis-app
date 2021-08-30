@@ -213,5 +213,6 @@ export type FilterSelectorProps = {
     cachedFilterType: FilterType,
     changedCondition: Function,
     onConfirmCachedFilter: React.MouseEventHandler,
-    onChangeFilterType: React.MouseEventHandler
+    onChangeFilterType: React.MouseEventHandler,
+    isAttributeScalar: boolean
 }
