@@ -444,7 +444,7 @@ function renderTreeMap(parameters: VisTemplateBuilder) {
     // const xmax = Math.max(...xfloat),
     //     xmin = Math.min(...xfloat);
 
-    let dataGroupedByKeyNames = groupByMultipleKeys(data, groupByKeyNames);
+    let dataGroupedByKeyNames = groupByMultipleKeys(data, groupByKeyNames[0]);
     let treeMapRoot: any = {
         "name": "root",
         "children": Object.keys(dataGroupedByKeyNames).map(key => {
