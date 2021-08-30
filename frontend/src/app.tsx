@@ -345,7 +345,12 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
         if (newEntities.length === 0 && newRelations.length === 0) {
             this.setState({
-                load: true
+                data: undefined,
+                dataLoaded: false,
+                filters: [],
+                selectedEntitesIndices: [],
+                selectedRelationsIndices: [],
+                load: false
             });
             return;
         };
