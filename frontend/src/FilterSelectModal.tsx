@@ -610,6 +610,7 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
         this.state = {
             tableAttrList: [],
             selectedTableAttrListIndex: -1,
+            filterSearchBoxText: ""
         };
     }
 
@@ -786,6 +787,24 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
         )
     }
 
+    updateSearchBoxTextState = (s: string) => {
+        this.setState({
+            filterSearchBoxText: s
+        });
+    }
+
+    attrArrayFilterBySelection = (list: TableAttributeComb[], text: string) => {
+        return list.filter(attr => {
+            const attName = attr.attr.attname.toLowerCase();
+            const tableName = attr.table.tableName.toLowerCase();
+            const innerText = text.toLowerCase();
+            return attName.includes(innerText) || 
+                tableName.includes(innerText) || 
+                (tableName + "/" + attName).includes(innerText);
+        })
+    }
+
+
     getRelBasedAttributeList = () => {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
         let chosenTableAttr: TableAttributeComb;
@@ -800,8 +819,11 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
                         arrayRenderer={this.relBasedFilteringAttRenderer}
                         dropdownList={this.state.tableAttrList}
                         onListSelectionChange={this.onTableAttrCombSelect}
+                        listFilter={this.attrArrayFilterBySelection}
+                        innerVal={this.state.filterSearchBoxText}
                         prependText={undefined}
                         selectedIndex={undefined}
+                        updateInnerText={this.updateSearchBoxTextState}
                     />
                     <div className="card">
                         <div className="card-body">

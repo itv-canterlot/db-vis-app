@@ -140,7 +140,8 @@ export type RelationBasedFilterModalContentStates = {
     selectedTableAttrListIndex?: number
     newFilter?: Filter,
     newFilterType?: FilterType,
-    sampleData?: object[]
+    sampleData?: object[],
+    filterSearchBoxText?: string
 }
 
 export type DatasetFilteringElementProps = {
