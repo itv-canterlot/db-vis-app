@@ -384,7 +384,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
                                 </div>
                             </div>
                             <div className="modal-footer">
-                                <button type="button" className={"btn btn-primary" + (this.state.cachedFiltersList.length === 0 ? " disabled" : "")} onClick={this.onFilterSelectionConfirm}>Confirm</button>
+                                <button type="button" className={"btn btn-primary"} onClick={this.onFilterSelectionConfirm}>Confirm</button>
                                 <button type="button" className="btn btn-secondary" onClick={this.handleOnClose}>Cancel</button>
                             </div>
                         </div>
@@ -594,7 +594,7 @@ class TableBasedFilterModalContent extends React.Component<TableBasedFilterModal
                 </div>
                 <div className="modal-footer">
                     <button type="button" 
-                        className={"btn btn-primary" + (this.props.filterList.length === 0 ? " disabled" : "")} 
+                        className={"btn btn-primary"} 
                         onClick={this.props.onFilterSelectionConfirm}>Confirm</button>
                     <button type="button" className="btn btn-secondary" onClick={this.props.handleOnClose}>Cancel</button>
                 </div>
@@ -843,7 +843,7 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
                     {this.getRelBasedAttributeList()}
                 </div>
                 <div className="modal-footer">
-                    <button type="button" className={"btn btn-primary" + (this.props.filterList.length === 0 ? " disabled" : "")} onClick={this.props.onFilterSelectionConfirm}>Confirm</button>
+                    <button type="button" className={"btn btn-primary"} onClick={this.props.onFilterSelectionConfirm}>Confirm</button>
                     <button type="button" className="btn btn-secondary" onClick={this.props.handleOnClose}>Cancel</button>
                 </div>
             </div>
