@@ -141,6 +141,7 @@ export type RelationBasedFilterModalContentStates = {
     newFilter?: Filter,
     newFilterType?: FilterType,
     sampleData?: object[],
+    statsGraphRendered?: boolean
     filterSearchBoxText?: string
 }
 

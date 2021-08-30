@@ -10,6 +10,7 @@ import * as FilterConditions from './ts/FilterConditions';
 import * as DatasetUtils from './DatasetUtils';
 import { SearchDropdownList } from './UIElements';
 import * as Connections from './Connections';
+import { isAttributeScalar } from './TypeConstants';
 
 export class FilterSelectModal extends React.Component<FilterSelectModalProps, FilterSelectModalStates> {
     cachedFilterValueRef: React.RefObject<HTMLInputElement>;
@@ -198,103 +199,6 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
         });
     }
 
-    renderDataDistributionChart = (data: object[], attr: Attribute) => {
-        const dbSchemaContext: DBSchemaContextInterface = this.context;
-        var margin = ({top: 20, right: 20, bottom: 30, left: 40}),
-        width = 500 - margin.left - margin.right,
-        height = 300 - margin.top - margin.bottom, 
-        color = "steelblue";
-
-        // const combinedFilterList = [...this.props.filters, ...this.state.cachedFiltersList]
-
-        const filteredData = DatasetUtils.filterDataByAttribute(data, dbSchemaContext, attr, this.state.cachedFiltersList).map(d => parseFloat(d), true)
-        const n_bins = d3.thresholdSturges(filteredData);
-
-        let bins = d3.bin().thresholds(n_bins)(filteredData);
-
-        let x = d3.scaleLinear()
-            .domain([bins[0].x0, bins[bins.length - 1].x1])
-            .range([margin.left, width - margin.right])
-
-        let y = d3.scaleLinear()
-            .domain([0, d3.max(bins, d => d.length)]).nice()
-            .range([height - margin.bottom, margin.top])
-
-        const xLabel = attr.attname, yLabel = "Count";
-
-        let xAxis = g => g
-            .attr("transform", `translate(0,${height - margin.bottom})`)
-            .call(d3.axisBottom(x)
-                .ticks(n_bins)
-                .tickSizeOuter(0)
-                .tickFormat((d, i) => {
-                    if (Math.abs(d.valueOf()) >= 10000) {
-                        return d3.format(".1e")(d);
-                    } else if (Math.abs(d.valueOf()) < 0.001) {
-                        return d3.format(".1e")(d);
-                    }
-                    return d3.format("")(d);
-                }))
-            .call(g => g.append("text")
-                .attr("x", width - margin.right)
-                .attr("y", -4)
-                .attr("fill", "currentColor")
-                .attr("font-weight", "bold")
-                .attr("text-anchor", "end")
-                .text(xLabel))
-
-        let yAxis = g => g
-            .attr("transform", `translate(${margin.left},0)`)
-            .call(d3.axisLeft(y).ticks(height / 40))
-            .call(g => g.select(".domain").remove())
-            .call(g => g.select(".tick:last-of-type text").clone()
-                .attr("x", 4)
-                .attr("text-anchor", "start")
-                .attr("font-weight", "bold")
-                .text(yLabel))
-
-        let svg = d3.select("#filter-data-dist-vis-cont")
-            .selectAll("svg");
-        if (!svg.empty()) {
-            svg.remove();
-        }
-        
-        svg = d3.select("#filter-data-dist-vis-cont")
-        .append("svg")
-        .attr("viewBox", [0, 0, width, height].join(" "))
-        .attr("width", width)
-        .attr("height", height);
-        
-        svg.append("g")
-            .attr("fill", color)
-            .selectAll("rect")
-            .data(bins)
-            .join("rect")
-            .attr("x", d => x(d.x0) + 1)
-            .attr("width", d => Math.max(0, x(d.x1) - x(d.x0) - 1))
-            .attr("y", d => y(d.length))
-            .attr("height", d => y(0) - y(d.length));
-
-        svg.append("g")
-            .call(xAxis);
-        
-        svg.append("g")
-            .call(yAxis);
-
-        let xmean = d3.mean(filteredData, (d: number) => d);
-
-        svg.append("line")
-            .attr("class", "line")
-            .attr("x1", x(xmean))
-            .attr("y1", 0)
-            .attr("x2", x(xmean))
-            .attr("y2", height)
-            .style("stroke-width", 2)
-            .style("stroke", "maroon")
-            .style("stroke-dasharray", ("3, 3"))
-            .style("fill", "none"); 
-    }
-
     componentDidUpdate() {
         const dbSchemaContext: DBSchemaContextInterface = this.context;
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -307,7 +211,7 @@ export class FilterSelectModal extends React.Component<FilterSelectModalProps, F
             if (this.state.cachedFilterSelection !== undefined && this.state.cachedFilterSelection.tableIndex !== undefined) {
                 const thisTable = dbSchemaContext.allEntitiesList[this.state.cachedFilterSelection.tableIndex]
                 const thisAttr = thisTable.attr[this.state.cachedFilterSelection.attNum - 1];
-                this.renderDataDistributionChart(contextData, thisAttr);
+                renderScalarDataDistributionChart(contextData, thisAttr, thisTable, this.state.cachedFiltersList, dbSchemaContext);
             }
         }
     }
@@ -610,7 +514,8 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
         this.state = {
             tableAttrList: [],
             selectedTableAttrListIndex: -1,
-            filterSearchBoxText: ""
+            filterSearchBoxText: "",
+            statsGraphRendered: false
         };
     }
 
@@ -660,11 +565,53 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
         if (this.state.sampleData == undefined) {
             return null;
         } else {
-            return (
-                <div>
-                    {DatasetUtils.filterDataByFilters(this.state.sampleData, this.context, this.props.filterList).length}
-                </div>
-            )
+            const thisAttribute = this.state.tableAttrList[this.state.selectedTableAttrListIndex];
+            if (!thisAttribute) {
+                clearDataDistributionChart();
+                return (
+                    <div>
+                        {DatasetUtils.filterDataByFilters(this.state.sampleData, this.context, this.props.filterList).length}
+                    </div>
+                )
+            }
+            if (isAttributeScalar(thisAttribute.attr)) {
+                const getDataCallback = (data => {
+                    if (!this.state.statsGraphRendered) {
+                        this.setState({
+                            sampleData: data,
+                            statsGraphRendered: true
+                        });
+                        renderScalarDataDistributionChart(data, thisAttribute.attr, thisAttribute.table, this.props.filterList, this.context);
+                    }
+                })
+
+                const dbSchemaContext: DBSchemaContextInterface = this.context;
+                if (!this.state.statsGraphRendered) {
+                    Connections.getRelationBasedData(
+                        dbSchemaContext.relHierarchyIndices.flat()
+                            .map(relIdx => dbSchemaContext.relationsList[relIdx]), dbSchemaContext, 
+                                [
+                                [...dbSchemaContext.selectedAttributesIndices[0], 
+                                    {table: thisAttribute.table, attributeIndex: thisAttribute.attr.attnum - 1}, ...this.props.filterList.map(filter => {
+                                        return {
+                                            table: dbSchemaContext.allEntitiesList[filter.tableIndex],
+                                            attributeIndex: filter.attNum - 1
+                                        }
+                                    })], 
+                                dbSchemaContext.selectedAttributesIndices[1]], 
+                            this.props.filterList) // TODO: filters not working in Connection yet
+                    .then(getDataCallback.bind(this));
+                }
+                
+                return this.datasetStatisticsElement(thisAttribute.attr, thisAttribute.table);
+            } else {
+                clearDataDistributionChart();
+                return (
+                    <div>
+                        Filtered dataset size: {DatasetUtils.filterDataByFilters(this.state.sampleData, this.context, this.props.filterList).length}
+                    </div>
+                )
+            }
         }
     }
 
@@ -673,7 +620,11 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
         return (
             <div className="row">
                 <div className="col-6">
-                    {this.datasetPreviewElement()}
+                    <div id="filter-data-dist-vis-cont">
+                    </div>
+                    <div>
+                        {this.datasetPreviewElement()}
+                    </div>
                 </div>
                 <div className="col-6">
                     {
@@ -696,6 +647,75 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
                 </div>
             </div>
         )
+    }
+
+    datasetStatisticsElement = (thisAttr: Attribute, thisTable: Table) => {
+        const dbSchemaContext: DBSchemaContextInterface = this.context;
+        const sampleData = this.state.sampleData;
+        const dataFiltered = DatasetUtils.filterDataByAttribute(sampleData, dbSchemaContext, thisAttr, this.props.filterList, true, thisTable);
+        
+        const dataMin = (
+            <div>
+                <div className="small">
+                    min
+                </div>
+                <div>
+                    <strong>
+                        {Math.min(...dataFiltered)}
+                    </strong>
+                </div>
+            </div>
+        );
+        
+        const dataMax = (
+            <div className="text-end">
+                <div className="small">
+                    max
+                </div>
+                <div>
+                    <strong>
+                        {Math.max(...dataFiltered)}
+                    </strong>
+                </div>
+            </div>
+        );
+
+        const filteredDataLength = (
+            <div>
+                {dataFiltered.length}
+            </div>
+        )
+
+        const meanStd = (
+            <div className="text-center">
+                <div>
+                    μ = <strong>{DatasetUtils.getAverage(dataFiltered).toFixed(2)}</strong>
+                </div>
+                <div>
+                    σ = <strong>{DatasetUtils.getStandardDeviation(dataFiltered).toFixed(2)}</strong>
+                </div>
+            </div>
+        )
+        
+        const datasetStatisticsElem = (
+            <div className="card mt-2">
+                <div className="card-body d-flex justify-content-between align-items-center">
+                    {dataMin} {meanStd} {dataMax}
+                </div>
+                <ul className="list-group list-group-flush">
+                    <li className="list-group-item">
+                        <div>
+                            # total dataset entries: {dbSchemaContext.data.length}
+                        </div>
+                        <div>
+                            # valid data entries for attribute: {dataFiltered.length}
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        )
+
+        return datasetStatisticsElem;
     }
 
     relBasedFilteringAttRenderer = (tableAttr: TableAttributeComb, index: number, onClickCallback: React.MouseEventHandler<HTMLAnchorElement>) => {
@@ -734,7 +754,8 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
         this.setState({
             selectedTableAttrListIndex: listIndex,
             newFilter: newFilter,
-            newFilterType: FilterType.getAllFilterTypes()[0]
+            newFilterType: FilterType.getAllFilterTypes()[0],
+            statsGraphRendered: false
         });
 
         const getDataCallback = (data => {
@@ -781,7 +802,8 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
         this.setState({
             newFilter: undefined,
             newFilterType: FilterType.getAllFilterTypes()[0],
-            selectedTableAttrListIndex: -1
+            selectedTableAttrListIndex: -1,
+            statsGraphRendered: false
         })
     }
 
@@ -885,6 +907,108 @@ class RelationBasedFilterModalContent extends React.Component<RelationBasedFilte
     }
 }
 RelationBasedFilterModalContent.contextType = DBSchemaContext;
+
+const clearDataDistributionChart = () => {
+    let svg = d3.select("#filter-data-dist-vis-cont")
+        .selectAll("svg");
+    if (!svg.empty()) {
+        svg.remove();
+    }
+}
+
+const renderScalarDataDistributionChart = (data: object[], attr: Attribute, table: Table, cachedFiltersList: Filter[], dbSchemaContext: DBSchemaContextInterface) => {
+    var margin = ({top: 20, right: 20, bottom: 30, left: 40}),
+    width = 500 - margin.left - margin.right,
+    height = 300 - margin.top - margin.bottom, 
+    color = "steelblue";
+
+    const filteredData = DatasetUtils.filterDataByAttribute(data, dbSchemaContext, attr, cachedFiltersList, false, table).map(d => parseFloat(d), true)
+    const n_bins = d3.thresholdSturges(filteredData);
+
+    let bins = d3.bin().thresholds(n_bins)(filteredData);
+
+    let x = d3.scaleLinear()
+        .domain([bins[0].x0, bins[bins.length - 1].x1])
+        .range([margin.left, width - margin.right])
+
+    let y = d3.scaleLinear()
+        .domain([0, d3.max(bins, d => d.length)]).nice()
+        .range([height - margin.bottom, margin.top])
+
+    const xLabel = attr.attname, yLabel = "Count";
+
+    let xAxis = g => g
+        .attr("transform", `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x)
+            .ticks(n_bins)
+            .tickSizeOuter(0)
+            .tickFormat((d, i) => {
+                if (Math.abs(d.valueOf()) >= 10000) {
+                    return d3.format(".1e")(d);
+                } else if (Math.abs(d.valueOf()) < 0.001) {
+                    return d3.format(".1e")(d);
+                }
+                return d3.format("")(d);
+            }))
+        .call(g => g.append("text")
+            .attr("x", width - margin.right)
+            .attr("y", -4)
+            .attr("fill", "currentColor")
+            .attr("font-weight", "bold")
+            .attr("text-anchor", "end")
+            .text(xLabel))
+
+    let yAxis = g => g
+        .attr("transform", `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y).ticks(height / 40))
+        .call(g => g.select(".domain").remove())
+        .call(g => g.select(".tick:last-of-type text").clone()
+            .attr("x", 4)
+            .attr("text-anchor", "start")
+            .attr("font-weight", "bold")
+            .text(yLabel))
+
+    let svg = d3.select("#filter-data-dist-vis-cont")
+        .selectAll("svg");
+    if (!svg.empty()) {
+        svg.remove();
+    }
+    
+    svg = d3.select("#filter-data-dist-vis-cont")
+    .append("svg")
+    .attr("viewBox", [0, 0, width, height].join(" "))
+    .attr("width", width)
+    .attr("height", height);
+    
+    svg.append("g")
+        .attr("fill", color)
+        .selectAll("rect")
+        .data(bins)
+        .join("rect")
+        .attr("x", d => x(d.x0) + 1)
+        .attr("width", d => Math.max(0, x(d.x1) - x(d.x0) - 1))
+        .attr("y", d => y(d.length))
+        .attr("height", d => y(0) - y(d.length));
+
+    svg.append("g")
+        .call(xAxis);
+    
+    svg.append("g")
+        .call(yAxis);
+
+    let xmean = d3.mean(filteredData, (d: number) => d);
+
+    svg.append("line")
+        .attr("class", "line")
+        .attr("x1", x(xmean))
+        .attr("y1", 0)
+        .attr("x2", x(xmean))
+        .attr("y2", height)
+        .style("stroke-width", 2)
+        .style("stroke", "maroon")
+        .style("stroke-dasharray", ("3, 3"))
+        .style("fill", "none"); 
+}
 
 class DatasetFilteringElement extends React.Component<DatasetFilteringElementProps,{}> {
     filterFormElem = () => {
