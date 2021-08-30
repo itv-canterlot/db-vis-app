@@ -459,6 +459,8 @@ function renderTreeMap(parameters: VisTemplateBuilder) {
             }
         })
     }
+
+    const color = d3.scaleOrdinal(d3.schemeCategory10)
     
     const treeMapObject = d3.treemap()
         .size([width, height])
@@ -477,7 +479,7 @@ function renderTreeMap(parameters: VisTemplateBuilder) {
             d.leadUid = newId;
             return newId;
         })
-        .attr("fill", d => { while (d.depth > 1) d = d.parent; return "#1c3a25"; })
+        .attr("fill", d => { while (d.depth > 1) d = d.parent; return color(d.data.name); })
         .attr("fill-opacity", 0.6)
         .attr("width", d => d.x1 - d.x0)
         .attr("height", d => d.y1 - d.y0);
@@ -665,6 +667,9 @@ const renderChordPlot = (parameters: VisTemplateBuilder) => {
     const arc = d3.arc()
         .innerRadius(innerRadius)
         .outerRadius(outerRadius);
+            
+    const colors = d3.quantize(d3.interpolateRainbow, allUniqueEntries.length)
+    const color = d3.scaleOrdinal(allUniqueEntries, colors)
 
     const group = svg.append("g")
         .attr("font-size", 10)
@@ -674,7 +679,7 @@ const renderChordPlot = (parameters: VisTemplateBuilder) => {
             .join("g")
 
     group.append("path")
-        .attr("fill", "#69b3a2")
+        .attr("fill", (d, i) => color(allUniqueEntries[i]))
         .attr("d", arc);
     
     group.append("title")
@@ -696,16 +701,16 @@ const renderChordPlot = (parameters: VisTemplateBuilder) => {
         .join("g")
           .attr("transform", d => `rotate(${d.angle * 180 / Math.PI - 90}) translate(${outerRadius},0)`);
     
-    //   groupTick.append("line")
-    //       .attr("stroke", "currentColor")
-    //       .attr("x2", 6);
+    groupTick.append("line")
+        .attr("stroke", "currentColor")
+        .attr("x2", 6);
     
-      groupTick.append("text")
-          .attr("x", 8)
-          .attr("dy", "0.35em")
-          .attr("transform", d => d.angle > Math.PI ? "rotate(180) translate(-16)" : null)
-          .attr("text-anchor", d => d.angle > Math.PI ? "end" : null)
-        //   .text(d => d.value);
+    groupTick.append("text")
+        .attr("x", 8)
+        .attr("dy", "0.35em")
+        .attr("transform", d => d.angle > Math.PI ? "rotate(180) translate(-16)" : null)
+        .attr("text-anchor", d => d.angle > Math.PI ? "end" : null)
+    //   .text(d => d.value);
 
     group.select("text")
         .attr("font-weight", "bold")
@@ -725,7 +730,7 @@ const renderChordPlot = (parameters: VisTemplateBuilder) => {
         .data(chords)
         .join("path")
             .style("mix-blend-mode", "multiply")
-            .attr("fill", d => "#69b3a2")
+            .attr("fill", (d, i) => color(allUniqueEntries[d.source.index]))
             .attr("d", ribbon)
 }
 
