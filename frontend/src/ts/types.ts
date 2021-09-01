@@ -214,13 +214,14 @@ export type PatternMismatchReason = {
 // }
 
 export class FilterType {
-    static readonly SCALAR_COMPARISON = new FilterType(0, "Scalar comparison");
-    static readonly STD = new FilterType(1, "Limit outliers");
-    static readonly STRING_COMPARISON = new FilterType(2, "String comparison");
+    static readonly SCALAR_COMPARISON = new FilterType(0, "Scalar comparison", true);
+    static readonly STD = new FilterType(1, "Limit outliers", true);
+    static readonly STRING_COMPARISON = new FilterType(2, "String comparison", false);
 
     private constructor(
         private readonly key,
-        public readonly value){
+        public readonly value,
+        public readonly isScalar){
 
         }
     

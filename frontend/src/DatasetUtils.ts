@@ -1,4 +1,4 @@
-import { Attribute, Filter, FilterType, FilterCondition, VISSCHEMATYPES, PatternMatchAttribute, VisSchema, RelationNode, ForeignKey } from "./ts/types";
+import { Attribute, Filter, FilterType, FilterCondition, VISSCHEMATYPES, PatternMatchAttribute, VisSchema, RelationNode, ForeignKey, Table } from "./ts/types";
 import { DBSchemaContextInterface } from "./DBSchemaContext"
 import * as FilterConditions from "./ts/FilterConditions";
 import { keyCountCheck } from "./VisSchemaMatcher";
@@ -46,16 +46,19 @@ export const filterDataByFilters = (data: object[], dbSchemaContext: DBSchemaCon
     return filteredData;
 }
 
-export const filterDataByAttribute = (data: object[], dbSchemaContext: DBSchemaContextInterface, attr: Attribute, filters?: Filter[], removeNull?: boolean) => {
+export const filterDataByAttribute = (data: object[], dbSchemaContext: DBSchemaContextInterface, attr: Attribute, filters?: Filter[], removeNull?: boolean, table?: Table) => {
     let nullRemoved: object[],
         filteredData = filterDataByFilters(data, dbSchemaContext, filters);
+
+    const thisAttrName = dbSchemaContext.selectedRelationsIndices.length !== 0 ? `a_${table.tableName}_${attr.attname}` : attr.attname;
     if (removeNull) {
-        nullRemoved = filteredData.filter(d => d[attr.attname] !== undefined && d[attr.attname] !== null);
+        nullRemoved = filteredData.filter(d => d[thisAttrName] !== undefined && d[thisAttrName] !== null);
     } else {
         nullRemoved = filteredData;
     }
 
-    return nullRemoved.map(d => d[attr.attname]);
+    return nullRemoved.map(d => d[thisAttrName]);
+
 }
 
 const getOneManyCountPairFromManyManyRel = (relFks: ForeignKey[], filteredData: object[]) => {

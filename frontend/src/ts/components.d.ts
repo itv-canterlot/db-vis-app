@@ -140,7 +140,9 @@ export type RelationBasedFilterModalContentStates = {
     selectedTableAttrListIndex?: number
     newFilter?: Filter,
     newFilterType?: FilterType,
-    sampleData?: object[]
+    sampleData?: object[],
+    statsGraphRendered?: boolean
+    filterSearchBoxText?: string
 }
 
 export type DatasetFilteringElementProps = {
@@ -211,5 +213,6 @@ export type FilterSelectorProps = {
     cachedFilterType: FilterType,
     changedCondition: Function,
     onConfirmCachedFilter: React.MouseEventHandler,
-    onChangeFilterType: React.MouseEventHandler
+    onChangeFilterType: React.MouseEventHandler,
+    isAttributeScalar: boolean
 }

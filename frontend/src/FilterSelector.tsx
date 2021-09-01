@@ -60,7 +60,7 @@ export class FilterSelector extends React.Component<FilterSelectorProps, {}> {
     );
 
     valueInputAny = (
-        <div className="input-group" style={{ maxWidth: "20%" }}>
+        <div className="input-group">
             <input ref={this.props.cachedFilterValueRef} className="form-control input-number-no-scroll" placeholder="Value" aria-label="Value" />
         </div>
     )
@@ -79,9 +79,16 @@ export class FilterSelector extends React.Component<FilterSelectorProps, {}> {
                 </button>
                 <ul className="dropdown-menu">
                     {FilterType.getAllFilterTypes().map((ft, i) => {
+                        let classList = "dropdown-item";
+                        if (ft === this.props.cachedFilterType) {
+                            classList = classList + " active";
+                        }
+                        if (!this.props.isAttributeScalar && ft.isScalar) {
+                            classList = classList + " disabled"
+                        }
                         return (
                             <li key={i} data-filter-range-id={i} onClick={this.props.onChangeFilterType}>
-                                <a className={"dropdown-item" + (ft === this.props.cachedFilterType ? " active" : "")} href="#">{ft.toString()}</a>
+                                <a className={classList} href="#">{ft.toString()}</a>
                             </li>
                         );
                     })}
@@ -105,8 +112,13 @@ export class FilterSelector extends React.Component<FilterSelectorProps, {}> {
                 )
             case (FilterType.STRING_COMPARISON):
                 return (
-                    <div className="d-flex align-items-center">
-                        {this.filterRelatedAttListElem(this.props.filter)} {this.equality} {this.conditionDropdown()} {this.valueInputAny}
+                    <div className="d-flex align-items-center justify-content-between">
+                        <div className="me-2">
+                            {this.filterRelatedAttListElem(this.props.filter)} {this.equality} {this.conditionDropdown()}
+                        </div>
+                        <div style={{ maxWidth: "40%" }}>
+                            {this.valueInputAny}
+                        </div>
                     </div>
                 )
             case (FilterType.STD):

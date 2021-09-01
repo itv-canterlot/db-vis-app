@@ -2,7 +2,6 @@ import * as React from 'react';
 import { DBSchemaContext, DBSchemaContextInterface } from './DBSchemaContext';
 import { SchemaExplorerProps, SchemaExplorerStates } from './ts/components';
 import { CONFIRMATION_STATUS, PatternMatchAttribute, PatternMatchResult, PATTERN_MISMATCH_REASON_TYPE, RelationNode, VisParam, VISSCHEMATYPES, visSchemaTypeToReadableString } from './ts/types';
-import { getDatasetEntryCountStatus } from './DatasetUtils';
 import { groupBySecondLevelAttr } from './AppMainCont';
 import * as bootstrap from 'bootstrap';
 
@@ -319,39 +318,43 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
         // Process the new relation hierarchy array
         let newHierarchyArray = context.relHierarchyIndices;
         let [mainPatternIndex, subordinatePatternIndex, auxillaryPatternIndex] = newHierarchyArray;
-        if (mainPatternIndex.length === 0) {
-            mainPatternIndex.push(clickedBubblePatternIndex);
-            // TODO
-            this.props.onRelHierarchyChange(newHierarchyArray);
-            return;
-        }
-
         const
             clickedIndexInMain = mainPatternIndex.findIndex(val => val === clickedBubblePatternIndex),
             clickedInSubordinate = subordinatePatternIndex.findIndex(val => val === clickedBubblePatternIndex),
             clickedInAuxillary = auxillaryPatternIndex.findIndex(val => val === clickedBubblePatternIndex);
 
-        if (clickedIndexInMain >= 0) {
-            // Clicked index in main, remove
-            mainPatternIndex.splice(clickedIndexInMain, 1);
-            this.props.onRelHierarchyChange(newHierarchyArray);
-            return;
-        }
-        if (clickedInSubordinate >= 0) {
-            // Clicked index in main, remove
-            subordinatePatternIndex.splice(clickedInSubordinate, 1);
-            this.props.onRelHierarchyChange(newHierarchyArray);
-            return;
+        if (mainPatternIndex.length === 0) {
+            // Main is empty
+            if (clickedInSubordinate < 0) {
+                mainPatternIndex.push(clickedBubblePatternIndex);
+            } else {
+                // Pattern in subordinate already
+                subordinatePatternIndex.splice(clickedInSubordinate, 1);
+                mainPatternIndex.push(clickedBubblePatternIndex);
+            }
         } else {
-            subordinatePatternIndex.push(clickedBubblePatternIndex);
-            this.props.onRelHierarchyChange(newHierarchyArray);
-            return;
+            // Main is not empty
+            // If the clicked rel is not in any of the list, insert to the subordinate?
+            if (clickedIndexInMain < 0 && clickedInSubordinate < 0) {
+                subordinatePatternIndex.push(clickedBubblePatternIndex);
+            } else {
+                if (clickedIndexInMain >= 0) {
+                    // This rel is in main - remove
+                    mainPatternIndex.splice(clickedIndexInMain, 1);
+                } if (clickedInSubordinate >= 0) {
+                    subordinatePatternIndex.splice(clickedInSubordinate, 1);
+                }
+                // TODO: auxilliary
+            }
         }
-        // if (clickedInAuxillary >= 0) {
-        //     // Clicked index in main, remove
-        //     auxillaryPatternIndex.splice(clickedInAuxillary, 1);
-        //     return;
-        // }
+        
+        // If there is only one subordinate rel left and main list is empty, move it to main
+        if (subordinatePatternIndex.length === 1 && mainPatternIndex.length === 0) {
+            mainPatternIndex.push(subordinatePatternIndex[0]);
+            subordinatePatternIndex.splice(0, 1);
+        }
+
+        this.props.onRelHierarchyChange(newHierarchyArray);
     };
 
     render() {
@@ -424,17 +427,6 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
                                     {this.relationNodeDropdownGroup(thisPatternMatchResultGroup)}
                             </div>
                         </div>
-                        {/* <div className="row">
-                            <div className="col">
-                                Mandatory attributes:
-                                {this.attributeDropdownGroup(thisPatternMatchResultGroup[context.selectedMatchResultIndexInPattern])}
-                            </div>
-                        </div>
-                        <div className="row">
-                            <div className="col">
-                                Optional attributes:
-                            </div>
-                        </div> */}
                         <div className="row g-0 mt-2">
                             <div className="col">
                                 <SEAttributesElement
@@ -448,7 +440,6 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
                 </div>
             );
         } else {
-            const thisPatternMatchResultGroup: PatternMatchResult[] = (patternIndex < 0) ? undefined : context.visSchemaMatchStatus[patternIndex];
             const dataLength = context.data === undefined ? 0 : context.data.length;
             return (
                 <div>
@@ -484,26 +475,6 @@ export class SchemaExplorer extends React.Component<SchemaExplorerProps, SchemaE
                             </div>
                         </div>
                     </div>
-                    {/* <div className="row g-0 ps-2 pe-2">
-                        <div className="col">
-                            <div>
-                                Statuses:
-                            </div>
-                            <div>
-                                dataLoaded: {JSON.stringify(context.dataLoaded)}
-                            </div>
-                            <div>
-                                Entry count: {thisPatternMatchResultGroup ? JSON.stringify(thisPatternMatchResultGroup[0].keyCountMatched) : "N/A"}
-                            </div>
-                            <div>
-                                New unique key count check: {thisPatternMatchResultGroup ?
-                                    JSON.stringify(getDatasetEntryCountStatus(
-                                        context.data, context.visSchema[context.selectedPatternIndex],
-                                        context.relationsList[context.relHierarchyIndices[0][0]])) :
-                                    "N/A"}
-                            </div>
-                        </div>
-                    </div> */}
                 </div>
             );
         }

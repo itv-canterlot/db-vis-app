@@ -345,7 +345,14 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
 
         if (newEntities.length === 0 && newRelations.length === 0) {
             this.setState({
-                load: true
+                data: undefined,
+                dataLoaded: false,
+                filters: [],
+                selectedEntitesIndices: [],
+                selectedRelationsIndices: [],
+                load: false,
+                selectedPatternIndex: -1,
+                relHierarchyIndices: [[], [], []]
             });
             return;
         };
@@ -399,9 +406,9 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
                 selectedRelationsIndices: newRelations,
                 visKeyOverride: false
             }, () => {
-                matchAllSelectedRelationsWithVisPatterns(this.getProviderValues()).then(result => {
-                    console.log(result);
-                });
+                if (newRelations.length === 1) {
+                    this.onRelHierarchyChange([[newRelations[0]], [], []])
+                }
             });
         }
     }

@@ -158,8 +158,8 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
 
         let foreignKeyParing = null;
 
-        const selectButtonActive = !this.state.cachedSelectedRelationsIndices.includes(this.state.cachedForeignRelationCardSelectedIndex)
-            && this.state.cachedForeignRelationCardSelectedIndex >= 0;
+        const relSelectButtonActive = !this.state.cachedSelectedRelationsIndices.includes(this.state.cachedForeignRelationCardSelectedIndex)
+            && this.state.cachedForeignRelationCardSelectedIndex >= 0 && this.state.cachedSelectEntitiesIndices.length === 0;
 
         if (thisRels) {
             foreignKeyParing = (
@@ -171,7 +171,7 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
                         </div>
                         <button type="button" 
                             className={"btn btn-info" + 
-                                (!selectButtonActive ? " disabled" : "")} 
+                                (!relSelectButtonActive ? " disabled" : "")} 
                             onClick={this.onNewRelationAddedToSelectedList}>Select</button>
                     </div>
                     <ul className="list-group start-table-rel-list ml-auto mr-auto">
@@ -195,6 +195,9 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
             });
         };
 
+        const tableSelectButtonDisabled = this.state.cachedSelectEntitiesIndices.includes(this.state.cachedDropdownSelectedIndex)
+            || this.state.cachedSelectedRelationsIndices.length !== 0;
+
         const thisTableCardHeader = (
             <div className="d-flex align-items-center justify-content-between">
                 <div>
@@ -204,7 +207,7 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
                 <div>
                     <button type="button" 
                         className={"btn btn-success" + 
-                            (this.state.cachedSelectEntitiesIndices.includes(this.state.cachedDropdownSelectedIndex) ? " disabled" : "")} 
+                            (tableSelectButtonDisabled ? " disabled" : "")} 
                         onClick={this.onNewTableAddedToSelectedList}>Select</button>
                 </div>
             </div>
@@ -291,11 +294,21 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
         )
     }
 
-    onSelectCriteriaChange = () => {
-        const lastSelectCriteria = this.state.dataSelectByTable;
+    // onSelectCriteriaChange = () => {
+    //     const lastSelectCriteria = this.state.dataSelectByTable;
+    //     this.setState({
+    //         dataSelectByTable: !lastSelectCriteria
+    //     });
+    // }
+
+    onResetSelectionClick = () => {
         this.setState({
-            dataSelectByTable: !lastSelectCriteria
-        });
+            cachedDropdownSelectedIndex: -1,
+            cachedForeignRelationCardSelectedIndex: -1,
+            cachedSelectEntitiesIndices: [],
+            cachedSelectedRelationsIndices: [],
+            dataSelectByTable: false
+        })
     }
 
     focusCheck = () => {
@@ -304,18 +317,24 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
         }
     };
 
-    dataSelectCriteriaRadioButtons = () => {
-        return (
-            <div className="btn-group" role="group" aria-label="Data selection criteria button group">
-                <input type="radio" className="btn-check" name="btnradio" id="data-selection-by-table" autoComplete="off"
-                    defaultChecked={this.state.dataSelectByTable} onChange={this.onSelectCriteriaChange} />
-                <label className="btn btn-outline-primary" htmlFor="data-selection-by-table">Select by tables</label>
+    // dataSelectCriteriaRadioButtons = () => {
+    //     return (
+    //         <div className="btn-group" role="group" aria-label="Data selection criteria button group">
+    //             <input type="radio" className="btn-check" name="btnradio" id="data-selection-by-table" autoComplete="off"
+    //                 defaultChecked={this.state.dataSelectByTable} onChange={this.onSelectCriteriaChange} />
+    //             <label className="btn btn-outline-primary" htmlFor="data-selection-by-table">Select by tables</label>
 
-                <input type="radio" className="btn-check" name="btnradio" id="data-selection-by-rels" autoComplete="off"
-                    defaultChecked={!this.state.dataSelectByTable} onChange={this.onSelectCriteriaChange} />
-                <label className="btn btn-outline-primary" htmlFor="data-selection-by-rels">Select by relations</label>
-            </div>
-        );
+    //             <input type="radio" className="btn-check" name="btnradio" id="data-selection-by-rels" autoComplete="off"
+    //                 defaultChecked={!this.state.dataSelectByTable} onChange={this.onSelectCriteriaChange} />
+    //             <label className="btn btn-outline-primary" htmlFor="data-selection-by-rels">Select by relations</label>
+    //         </div>
+    //     );
+    // }
+
+    resetSelectionButton = () => {
+        return (
+            <button type="button" className="btn btn-outline-danger" onClick={this.onResetSelectionClick}>Reset selections</button>
+        )
     }
 
     componentDidMount() {
@@ -367,18 +386,18 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
             return baseClassList;
         };
 
-        const isConfirmButtonActive = () => {
-            if (this.state.dataSelectByTable) {
-                if (this.state.cachedSelectEntitiesIndices.length > 0) {
-                    return true;
-                }
-            } else {
-                if (this.state.cachedSelectedRelationsIndices.length > 0) {
-                    return true;
-                }
-            }
-            return false;
-        }
+        // const isConfirmButtonActive = () => {
+        //     if (this.state.dataSelectByTable) {
+        //         if (this.state.cachedSelectEntitiesIndices.length > 0) {
+        //             return true;
+        //         }
+        //     } else {
+        //         if (this.state.cachedSelectedRelationsIndices.length > 0) {
+        //             return true;
+        //         }
+        //     }
+        //     return false;
+        // }
 
         return (
             <div className="modal fade d-block" role="dialog" id="starting-table-select-modal" style={{overflowY: "hidden"}}>
@@ -392,7 +411,8 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
                         </div>
                         <div className="modal-body">
                             <div className="mb-2">
-                                {this.dataSelectCriteriaRadioButtons()}
+                                {/* {this.dataSelectCriteriaRadioButtons()} */}
+                                {this.resetSelectionButton()}
                             </div>
                             <div className="d-flex ">
                                 <EntitySelector 
@@ -425,7 +445,7 @@ export class StartingTableSelectModal extends React.Component<StartingTableSelec
                             </div>
                         </div>
                         <div className="modal-footer">
-                            <button type="button" className={"btn btn-primary" + (isConfirmButtonActive() ? "" : " disabled")} onClick={this.onTableChangeConfirm}>Confirm</button>
+                            <button type="button" className={"btn btn-primary"} onClick={this.onTableChangeConfirm}>Confirm</button>
                             <button type="button" className="btn btn-secondary" onClick={this.handleOnClose}>Cancel</button>
                         </div>
                     </div>
