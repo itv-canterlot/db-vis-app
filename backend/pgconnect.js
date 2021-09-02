@@ -55,7 +55,7 @@ const dataSelectByRelationshipsQuery = (attrs, fks, parentTableNames, primaryKey
     let attrQueries = "";
     if (mandatoryAttrQueries !== "") attrQueries = ", " + mandatoryAttrQueries;
     if (optionalAttrQueries !== "") attrQueries = attrQueries + ", " + optionalAttrQueries;
-    console.log(attrQueries);
+    // console.log(attrQueries);
 
     const convertFKToQueryFunc = (fk) => {
         let {t1, t2, attrs} = fk;
@@ -491,7 +491,7 @@ async function getTableDistinctColumnCountByColumnName(tableName, columnNames) {
 
 async function getPivotTable(tableName, keyAtts, pivotAtt, conditionAtt, values) {
     const query = pivotTableQuery(tableName, keyAtts, pivotAtt, conditionAtt, values);
-    console.log(query)
+    // console.log(query)
     return await singlePoolRequest(query);
 }
 
