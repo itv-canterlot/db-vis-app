@@ -53,7 +53,7 @@ function renderScatterPlot(parameters: VisTemplateBuilder) {
         nullFilterIndex--;
     }
 
-    console.log(nullPoints)
+    // console.log(nullPoints)
 
     // Floating point values for the data points - for statistical use only, not for plotting
     const xfloat = data
@@ -339,7 +339,7 @@ function renderBarPlot(parameters: VisTemplateBuilder) {
         nullFilterIndex--;
     }
 
-    console.log(nullPoints)
+    // console.log(nullPoints)
 
     // Floating point values for the data points - for statistical use only, not for plotting
     const xfloat = data

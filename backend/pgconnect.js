@@ -100,7 +100,7 @@ const dataSelectByRelationshipsQuery = (attrs, fks, parentTableNames, primaryKey
     }
 
     const completedQuery = `SELECT ${primaryKeyAttributeQueries} ${attrQueries} FROM ${tableJoinQueries.join(" ")};`;
-    console.log(completedQuery)
+    // console.log(completedQuery)
 
     return completedQuery;
 }

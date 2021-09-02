@@ -169,7 +169,7 @@ export class Visualiser extends React.Component<VisualiserProps, VisualiserState
             yLogScale: true
         }
 
-        console.log(params);
+        // console.log(params);
 
         if (!context.data || context.data.length === 0) {
             this.setState({

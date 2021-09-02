@@ -291,7 +291,7 @@ class Application extends React.Component<{}, ComponentTypes.ApplicationStates> 
             .then(getDataCallback.bind(this))
 
         const setStateCallback = (visSchemaMatchesFromRels => {
-            console.log(visSchemaMatchesFromRels)
+            // console.log(visSchemaMatchesFromRels)
         });
 
         this.getVisSchemaMatchesFromSelectedRelations().then(setStateCallback.bind(this));
